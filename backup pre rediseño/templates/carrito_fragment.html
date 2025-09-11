@@ -1,0 +1,71 @@
+{% if carrito and carrito|length > 0 %}
+<table class="table table-sm table-bordered align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>#</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Cantidad</th>
+            <th>Proveedor</th>
+            <th>Fecha</th>
+            <th>Obs.</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in carrito %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.codigo }}</td>
+            <td>{{ item.nombre }}</td>
+            <td>
+                {% if item.precio_texto %}
+                    {{ item.precio_texto }}
+                {% else %}
+                    ${{ '{:,.2f}'.format(item.precio).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                {% endif %}
+            </td>
+            <td>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="carritoAccion('restar', {{ loop.index0 }})">-</button>
+                <input type="number" min="1" value="{{ item.cantidad }}" style="width:60px;display:inline-block;text-align:center;" class="form-control form-control-sm d-inline-block mx-1" onchange="carritoAccion('actualizar', {{ loop.index0 }}, this.value)">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="carritoAccion('sumar', {{ loop.index0 }})">+</button>
+            </td>
+            <td>{{ item.proveedor }}</td>
+            <td>{{ item.fecha_compra }}</td>
+            <td>{{ item.observaciones }}</td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm" onclick="carritoAccion('eliminar', {{ loop.index0 }})">Eliminar</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<form method="post" action="{{ url_for('agregar_producto') }}" id="form-carrito-cargar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" name="cargar_carrito" value="1" class="btn btn-success w-100">Cargar todo al stock</button>
+</form>
+{% else %}
+<p class="text-muted">No hay productos en el carrito.</p>
+{% endif %}
+<script>
+function carritoAccion(accion, idx, cantidad) {
+    let data = {accion: accion, idx: idx};
+    if (typeof cantidad !== 'undefined' && cantidad !== null) data.cantidad = cantidad;
+    fetch("{{ url_for('carrito_accion') }}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(Object.assign(data, {csrf_token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')}))
+    })
+    .then(response => response.json())
+    .then(res => {
+        if(res.success) {
+            document.getElementById('carrito-container').innerHTML = res.html;
+        }
+    });
+}
+</script>

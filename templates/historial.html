@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Historial de Stock</h1>
+</div>
+
+<ul class="nav nav-tabs" id="histTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-ferreteria" data-bs-toggle="tab" data-bs-target="#pane-ferreteria" type="button" role="tab">Ferretería General</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-ricky" data-bs-toggle="tab" data-bs-target="#pane-ricky" type="button" role="tab">Ricky</button>
+  </li>
+</ul>
+<div class="tab-content border border-top-0 p-2">
+<div class="tab-pane fade show active" id="pane-ferreteria" role="tabpanel">
+<div class="mb-2 d-flex gap-2">
+    <button type="button" id="btn-eliminar-seleccionados-fg" class="btn btn-danger">Eliminar seleccionados</button>
+    <button type="button" id="btn-eliminar-todo-fg" class="btn btn-outline-danger">Eliminar todo (Ferretería)</button>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th><input type="checkbox" id="select_all" onclick="for(let cb of document.querySelectorAll('.select-row')){cb.checked=this.checked}"></th>
+                <th>Fecha de compra</th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Proveedor</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Observaciones</th>
+                <th>Stock Bajo</th>
+                <th>Vender</th>
+                <th>Eliminar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in productos if p.dueno == 'ferreteria_general' %}
+            <tr>
+                <td><input type="checkbox" name="seleccionados" value="{{ p.id }}" class="select-row"></td>
+                <td>{{ p.fecha_compra }}</td>
+                <td>{{ p.codigo }}</td>
+                <td>{{ p.nombre }}</td>
+                <td>{{ p.proveedor }}</td>
+                <td>
+                    {% set precio_val = p.precio %}
+                    {% if precio_val is number or precio_val|float(0) != 0 %}
+                        ${{ '{:,.2f}'.format(precio_val|float).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                    {% else %}
+                        {{ precio_val }}
+                    {% endif %}
+                </td>
+                <td>{{ p.cantidad }}</td>
+                <td>{{ p.observaciones }}</td>
+                <td>
+                    {% if (p.cantidad|int) <= 0 %}
+                        <i class="bi bi-x-circle text-danger" title="Sin stock"></i>
+                    {% elif (p.avisar_bajo_stock|int) == 1 and p.min_stock_aviso is not none and (p.cantidad|int) <= (p.min_stock_aviso|int) %}
+                        <i class="bi bi-exclamation-triangle text-warning" title="Stock bajo ({{ p.cantidad }} / {{ p.min_stock_aviso }})"></i>
+                    {% else %}
+                        <i class="bi bi-check-circle text-success" title="Stock suficiente"></i>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{{ url_for('actualizar_stock', id=p.id) }}" class="d-flex form-vender" data-id="{{ p.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="number" name="cantidad_vendida" min="1" max="{{ p.cantidad }}" value="1" class="form-control form-control-sm me-1" style="width:70px;">
+                        <button type="submit" class="btn btn-warning btn-sm">Vender</button>
+                    </form>
+                </td>
+                <td>-</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+  </div>
+</div>
+<div class="tab-pane fade" id="pane-ricky" role="tabpanel">
+  <div class="mb-2 d-flex gap-2">
+    <button type="button" id="btn-eliminar-seleccionados-ricky" class="btn btn-danger">Eliminar seleccionados</button>
+    <button type="button" id="btn-eliminar-todo-ricky" class="btn btn-outline-danger">Eliminar todo (Ricky)</button>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th><input type="checkbox" id="select_all_r" onclick="for(let cb of document.querySelectorAll('.select-row-r')){cb.checked=this.checked}"></th>
+          <th>Fecha de compra</th>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Proveedor</th>
+          <th>Precio</th>
+          <th>Cantidad</th>
+          <th>Observaciones</th>
+          <th>Stock Bajo</th>
+          <th>Vender</th>
+          <th>Eliminar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in productos if p.dueno == 'ricky' %}
+        <tr>
+          <td><input type="checkbox" class="select-row-r" value="{{ p.id }}"></td>
+          <td>{{ p.fecha_compra }}</td>
+          <td>{{ p.codigo }}</td>
+          <td>{{ p.nombre }}</td>
+          <td>{{ p.proveedor }}</td>
+          <td>
+            {% set precio_val = p.precio %}
+            {% if precio_val is number or precio_val|float(0) != 0 %}
+              ${{ '{:,.2f}'.format(precio_val|float).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            {% else %}
+              {{ precio_val }}
+            {% endif %}
+          </td>
+          <td>{{ p.cantidad }}</td>
+          <td>{{ p.observaciones }}</td>
+          <td>
+            {% if (p.cantidad|int) <= 0 %}
+              <i class="bi bi-x-circle text-danger" title="Sin stock"></i>
+            {% elif (p.avisar_bajo_stock|int) == 1 and p.min_stock_aviso is not none and (p.cantidad|int) <= (p.min_stock_aviso|int) %}
+              <i class="bi bi-exclamation-triangle text-warning" title="Stock bajo ({{ p.cantidad }} / {{ p.min_stock_aviso }})"></i>
+            {% else %}
+              <i class="bi bi-check-circle text-success" title="Stock suficiente"></i>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('actualizar_stock', id=p.id) }}" class="d-flex form-vender" data-id="{{ p.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="number" name="cantidad_vendida" min="1" max="{{ p.cantidad }}" value="1" class="form-control form-control-sm me-1" style="width:70px;">
+              <button type="submit" class="btn btn-warning btn-sm">Vender</button>
+            </form>
+          </td>
+          <td>-</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<script>
+// Enviar eliminar todo con fetch JSON para evitar problema de Content-Type
+document.getElementById('btn-eliminar-todo-fg')?.addEventListener('click', function() {
+    if(!confirm('¿Seguro que deseas eliminar todo el historial?')) return;
+    fetch("{{ url_for('eliminar_todo_historial') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({csrf_token: '{{ csrf_token() }}', dueno: 'ferreteria_general'})
+    }).then(r => r.json()).then(res => {
+        if(res.success){
+            const tbody = document.querySelector('#pane-ferreteria tbody');
+            if (tbody) tbody.innerHTML = '';
+        } else { alert(res.error || 'Error al eliminar'); }
+    }).catch(err => alert('Error de red'));
+});
+
+// Eliminar seleccionados via JSON
+document.getElementById('btn-eliminar-seleccionados-fg')?.addEventListener('click', function() {
+    const ids = Array.from(document.querySelectorAll('.select-row:checked')).map(cb => cb.value);
+    if(ids.length === 0) { alert('No hay elementos seleccionados.'); return; }
+    if(!confirm(`¿Eliminar ${ids.length} elemento(s) seleccionados?`)) return;
+    fetch("{{ url_for('eliminar_seleccionados') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ ids: ids, csrf_token: '{{ csrf_token() }}', dueno: 'ferreteria_general' })
+    }).then(r => r.json()).then(res => {
+        if(res.success){
+            document.querySelectorAll('.select-row:checked').forEach(cb => {
+                const tr = cb.closest('tr'); if (tr) tr.remove();
+            });
+        } else { alert(res.error || 'Error al eliminar seleccionados'); }
+    }).catch(err => alert('Error de red'));
+});
+
+// Botones Ricky
+document.getElementById('btn-eliminar-todo-ricky')?.addEventListener('click', function() {
+    if(!confirm('¿Seguro que deseas eliminar todo el historial de Ricky?')) return;
+    fetch("{{ url_for('eliminar_todo_historial') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({csrf_token: '{{ csrf_token() }}', dueno: 'ricky'})
+    }).then(r => r.json()).then(res => {
+        if(res.success){
+            const tbody = document.querySelector('#pane-ricky tbody');
+            if (tbody) tbody.innerHTML = '';
+        } else { alert(res.error || 'Error al eliminar'); }
+    }).catch(err => alert('Error de red'));
+});
+
+document.getElementById('btn-eliminar-seleccionados-ricky')?.addEventListener('click', function() {
+    const ids = Array.from(document.querySelectorAll('.select-row-r:checked')).map(cb => cb.value);
+    if(ids.length === 0) { alert('No hay elementos seleccionados.'); return; }
+    if(!confirm(`¿Eliminar ${ids.length} elemento(s) seleccionados de Ricky?`)) return;
+    fetch("{{ url_for('eliminar_seleccionados') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ ids: ids, csrf_token: '{{ csrf_token() }}', dueno: 'ricky' })
+    }).then(r => r.json()).then(res => {
+        if(res.success){
+            document.querySelectorAll('.select-row-r:checked').forEach(cb => {
+                const tr = cb.closest('tr'); if (tr) tr.remove();
+            });
+        } else { alert(res.error || 'Error al eliminar seleccionados'); }
+    }).catch(err => alert('Error de red'));
+});
+// Venta AJAX sin recargar ni cambiar de pestaña
+document.querySelectorAll('.form-vender').forEach(form => {
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const id = this.getAttribute('data-id');
+    const qty = this.querySelector('input[name="cantidad_vendida"]').value || '1';
+    fetch(this.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+      body: JSON.stringify({ cantidad_vendida: parseInt(qty,10), csrf_token: '{{ csrf_token() }}' })
+    }).then(r => r.json()).then(res => {
+      if(res && res.success){
+        // Actualizar cantidad en la fila
+        const row = this.closest('tr');
+        const cantidadCell = row?.querySelector('td:nth-child(7)');
+        if(cantidadCell){ cantidadCell.textContent = res.nueva_cantidad; }
+        // Actualizar icono de estado
+        const statusCell = row?.querySelector('td:nth-child(9)');
+        if(statusCell){
+          let html = '';
+          if(res.nueva_cantidad <= 0){
+            html = '<i class="bi bi-x-circle text-danger" title="Sin stock"></i>';
+          } else if(parseInt(res.avisar_bajo_stock||0,10) === 1 && res.min_stock_aviso !== null && res.nueva_cantidad <= parseInt(res.min_stock_aviso||0,10)){
+            html = `<i class="bi bi-exclamation-triangle text-warning" title="Stock bajo (${res.nueva_cantidad} / ${res.min_stock_aviso})"></i>`;
+          } else {
+            html = '<i class="bi bi-check-circle text-success" title="Stock suficiente"></i>';
+          }
+          statusCell.innerHTML = html;
+        }
+        // Toast si corresponde
+        if (res.mostrar_toast) {
+          const containerId = 'toast-container';
+          let toastContainer = document.getElementById(containerId);
+          if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = containerId;
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '1050';
+            document.body.appendChild(toastContainer);
+          }
+          const toastHtml = `<div class="toast align-items-center text-bg-warning border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-bell-fill me-2"></i> Revisar el área de notificaciones</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+              </div>
+            </div>`;
+          const temp = document.createElement('div');
+          temp.innerHTML = toastHtml;
+          const toastEl = temp.firstElementChild;
+          toastContainer.appendChild(toastEl);
+          setTimeout(()=>{ if(toastEl && toastEl.parentNode) toastEl.remove(); }, 3000);
+        }
+      } else {
+        alert((res && res.error) || 'Error al vender');
+      }
+    }).catch(()=>alert('Error de red'));
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>Historial y Gestión de Stock</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{{ url_for('historial') }}" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o código..." value="{{ termino_busqueda }}">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+                <a href="{{ url_for('historial') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha Compra</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Proveedor</th>
+                        <th>Precio Unit.</th>
+                        <th>Cantidad Actual</th>
+                        <th>Observaciones</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productos %}
+                    <tr>
+                        <td>{{ p.fecha_compra }}</td>
+                        <td>{{ p.codigo or 'N/A' }}</td>
+                        <td>{{ p.nombre }}</td>
+                        <td>{{ p.proveedor or 'N/A' }}</td>
+                        <td>
+                          {% if p.precio_texto %}
+                            {{ p.precio_texto }}
+                          {% elif p.PrecioTexto %}
+                            {{ p.PrecioTexto }}
+                          {% elif p.precio is number %}
+                            ${{ '{:,.2f}'.format(p.precio).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                          {% else %}
+                            ${{ "%.2f"|format(p.precio|float) if p.precio else "0.00" }}
+                          {% endif %}
+                        </td>
+                        <td><strong>{{ p.cantidad }}</strong></td>
+                        <td>{{ p.observaciones or '' }}</td>
+                        <td>
+                            {% if p.cantidad > 0 %}
+                            <form method="post" action="{{ url_for('actualizar_stock', id=p.id) }}" class="d-flex mb-1">
+                                <input type="number" name="cantidad_vendida" class="form-control form-control-sm me-2" placeholder="Cant." min="1" max="{{ p.cantidad }}" required style="width: 80px;">
+                                <button type="submit" class="btn btn-success btn-sm">Vender</button>
+                            </form>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('eliminar_producto_stock', id=p.id) }}" style="display:inline;">
+                                <button class="btn btn-danger btn-sm" type="submit" onclick="return confirm('¿Eliminar solo del stock?');">Eliminar de Stock</button>
+                            </form>
+                            {% if p.proveedor == 'Otros Proveedores' %}
+                                <form method="post" action="{{ url_for('eliminar_producto_otros_proveedores', codigo=p.codigo) }}" style="display:inline;">
+                                    <button class="btn btn-warning btn-sm" type="submit" onclick="return confirm('¿Eliminar también del Excel de Otros Proveedores?');">Eliminar de Excel</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">No hay productos en el stock. Comience agregando uno.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

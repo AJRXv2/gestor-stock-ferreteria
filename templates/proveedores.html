@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Proveedores{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Gestionar Proveedores</h1>
+</div>
+
+<div class="row">
+    <!-- Columna para agregar proveedor Ferretería General -->
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-shop"></i> Ferretería General
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('agregar_proveedor') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group">
+                        <input type="text" name="nombre" class="form-control" placeholder="Nombre del proveedor" required>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Agregar
+                        </button>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Se agregará a Ferretería General</small>
+                </form>
+                {% if proveedores_fg %}
+                <hr>
+                <div class="small text-muted">Proveedores actuales:</div>
+                <ul class="list-group list-group-flush">
+                    {% for p in proveedores_fg %}
+                    <li class="list-group-item py-1">{{ p.nombre }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Columna para agregar proveedor Ricky -->
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-circle"></i> Ricky
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('agregar_proveedor') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="dueno" value="ricky">
+                    <div class="input-group">
+                        <input type="text" name="nombre" class="form-control" placeholder="Nombre del proveedor" required>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Agregar
+                        </button>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Se agregará a los proveedores de Ricky</small>
+                </form>
+                {% if proveedores_ricky %}
+                <hr>
+                <div class="small text-muted">Proveedores actuales:</div>
+                <ul class="list-group list-group-flush">
+                    {% for p in proveedores_ricky %}
+                    <li class="list-group-item py-1">{{ p.nombre }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Columna para buscar y eliminar proveedores -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>
+                    <i class="bi bi-search"></i> Buscar y Eliminar Proveedores
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('proveedores') }}" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="busqueda_proveedor" class="form-control" 
+                               placeholder="Buscar en todos los proveedores..." 
+                               value="{{ busqueda_proveedor or '' }}">
+                        <button class="btn btn-outline-primary" type="submit">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                </form>
+                
+                {% if proveedores_encontrados and busqueda_proveedor %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Se encontraron {{ proveedores_encontrados|length }} proveedor(es) que coinciden con "{{ busqueda_proveedor }}"
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Proveedor</th>
+                                <th>Dueño</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proveedor in proveedores_encontrados %}
+                            <tr>
+                                <td>
+                                    <strong>{{ proveedor.nombre }}</strong>
+                                </td>
+                                <td>
+                                    {% if proveedor.dueno == 'ricky' %}
+                                        Ricky
+                                    {% else %}
+                                        Ferretería General
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{{ url_for('eliminar_proveedor_manual') }}" style="display:inline-block">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="id" value="{{ proveedor.id }}">
+                                        <input type="hidden" name="dueno" value="{{ proveedor.dueno }}">
+                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('¿Ocultar proveedor \'{{ proveedor.nombre }}\' para {{ proveedor.dueno == 'ricky' and 'Ricky' or 'Ferretería General' }}?\n\n(No se modifican archivos Excel).');">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% elif busqueda_proveedor %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> No se encontraron proveedores que coincidan con "{{ busqueda_proveedor }}"
+                </div>
+                {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Proveedor</th>
+                                <th>Dueño</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proveedor in todos_proveedores %}
+                            <tr>
+                                <td><strong>{{ proveedor.nombre }}</strong></td>
+                                <td>
+                                    {% if proveedor.dueno == 'ricky' %}
+                                        Ricky
+                                    {% else %}
+                                        Ferretería General
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{{ url_for('eliminar_proveedor_manual') }}" style="display:inline-block">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="id" value="{{ proveedor.id }}">
+                                        <input type="hidden" name="dueno" value="{{ proveedor.dueno }}">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Ocultar proveedor \"{{ proveedor.nombre }}\" para {{ proveedor.dueno == 'ricky' and 'Ricky' or 'Ferretería General' }}?\n(No se modifican archivos Excel).')">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

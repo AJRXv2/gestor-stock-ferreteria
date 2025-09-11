@@ -1,0 +1,25 @@
+{% if producto %}
+<form onsubmit="guardarEdicionManual(event, '{{ producto.Codigo }}')">
+    <div class="row mb-2">
+        <div class="col-md-3">
+            <label class="form-label">Proveedor</label>
+            <input type="text" name="proveedor" class="form-control" value="{{ producto.Proveedor }}" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Nombre</label>
+            <input type="text" name="nombre" class="form-control" value="{{ producto.Nombre }}" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Código</label>
+            <input type="text" name="codigo" class="form-control" value="{{ producto.Codigo }}" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Precio</label>
+            <input type="text" name="precio" class="form-control" value="{{ producto.Precio }}" required>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Guardar Cambios</button>
+</form>
+{% elif error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}

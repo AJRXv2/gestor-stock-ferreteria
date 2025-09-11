@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Proveedores{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Gestionar Proveedores</h1>
+</div>
+
+<div class="row">
+    <!-- Columna para agregar proveedor -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Agregar Nuevo Proveedor</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('agregar_proveedor_manual') }}" method="post">
+                    <div class="input-group">
+                        <input type="text" name="nombre" class="form-control" placeholder="Nombre del nuevo proveedor" required>
+                        <button type="submit" class="btn btn-primary">Agregar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna para listar y eliminar proveedores -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Proveedores Existentes</h4>
+            </div>
+            <div class="card-body">
+                {% if proveedores_manual %}
+                <ul class="list-group">
+                    {% for proveedor in proveedores_manual %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ proveedor.nombre }}
+                        <form action="{{ url_for('eliminar_proveedor_manual', id=proveedor.id) }}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar a \'{{ proveedor.nombre }}\'? Se borrarán también todos los productos manuales asociados a este proveedor.');">
+                                Eliminar
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">No hay proveedores manuales para mostrar.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

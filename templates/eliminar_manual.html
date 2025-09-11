@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Productos Manuales{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Gestionar Productos Manuales</h1>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Proveedores de Ricky</label>
+        <select id="gm_prov_ricky" class="form-select">
+          <option value="">Elegir proveedor (Ricky)</option>
+          <option value="__ALL__">Todos (Ricky)</option>
+          {% for p in proveedores_ricky %}
+            <option value="{{ p.id }}" data-dueno="ricky">{{ p.nombre }} (Ricky)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Proveedores Ferretería General</label>
+        <select id="gm_prov_fg" class="form-select">
+          <option value="">Elegir proveedor (Ferretería)</option>
+          <option value="__ALL__">Todos (Ferretería)</option>
+          {% for p in proveedores_fg %}
+            <option value="{{ p.id }}" data-dueno="ferreteria_general">{{ p.nombre }} (Ferretería General)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-9">
+        <input id="gm_termino" type="text" class="form-control" placeholder="Buscar por nombre o código...">
+            </div>
+      <div class="col-md-3 d-grid">
+        <button id="gm_btn_buscar" class="btn btn-primary">Buscar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="gm_msg"></div>
+
+<div class="card">
+    <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div>
+        <button id="gm_btn_eliminar_sel" class="btn btn-danger btn-sm">Eliminar seleccionados</button>
+        <button id="gm_btn_eliminar_prov" class="btn btn-outline-danger btn-sm">Eliminar todos de este proveedor</button>
+      </div>
+      <small class="text-muted" id="gm_resumen"></small>
+            </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle" id="gm_tabla">
+        <thead>
+          <tr>
+            <th style="width:28px;"><input type="checkbox" id="gm_check_all"></th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Proveedor</th>
+            <th>Dueño</th>
+            <th style="width:120px;">Editar</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+            </div>
+    </div>
+</div>
+
+<script>
+(function(){
+  const selR = document.getElementById('gm_prov_ricky');
+  const selF = document.getElementById('gm_prov_fg');
+  const termino = document.getElementById('gm_termino');
+  const tbody = document.querySelector('#gm_tabla tbody');
+  const checkAll = document.getElementById('gm_check_all');
+  const resumen = document.getElementById('gm_resumen');
+  const msg = document.getElementById('gm_msg');
+
+  function exclusividad() { if (this===selR && selR.value) selF.value=''; if (this===selF && selF.value) selR.value=''; }
+  selR.addEventListener('change', exclusividad); selF.addEventListener('change', exclusividad);
+
+  function setMsg(html, ok=true){ msg.innerHTML = `<div class="alert alert-${ok?'success':'danger'} alert-dismissible fade show" role="alert">${html}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
+
+  function renderRows(rows){
+    tbody.innerHTML = '';
+    rows.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type=\"checkbox\" class=\"gm_ck\" data-cod=\"${r.codigo}\"></td>
+        <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_codigo\" value=\"${r.codigo||''}\"></td>
+        <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_nombre\" value=\"${r.nombre||''}\"></td>
+        <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_precio\" value=\"${r.precio||''}\"></td>
+        <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_proveedor\" value=\"${r.proveedor||''}\"></td>
+        <td>
+          <select class=\"form-select form-select-sm gm_ed_dueno\">
+            <option value=\"ricky\" ${ (r.dueno||'').toLowerCase()==='ricky'?'selected':'' }>Ricky</option>
+            <option value=\"ferreteria_general\" ${ (r.dueno||'').toLowerCase()==='ferreteria_general'?'selected':'' }>Ferretería General</option>
+          </select>
+        </td>
+        <td><button class=\"btn btn-outline-primary btn-sm gm_btn_guardar\">Guardar</button></td>`;
+      tbody.appendChild(tr);
+    });
+    resumen.textContent = rows.length + ' producto(s)';
+  }
+
+  function buscar(){
+    let provId = selR.value || selF.value || '';
+    let dueno = '';
+    if (selR.value) dueno = 'ricky';
+    if (selF.value) dueno = 'ferreteria_general';
+    if (provId === '__ALL__') provId = '';
+    if(!provId && !dueno){ setMsg('Seleccione un proveedor o "Todos" para un dueño.', false); return; }
+    fetch('{{ url_for("manual_listar_ajax") }}',{
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+      body: JSON.stringify({proveedor_id: provId, dueno: dueno, termino: termino.value, csrf_token:'{{ csrf_token() }}'})
+    }).then(r=>r.json()).then(res=>{ if(res.success){ renderRows(res.productos||[]); msg.innerHTML=''; } else if(res.html){ tbody.innerHTML=res.html; } });
+  }
+  document.getElementById('gm_btn_buscar').addEventListener('click', buscar);
+
+  checkAll.addEventListener('change', ()=>{ document.querySelectorAll('.gm_ck').forEach(ck=> ck.checked = checkAll.checked); });
+
+  document.getElementById('gm_btn_eliminar_sel').addEventListener('click', ()=>{
+    const cods = Array.from(document.querySelectorAll('.gm_ck:checked')).map(x=>x.getAttribute('data-cod'));
+    if(cods.length===0){ setMsg('No hay productos seleccionados.', false); return; }
+    if(!confirm('¿Eliminar los seleccionados?')) return;
+    fetch('{{ url_for("manual_eliminar_seleccionados_ajax") }}',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+      body: JSON.stringify({codigos: cods, csrf_token:'{{ csrf_token() }}'})
+    }).then(r=>r.json()).then(res=>{ setMsg(res.msg, !!res.success); buscar(); });
+  });
+
+  document.getElementById('gm_btn_eliminar_prov').addEventListener('click', ()=>{
+    const provId = selR.value || selF.value || '';
+    const dueno = selR.value ? 'ricky' : (selF.value ? 'ferreteria_general' : '');
+    if(provId === '__ALL__'){ setMsg('No puede eliminar "Todos". Seleccione un proveedor específico.', false); return; }
+    if(!provId){ setMsg('Seleccione un proveedor.', false); return; }
+    if(!confirm('¿Eliminar todos los productos de este proveedor en la base local?')) return;
+    fetch('{{ url_for("manual_eliminar_por_proveedor_ajax") }}',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+      body: JSON.stringify({proveedor_id: provId, dueno: dueno, csrf_token:'{{ csrf_token() }}'})
+    }).then(r=>r.json()).then(res=>{ setMsg(res.msg, !!res.success); buscar(); });
+  });
+
+  tbody.addEventListener('click', (e)=>{
+    if(!e.target.classList.contains('gm_btn_guardar')) return;
+    const tr = e.target.closest('tr');
+    const codigo_original = tr.querySelector('.gm_ck').getAttribute('data-cod');
+    const codigo = tr.querySelector('.gm_ed_codigo').value.trim();
+    const nombre = tr.querySelector('.gm_ed_nombre').value;
+    const precio = tr.querySelector('.gm_ed_precio').value;
+    const proveedor_txt = tr.querySelector('.gm_ed_proveedor').value.trim();
+    const dueno_sel = tr.querySelector('.gm_ed_dueno').value;
+
+    fetch('{{ url_for("manual_actualizar_ajax") }}',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+      body: JSON.stringify({codigo_original: codigo_original, nombre: nombre, codigo: codigo, precio: precio, proveedor_nombre: proveedor_txt, dueno: dueno_sel, csrf_token:'{{ csrf_token() }}'})
+    }).then(r=>r.json()).then(res=>{ setMsg(res.msg, !!res.success); buscar(); });
+  });
+})();
+</script>
+{% endblock %}

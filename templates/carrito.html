@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Carrito - Gestor de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Carrito de Compras</h1>
+    {% if productos %}
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <form method="post" action="{{ url_for('limpiar_carrito') }}" onsubmit="return confirm('¿Limpiar todo el carrito?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i> Limpiar Carrito
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% if productos %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Productos en el Carrito</h5>
+            </div>
+            <div class="card-body" id="carrito-container">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Precio Unit.</th>
+                                <th>Cantidad</th>
+                                <th>Subtotal</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carrito-tbody">
+                            {% for producto in productos %}
+                            <tr>
+                                <td>{{ producto.codigo or 'S/C' }}</td>
+                                <td>{{ producto.nombre }}</td>
+                                <td>${{ "%.2f"|format(producto.precio) }}</td>
+                                <td>{{ producto.cantidad }}</td>
+                                <td>${{ "%.2f"|format(producto.precio * producto.cantidad) }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="modificarCantidad({{ loop.index0 }}, 'sumar')">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="modificarCantidad({{ loop.index0 }}, 'restar')">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="modificarCantidad({{ loop.index0 }}, 'eliminar')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Resumen</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <span>Total productos:</span>
+                    <span>{{ productos|length }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Total unidades:</span>
+                    <span>{{ productos|sum(attribute='cantidad') }}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <strong>Total:</strong>
+                    <strong>${{ "%.2f"|format(total) }}</strong>
+                </div>
+                <div class="mt-3">
+                    <form method="post" action="{{ url_for('agregar_producto') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="cargar_carrito" value="1">
+                        <button type="submit" class="btn btn-success w-100" 
+                                onclick="return confirm('¿Cargar todos los productos al stock?')">
+                            <i class="bi bi-check-circle"></i> Cargar al Stock
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <h4><i class="bi bi-cart"></i> El carrito está vacío</h4>
+    <p>No hay productos en el carrito. Dirígete a <a href="{{ url_for('agregar_producto') }}" class="alert-link">Agregar Productos</a> para comenzar.</p>
+</div>
+{% endif %}
+
+<script>
+function modificarCantidad(idx, accion) {
+    fetch('{{ url_for("carrito_accion") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            accion: accion,
+            idx: idx,
+            csrf_token: '{{ csrf_token() }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Recargar la página para ver los cambios
+        } else {
+            alert('Error: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la acción');
+    });
+}
+</script>
+
+{% endblock %}

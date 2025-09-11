@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Historial de Stock</h1>
+</div>
+
+<!-- Formulario de búsqueda -->
+<form method="get" action="{{ url_for('historial') }}" class="mb-4">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="Buscar por nombre, código, proveedor, observaciones..." value="{{ termino_busqueda or '' }}">
+        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th><input type="checkbox" id="check-todos" onclick="toggleTodos(this)"></th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Fecha Compra</th>
+                <th>Proveedor</th>
+                <th>Observaciones</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr>
+                <td><input type="checkbox" name="seleccionados" value="{{ producto.id }}" class="chk-seleccionado"></td>
+                <td>{{ producto.codigo }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>
+                    {% if producto.precio_texto %}
+                        {{ producto.precio_texto }}
+                    {% else %}
+                        ${{ "{:,.2f}".format(producto.precio).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                    {% endif %}
+                </td>
+                <td>{{ producto.cantidad }}</td>
+                <td>{{ producto.fecha_compra }}</td>
+                <td>{{ producto.proveedor }}</td>
+                <td>{{ producto.observaciones }}</td>
+                <td class="text-nowrap">
+                    <!-- Formulario independiente por fila para vender (no está anidado) -->
+                    <form method="post" action="{{ url_for('actualizar_stock', id=producto.id) }}" style="display:inline-block;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="input-group input-group-sm">
+                            <input type="number" name="cantidad_vendida" min="1" class="form-control" placeholder="Cant." style="width:80px;">
+                            <button type="submit" class="btn btn-success">Vender</button>
+                        </div>
+                    </form>
+                    <!-- Formulario para eliminar individual -->
+                    <form method="post" action="{{ url_for('eliminar_producto_stock', id=producto.id) }}" style="display:inline-block; margin-left:6px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar este producto del historial?')">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center text-muted">No hay productos en el historial.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Botón para eliminar seleccionados: formulario independiente que enviará ids por JS para evitar formularios anidados -->
+<form method="post" action="{{ url_for('eliminar_seleccionados') }}" id="form-eliminar-seleccionados">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="seleccionados" id="seleccionados-hidden">
+    <div class="d-flex gap-2 mb-3">
+        <button type="button" class="btn btn-danger" id="btn-eliminar-seleccionados">Eliminar seleccionados</button>
+    </div>
+</form>
+<form method="post" action="{{ url_for('eliminar_todo_historial') }}" onsubmit="return confirm('¿Eliminar TODOS los productos del historial? Esta acción no se puede deshacer.')" class="mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-dark">Eliminar todo</button>
+</form>
+<script>
+function toggleTodos(source) {
+    const checkboxes = document.querySelectorAll('.chk-seleccionado');
+    for (let cb of checkboxes) {
+        cb.checked = source.checked;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnEliminar = document.getElementById('btn-eliminar-seleccionados');
+    const formEliminar = document.getElementById('form-eliminar-seleccionados');
+    btnEliminar && btnEliminar.addEventListener('click', function() {
+        const checked = Array.from(document.querySelectorAll('.chk-seleccionado:checked'));
+        if (checked.length === 0) {
+            alert('No hay productos seleccionados.');
+            return;
+        }
+        if (!confirm(`¿Eliminar ${checked.length} producto(s) seleccionados?`)) return;
+        // Rellenar el input hidden con una lista separada por comas
+        const hiddenInput = document.getElementById('seleccionados-hidden');
+        const ids = checked.map(ch => ch.value.trim()).filter(Boolean);
+        // El servidor acepta tanto múltiples valores como un único valor con comas
+        hiddenInput.value = ids.join(',');
+        formEliminar.submit();
+    });
+});
+</script>
+{% endblock %}

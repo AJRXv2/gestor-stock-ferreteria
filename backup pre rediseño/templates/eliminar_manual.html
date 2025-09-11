@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Productos Manuales{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Gestionar Productos Manuales</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p class="card-text">
+            Aquí puedes buscar, editar o eliminar productos que hayas agregado manualmente (en la sección "Otros Proveedores")
+            en el archivo Excel <code>productos_manual.xlsx</code>.
+        </p>
+        <!-- Formulario de búsqueda -->
+        <form method="post" action="{{ url_for('eliminar_manual') }}" class="mb-4" id="form-buscar-manual">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="input-group">
+                <input type="text" name="search_term" class="form-control" placeholder="Buscar por nombre, código, proveedor..." value="{{ search_term or '' }}" required>
+                <button class="btn btn-primary" type="submit" name="buscar" value="buscar">Buscar</button>
+            </div>
+        </form>
+        <!-- Mensaje de éxito AJAX -->
+        <div id="msg-eliminar-manual"></div>
+        <!-- Botón para eliminar todo -->
+        <button type="button" class="btn btn-dark mb-3" onclick="eliminarTodoManual('{{ search_term }}')">Eliminar todos los productos encontrados</button>
+        <!-- Resultados de la búsqueda -->
+        <div id="resultados-manual">
+        {% if search_term and productos %}
+            {% include 'eliminar_manual_resultados.html' %}
+        {% elif search_term %}
+            <p class="text-muted mt-3">No se encontraron productos manuales que coincidan con tu búsqueda.</p>
+        {% endif %}
+        </div>
+    </div>
+</div>
+<!-- Formulario para editar producto manual -->
+<div class="card">
+    <div class="card-body">
+        <h4 class="mb-3">Editar Producto Manual</h4>
+        <form id="form-editar-manual" onsubmit="buscarProductoEditarManual(event)">
+            <div class="input-group mb-3">
+                <input type="text" name="valor_buscar" class="form-control" placeholder="Buscar por código, nombre, proveedor o precio..." required>
+                <button class="btn btn-secondary" type="submit">Buscar</button>
+            </div>
+        </form>
+        <div id="editar-manual-formulario"></div>
+    </div>
+</div>
+<script>
+// AJAX para eliminar producto manual sin recargar la página
+function eliminarProductoManual(codigo, searchTerm) {
+    if(!confirm('ATENCIÓN:\n\n¿Seguro que quieres eliminar este producto del archivo Excel?\n\nEsta acción no se puede deshacer.')) return;
+    fetch("{{ url_for('eliminar_manual_ajax') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({codigo_a_eliminar: codigo, search_term: searchTerm, csrf_token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')})
+    })
+    .then(response => response.json())
+    .then(res => {
+        if(res.success) {
+            document.getElementById('resultados-manual').innerHTML = res.html;
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">'+res.msg+'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        } else {
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-danger">'+res.msg+'</div>';
+        }
+    });
+}
+
+// AJAX para eliminar todos los productos manuales sin recargar la página
+function eliminarTodoManual(searchTerm) {
+    if(!confirm('¿Eliminar TODOS los productos manuales? Esta acción no se puede deshacer.')) return;
+    fetch("{{ url_for('eliminar_manual_todo_ajax') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({search_term: searchTerm, csrf_token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')})
+    })
+    .then(response => response.json())
+    .then(res => {
+        if(res.success) {
+            document.getElementById('resultados-manual').innerHTML = res.html;
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">'+res.msg+'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        } else {
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-danger">'+res.msg+'</div>';
+        }
+    });
+}
+
+// AJAX para buscar producto manual por código para editar
+function buscarProductoEditarManual(e) {
+    e.preventDefault();
+    const valor = e.target.valor_buscar.value.trim();
+    if (!valor) return;
+    fetch("{{ url_for('gestionar_manual_buscar_ajax') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+        },
+        body: JSON.stringify({valor: valor, csrf_token: document.querySelector('meta[name=csrf-token]').getAttribute('content')})
+    })
+    .then(response => response.json())
+    .then(res => {
+        document.getElementById('editar-manual-formulario').innerHTML = res.html;
+    });
+}
+
+// AJAX para actualizar producto manual
+function actualizarProductoManual(codigoOriginal, searchTerm, form) {
+    const data = {
+        codigo_original: codigoOriginal,
+        nombre: form.nombre.value,
+        proveedor: form.proveedor.value,
+        codigo: form.codigo.value,
+        precio: form.precio.value,
+        search_term: searchTerm,
+        csrf_token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    };
+    fetch("{{ url_for('gestionar_manual_actualizar_ajax') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': data.csrf_token
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(res => {
+        if(res.success) {
+            document.getElementById('resultados-manual').innerHTML = res.html;
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">'+res.msg+'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        } else {
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-danger">'+res.msg+'</div>';
+        }
+    });
+}
+
+// AJAX para guardar edición de producto manual
+function guardarEdicionManual(e, codigo_original) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        codigo_original: codigo_original,
+        nombre: form.nombre.value,
+        proveedor: form.proveedor.value,
+        codigo: form.codigo.value,
+        precio: form.precio.value,
+        csrf_token: document.querySelector('meta[name=csrf-token]').getAttribute('content')
+    };
+    fetch("{{ url_for('gestionar_manual_actualizar_ajax') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': data.csrf_token
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(res => {
+        document.getElementById('editar-manual-formulario').innerHTML = res.html;
+        document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">'+res.msg+'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+    });
+}
+</script>
+{% endblock %}

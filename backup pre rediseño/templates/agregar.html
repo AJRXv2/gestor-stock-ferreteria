@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h4>1. Buscar Producto en Listas de Precios (Excel)</h4></div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('agregar_producto') }}">
+                    <div class="input-group mb-2">
+                        <select name="proveedor_excel" class="form-select">
+                            <option value="">Todos los proveedores</option>
+                            {% for p in proveedores_excel %}
+                                <option value="{{ p.key }}" {% if proveedor_excel == p.key %}selected{% endif %}>{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="busqueda_excel" class="form-control" placeholder="Nombre o código del producto" value="{{ termino_excel }}">
+                        <button class="btn btn-info" type="submit">Buscar</button>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" name="filtro_excel" class="form-control" placeholder="Filtrar por nombre, código, medida (ej: 3/4), etc." value="{{ filtro_excel }}">
+                        <button class="btn btn-secondary" type="submit">Filtrar</button>
+                    </div>
+                </form>
+                {% if termino_excel %}
+                    <h5>Resultados para "{{ termino_excel }}"</h5>
+                    {% if resultados_excel %}
+                    <ul class="list-group">
+                        {% for r in resultados_excel %}
+                            {% set precio_final = r.precio_texto if r.precio_texto else r.precio %}
+                            <li class="list-group-item">
+                                {{ r.nombre }} ({{ r.codigo or 'S/C' }})
+                                {# --- Precio oculto por requerimiento --- #}
+                                {#
+                                -
+                                {% if r.precio_texto %}
+                                    {{ r.precio_texto }}
+                                {% elif r.precio is number and r.precio != 0 %}
+                                    ${{ '{:,.2f}'.format(r.precio).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                {% else %}
+                                    S/P
+                                {% endif %}
+                                #}
+                                {% if r.Observaciones %}<br><span class="text-muted small">Obs: {{ r.Observaciones }}</span>{% endif %}
+                                <button type="button" class="btn btn-sm btn-primary float-end ms-2" onclick="cargarFormulario('{{ r.codigo|escape }}', '{{ r.nombre|escape }}', '{{ precio_final|escape }}', '{{ r.proveedor|escape }}', '{{ r.Observaciones|default('')|escape }}')">Pasar al formulario</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">No se encontraron resultados en los archivos de Excel.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h4>2. Agregar Compra al Carrito</h4></div>
+            <div class="card-body">
+                <p class="text-muted">Seleccione un producto de la izquierda o complete los campos manualmente.</p>
+                <form id="form-agregar" method="post" action="{{ url_for('agregar_producto') }}">
+                    <input type="hidden" name="agregar_carrito_manual" value="1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="fecha_compra" class="form-label">Fecha de Compra</label>
+                        <input type="date" id="fecha_compra" name="fecha_compra" class="form-control" value="{{ fecha_actual }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código (Opcional)</label>
+                        <input type="text" id="codigo" name="codigo" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre del Producto</label>
+                        <input type="text" id="nombre" name="nombre" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="proveedor" class="form-label">Proveedor</label>
+                        <input type="text" id="proveedor" name="proveedor" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio de Compra</label>
+                        <input type="text" id="precio" name="precio" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cantidad" class="form-label">Cantidad Comprada</label>
+                        <input type="number" id="cantidad" name="cantidad" class="form-control" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones</label>
+                        <textarea id="observaciones" name="observaciones" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center">
+                        <input type="checkbox" id="avisar_bajo_stock" name="avisar_bajo_stock" value="1" class="form-check-input me-2" onclick="toggleAvisoStock()">
+                        <label for="avisar_bajo_stock" class="form-label me-2">Avisar si el stock es bajo</label>
+                        <input type="number" id="min_stock_aviso" name="min_stock_aviso" class="form-control ms-2" style="max-width:120px; display:none;" min="1" max="" placeholder="Cantidad" title="Avisar cuando la cantidad sea igual o menor a">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Agregar al Carrito</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Carrito de compras -->
+<div class="card mt-4">
+    <div class="card-header"><h4>Carrito de Compras</h4></div>
+    <div class="card-body" id="carrito-container">
+        {% include 'carrito_fragment.html' %}
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="card mt-4">
+    <div class="card-header"><h4>Agregar Producto Manual</h4></div>
+    <div class="card-body">
+        <form method="post" action="{{ url_for('agregar_producto_manual') }}">
+            <div class="row g-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-3">
+                    <select name="proveedor_id" class="form-select" required>
+                        <option value="">Proveedor</option>
+                        {% for proveedor in proveedores_manual %}
+                            <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="nombre" class="form-control" placeholder="Nombre del producto" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="codigo" class="form-control" placeholder="Código (opcional)">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" name="precio" class="form-control" placeholder="Precio (ej: 1.000,50)" required>
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col-md-12">
+                    <textarea name="observaciones" class="form-control" placeholder="Observaciones" rows="2"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-success mt-2 w-100" type="submit">Añadir Producto Manual</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function cargarFormulario(codigo, nombre, precio, proveedor, observaciones) {
+    document.getElementById('codigo').value = codigo || '';
+    document.getElementById('nombre').value = nombre || '';
+    document.getElementById('precio').value = precio || '';
+    document.getElementById('proveedor').value = proveedor || '';
+    if(document.getElementById('observaciones')) {
+        document.getElementById('observaciones').value = observaciones || '';
+    }
+    document.getElementById('cantidad').focus();
+    actualizarMaxAviso();
+}
+function toggleAvisoStock() {
+    var cb = document.getElementById('avisar_bajo_stock');
+    var minStock = document.getElementById('min_stock_aviso');
+    if (cb && minStock) {
+        minStock.style.display = cb.checked ? '' : 'none';
+        if (!cb.checked) minStock.value = '';
+    }
+}
+function actualizarMaxAviso() {
+    var cantidad = document.getElementById('cantidad').value;
+    var minStock = document.getElementById('min_stock_aviso');
+    if (minStock) {
+        minStock.max = cantidad || '';
+        if (minStock.value && parseInt(minStock.value) > parseInt(cantidad)) {
+            minStock.value = cantidad;
+        }
+    }
+}
+
+function actualizarMaxAvisoManual() {
+    var cantidadManual = document.getElementById('cantidad_manual');
+    var minStockManual = document.getElementById('min_stock_aviso_manual');
+    if (cantidadManual && minStockManual) {
+        minStockManual.max = cantidadManual.value || '';
+        if (minStockManual.value && parseInt(minStockManual.value) > parseInt(cantidadManual.value)) {
+            minStockManual.value = cantidadManual.value;
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var cantidad = document.getElementById('cantidad');
+    if (cantidad) {
+        cantidad.addEventListener('input', actualizarMaxAviso);
+        actualizarMaxAviso();
+    }
+    var cbAviso = document.getElementById('avisar_bajo_stock');
+    if (cbAviso) {
+        cbAviso.addEventListener('change', toggleAvisoStock);
+        toggleAvisoStock();
+    }
+});
+
+// --- AJAX para agregar al carrito desde el formulario manual ---
+document.addEventListener('DOMContentLoaded', function() {
+    const formAgregar = document.getElementById('form-agregar');
+    if(formAgregar) {
+        formAgregar.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(formAgregar);
+            const data = {};
+            formData.forEach((value, key) => { data[key] = value; });
+            // Include avisar_bajo_stock and min_stock_aviso explicitly
+            data.avisar_bajo_stock = document.getElementById('avisar_bajo_stock').checked ? 1 : 0;
+            data.min_stock_aviso = document.getElementById('min_stock_aviso').value || '';
+            data.csrf_token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            fetch("{{ url_for('agregar_carrito_manual_ajax') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(res => {
+                if(res.success) {
+                    document.getElementById('carrito-container').innerHTML = res.html;
+                    // Opcional: mostrar mensaje de éxito
+                    const msg = document.createElement('div');
+                    msg.className = 'alert alert-success mt-2';
+                    msg.innerText = res.msg;
+                    formAgregar.parentNode.insertBefore(msg, formAgregar);
+                    setTimeout(() => msg.remove(), 2000);
+                }
+            });
+        });
+    }
+});
+
+// --- AJAX para agregar proveedor manual ---
+document.addEventListener('DOMContentLoaded', function() {
+    const selectProveedor = document.querySelector('select[name="proveedor_id"]');
+    const proveedorInput = document.createElement('input');
+    proveedorInput.type = 'text';
+    proveedorInput.className = 'form-control mt-2';
+    proveedorInput.placeholder = 'Nuevo proveedor';
+    proveedorInput.id = 'nuevo-proveedor-input';
+    const btnAgregar = document.createElement('button');
+    btnAgregar.type = 'button';
+    btnAgregar.className = 'btn btn-secondary mt-2 w-100';
+    btnAgregar.innerText = 'Agregar nuevo proveedor';
+    btnAgregar.onclick = function() {
+        const nombre = proveedorInput.value.trim();
+        if(!nombre) return;
+        fetch("{{ url_for('agregar_proveedor_manual_ajax') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            body: JSON.stringify({nombre: nombre, csrf_token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')})
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.success && res.proveedores) {
+                selectProveedor.innerHTML = '<option value="">Proveedor</option>';
+                let lastId = null;
+                res.proveedores.forEach(function(p) {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.nombre;
+                    if(p.nombre === nombre) {
+                        opt.selected = true;
+                        lastId = p.id;
+                    }
+                    selectProveedor.appendChild(opt);
+                });
+                proveedorInput.value = '';
+                // Selecciona el proveedor recién agregado
+                if(lastId) selectProveedor.value = lastId;
+            } else if(res.msg) {
+                alert(res.msg);
+            }
+        });
+    };
+    if(selectProveedor && selectProveedor.parentNode) {
+        selectProveedor.parentNode.appendChild(proveedorInput);
+        selectProveedor.parentNode.appendChild(btnAgregar);
+    }
+});
+</script>
+{% endblock %}

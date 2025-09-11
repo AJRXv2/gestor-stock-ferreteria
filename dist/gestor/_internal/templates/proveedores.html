@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="card mt-4">
+    <div class="card-header"><h4>Gestión de Proveedores Manuales</h4></div>
+    <div class="card-body">
+        <!-- Formulario para agregar proveedor manual -->
+        <form method="post" action="{{ url_for('agregar_proveedor_manual') }}" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="nombre" class="form-control" placeholder="Nombre del proveedor" required>
+                <button class="btn btn-primary" type="submit">Añadir Proveedor Manual</button>
+            </div>
+        </form>
+        <!-- Listado de proveedores manuales -->
+        <h5 class="mt-4">Proveedores Manuales</h5>
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proveedor in proveedores_manual %}
+                <tr>
+                    <td>{{ proveedor.id }}</td>
+                    <td>{{ proveedor.nombre }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('eliminar_proveedor_manual', id=proveedor.id) }}" style="display:inline;">
+                            <button class="btn btn-danger btn-sm" type="submit" onclick="return confirm('¿Eliminar proveedor y sus productos?');">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

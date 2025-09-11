@@ -1,0 +1,71 @@
+{% if productos %}
+<h4 class="mt-4">Resultados para "{{ search_term }}"</h4>
+<div class="table-responsive">
+    <form id="form-eliminar-seleccionados-manual" onsubmit="eliminarSeleccionadosManual(event, '{{ search_term }}')">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th><input type="checkbox" id="check-todos-manual" onclick="toggleTodosManual(this)"></th>
+                <th>Proveedor</th>
+                <th>Nombre</th>
+                <th>Código</th>
+                <th>Precio</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr>
+                <td><input type="checkbox" class="chk-seleccionado-manual" value="{{ producto.Codigo }}"></td>
+                <td><input type="text" value="{{ producto.Proveedor }}" class="form-control form-control-sm" readonly></td>
+                <td><input type="text" value="{{ producto.Nombre }}" class="form-control form-control-sm" readonly></td>
+                <td><input type="text" value="{{ producto.Codigo }}" class="form-control form-control-sm" readonly></td>
+                <td><input type="text" value="{{ producto.Precio }}" class="form-control form-control-sm" readonly></td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="eliminarProductoManual('{{ producto.Codigo }}', '{{ search_term }}')">Eliminar</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-danger mt-2">Eliminar seleccionados</button>
+    </form>
+</div>
+<script>
+function toggleTodosManual(source) {
+    const checkboxes = document.querySelectorAll('.chk-seleccionado-manual');
+    for (let cb of checkboxes) {
+        cb.checked = source.checked;
+    }
+}
+function eliminarSeleccionadosManual(e, searchTerm) {
+    e.preventDefault();
+    const checked = Array.from(document.querySelectorAll('.chk-seleccionado-manual:checked'));
+    if (checked.length === 0) {
+        alert('No hay productos seleccionados.');
+        return;
+    }
+    if (!confirm(`¿Eliminar ${checked.length} producto(s) seleccionados?`)) return;
+    const codigos = checked.map(ch => ch.value.trim()).filter(Boolean);
+    fetch("{{ url_for('eliminar_manual_seleccionados_ajax') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({codigos: codigos, search_term: searchTerm, csrf_token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')})
+    })
+    .then(response => response.json())
+    .then(res => {
+        if(res.success) {
+            document.getElementById('resultados-manual').innerHTML = res.html;
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">'+res.msg+'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+        } else {
+            document.getElementById('msg-eliminar-manual').innerHTML = '<div class="alert alert-danger">'+res.msg+'</div>';
+        }
+    });
+}
+</script>
+{% else %}
+<p class="text-muted mt-3">No se encontraron productos manuales que coincidan con tu búsqueda.</p>
+{% endif %}

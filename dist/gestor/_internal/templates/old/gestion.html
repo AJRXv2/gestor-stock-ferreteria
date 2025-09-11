@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% include 'seccion_bienvenida.html' %}
+    {% include 'seccion_gestion_productos.html' %}
+    {% include 'seccion_proveedores.html' %}
+    {% include 'seccion_historial.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function seleccionarProducto(codigo, nombre, precio) {
+    document.getElementById('codigo').value = codigo;
+    document.getElementById('nombre').value = nombre;
+    document.getElementById('precio').value = parseFloat(precio) || 0;
+    const cantidadInput = document.getElementById('cantidad');
+    cantidadInput.focus();
+    document.getElementById('seccion-agregar-compra').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

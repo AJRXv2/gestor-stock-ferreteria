@@ -1,0 +1,117 @@
+<!-- Template para el formulario de edición de productos manuales -->
+{% if producto %}
+<div class="card">
+    <div class="card-header">
+        <h5>Editar Producto</h5>
+    </div>
+    <div class="card-body">
+        <form id="form-editar-producto">
+            <input type="hidden" id="codigo_original" value="{{ producto.Codigo or producto.codigo }}">
+            
+            <div class="mb-3">
+                <label for="edit_nombre" class="form-label">Nombre del Producto *</label>
+                <input type="text" class="form-control" id="edit_nombre" value="{{ producto.Nombre or producto.nombre or '' }}" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="edit_proveedor" class="form-label">Proveedor</label>
+                <input type="text" class="form-control" id="edit_proveedor" value="{{ producto.Proveedor or producto.proveedor or '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="edit_codigo" class="form-label">Código</label>
+                <input type="text" class="form-control" id="edit_codigo" value="{{ producto.Codigo or producto.codigo or '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="edit_precio" class="form-label">Precio *</label>
+                <input type="text" class="form-control" id="edit_precio" value="{{ producto.Precio or producto.precio or '' }}" required 
+                       placeholder="Ej: 1000 o 1.500,75">
+            </div>
+            
+            <div class="btn-group w-100">
+                <button type="button" class="btn btn-success" onclick="actualizarProducto()">
+                    <i class="bi bi-check-circle"></i> Guardar Cambios
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarEdicion()">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function actualizarProducto() {
+    const data = {
+        codigo_original: document.getElementById('codigo_original').value,
+        nombre: document.getElementById('edit_nombre').value,
+        proveedor: document.getElementById('edit_proveedor').value,
+        codigo: document.getElementById('edit_codigo').value,
+        precio: document.getElementById('edit_precio').value,
+        csrf_token: '{{ csrf_token() }}'
+    };
+    
+    if (!data.nombre || !data.precio) {
+        alert('El nombre y precio son obligatorios');
+        return;
+    }
+    
+    fetch('{{ url_for("gestionar_manual_actualizar_ajax") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.msg, 'success');
+            if (data.html) {
+                document.getElementById('editar-container').innerHTML = data.html;
+            }
+        } else {
+            showMessage(data.msg, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Error al actualizar el producto', 'error');
+    });
+}
+
+function cancelarEdicion() {
+    document.getElementById('editar-container').innerHTML = '<div class="alert alert-info">Busca un producto para editar.</div>';
+}
+
+function showMessage(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const alertHtml = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>`;
+    
+    const container = document.getElementById('messages-container') || document.body;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = alertHtml;
+    container.insertBefore(tempDiv.firstElementChild, container.firstChild);
+}
+
+// Formatear precio mientras se escribe
+document.addEventListener('DOMContentLoaded', function() {
+    const precioInput = document.getElementById('edit_precio');
+    if (precioInput) {
+        precioInput.addEventListener('input', function() {
+            // Permitir números, puntos, comas y espacios
+            this.value = this.value.replace(/[^0-9.,\s]/g, '');
+        });
+    }
+});
+</script>
+{% elif error %}
+<div class="alert alert-warning">{{ error }}</div>
+{% else %}
+<div class="alert alert-info">Busca un producto para editar utilizando el formulario de arriba.</div>
+{% endif %}

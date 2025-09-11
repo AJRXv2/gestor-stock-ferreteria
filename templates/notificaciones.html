@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Notificaciones de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>
+        <i class="bi bi-bell me-2 position-relative">
+            {% if session.get('notificaciones') and session['notificaciones']|length > 0 and not leidas %}
+            <span style="position:absolute;top:0;right:-8px;width:12px;height:12px;background:red;border-radius:50%;display:inline-block;"></span>
+            {% endif %}
+        </i>
+        Notificaciones de Stock
+    </h2>
+    <div class="d-flex gap-2">
+        {% if session.get('notificaciones') and session['notificaciones']|length > 0 %}
+        <form method="post" action="{{ url_for('marcar_notificaciones_leidas') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-primary">Marcar como leídas</button>
+        </form>
+        <form method="post" action="{{ url_for('borrar_todas_notificaciones') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">Borrar todas</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% if session.get('notificaciones') and session['notificaciones']|length > 0 %}
+<ul class="list-group mb-4">
+    {% for n in session['notificaciones'] %}
+    <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="mb-1"><strong>{{ n.mensaje }}</strong></div>
+                <div class="text-muted small">
+                    {% if n.codigo %}<span><strong>Código:</strong> {{ n.codigo }}</span>{% endif %}
+                    {% if n.proveedor %}<span class="ms-3"><strong>Proveedor:</strong> {{ n.proveedor }}</span>{% endif %}
+                    {% if n.precio_texto %}
+                        <span class="ms-3"><strong>Precio:</strong> {{ n.precio_texto }}</span>
+                    {% elif n.precio and n.precio|float > 0 %}
+                        <span class="ms-3"><strong>Precio:</strong> ${{ '%.2f'|format(n.precio|float) }}</span>
+                    {% endif %}
+                    {% if n.ts %}<span class="ms-3"><strong>Fecha:</strong> {{ n.ts }}</span>{% endif %}
+                </div>
+            </div>
+            <form method="post" action="{{ url_for('borrar_notificacion', idx=loop.index0) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Borrar</button>
+            </form>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">No hay notificaciones pendientes.</p>
+{% endif %}
+{% endblock %}

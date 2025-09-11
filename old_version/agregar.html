@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h4>1. Buscar Producto en Listas de Precios (Excel)</h4></div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('agregar_producto') }}">
+                    <div class="input-group mb-3">
+                        <input type="text" name="busqueda_excel" class="form-control" placeholder="Nombre o código del producto" value="{{ termino_excel }}">
+                        <button class="btn btn-info" type="submit">Buscar en Excel</button>
+                    </div>
+                </form>
+                {% if termino_excel %}
+                    <h5>Resultados para "{{ termino_excel }}"</h5>
+                    {% if resultados_excel %}
+                    <ul class="list-group">
+                        {% for r in resultados_excel %}
+                            <li class="list-group-item">
+                                {{ r.nombre }} ({{ r.codigo or 'S/C' }}) - ${{ "%.2f"|format(r.precio) if r.precio is number else r.precio or 'S/P' }}
+                                <button class="btn btn-sm btn-primary float-end" onclick="cargarFormulario('{{ r.codigo or '' }}', '{{ r.nombre }}', '{{ r.precio or 0 }}')">Seleccionar</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">No se encontraron resultados en los archivos de Excel.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h4>2. Agregar Compra al Stock</h4></div>
+            <div class="card-body">
+                <p class="text-muted">Seleccione un producto de la izquierda o complete los campos manualmente.</p>
+                <form id="form-agregar" method="post" action="{{ url_for('agregar_producto') }}">
+                    <div class="mb-3">
+                        <label for="fecha_compra" class="form-label">Fecha de Compra</label>
+                        <input type="date" id="fecha_compra" name="fecha_compra" class="form-control" value="{{ fecha_actual }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código (Opcional)</label>
+                        <input type="text" id="codigo" name="codigo" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre del Producto</label>
+                        <input type="text" id="nombre" name="nombre" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio de Compra</label>
+                        <input type="number" id="precio" name="precio" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cantidad" class="form-label">Cantidad Comprada</label>
+                        <input type="number" id="cantidad" name="cantidad" class="form-control" min="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Añadir al Stock</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cargarFormulario(codigo, nombre, precio) {
+    document.getElementById('codigo').value = codigo;
+    document.getElementById('nombre').value = nombre;
+    document.getElementById('precio').value = parseFloat(precio) || 0;
+    document.getElementById('cantidad').focus();
+}
+</script>
+{% endblock %}

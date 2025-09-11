@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes - Gestor de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Reportes y Estadísticas</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-box-seam"></i> Total Productos
+                </h5>
+            </div>
+            <div class="card-body">
+                <h2 class="card-text">{{ total_productos or 0 }}</h2>
+                <small>En stock actual</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-currency-dollar"></i> Valor Total
+                </h5>
+            </div>
+            <div class="card-body">
+                <h2 class="card-text">${{ "%.2f"|format(valor_total or 0) }}</h2>
+                <small>Inventario completo</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people"></i> Proveedores
+                </h5>
+            </div>
+            <div class="card-body">
+                <h2 class="card-text">{{ total_proveedores or 0 }}</h2>
+                <small>Proveedores registrados</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Productos con Stock Bajo</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Próximamente: Lista de productos con inventario menor a 5 unidades</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Movimientos Recientes</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Próximamente: Últimos movimientos de stock</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Acciones de Reporte</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="alert('Función próximamente')">
+                        <i class="bi bi-file-excel"></i> Exportar a Excel
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="alert('Función próximamente')">
+                        <i class="bi bi-file-pdf"></i> Generar PDF
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="alert('Función próximamente')">
+                        <i class="bi bi-graph-up"></i> Gráficos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

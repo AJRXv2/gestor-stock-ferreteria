@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Productos Manuales - Gestor de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Gestionar Productos Manuales</h1>
+</div>
+
+<div class="row">
+    <!-- Columna para agregar producto manual -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Agregar Producto Manual</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('agregar_producto_manual') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="proveedor_id" class="form-label">Proveedor *</label>
+                        <select name="proveedor_id" id="proveedor_id" class="form-select" required>
+                            <option value="">Seleccionar proveedor</option>
+                            {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre del Producto *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código</label>
+                        <input type="text" class="form-control" id="codigo" name="codigo">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio *</label>
+                        <input type="text" class="form-control" id="precio" name="precio" required 
+                               placeholder="Ej: 1000 o 1.500,75">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-plus-circle"></i> Agregar Producto
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Columna para ver productos por proveedor -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Ver Productos por Proveedor</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="ver_proveedor" class="form-label">Seleccionar Proveedor</label>
+                    <select id="ver_proveedor" class="form-select" onchange="cargarProductosProveedor()">
+                        <option value="">Seleccionar proveedor</option>
+                        {% for proveedor in proveedores %}
+                            <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="productos-proveedor">
+                    <p class="text-muted">Selecciona un proveedor para ver sus productos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cargarProductosProveedor() {
+    const proveedorId = document.getElementById('ver_proveedor').value;
+    const container = document.getElementById('productos-proveedor');
+    
+    if (!proveedorId) {
+        container.innerHTML = '<p class="text-muted">Selecciona un proveedor para ver sus productos.</p>';
+        return;
+    }
+    
+    container.innerHTML = '<p class="text-muted">Cargando productos...</p>';
+    
+    fetch(`{{ url_for('obtener_productos_proveedor', proveedor_id=0) }}`.replace('0', proveedorId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.productos.length > 0) {
+                let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
+                html += '<thead><tr><th>Nombre</th><th>Código</th><th>Precio</th><th>Acciones</th></tr></thead><tbody>';
+                
+                data.productos.forEach(producto => {
+                    html += `<tr>
+                        <td>${producto.nombre}</td>
+                        <td>${producto.codigo || 'S/C'}</td>
+                        <td>$${parseFloat(producto.precio).toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('eliminar_producto_manual') }}" style="display:inline;" onsubmit="return confirm('¿Eliminar este producto?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="id" value="${producto.id}">
+                                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="text-muted">No hay productos para este proveedor.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = '<p class="text-danger">Error al cargar los productos.</p>';
+        });
+}
+
+// Formatear precio mientras se escribe
+document.addEventListener('DOMContentLoaded', function() {
+    const precioInput = document.getElementById('precio');
+    if (precioInput) {
+        precioInput.addEventListener('input', function() {
+            // Permitir números, puntos, comas y espacios
+            this.value = this.value.replace(/[^0-9.,\s]/g, '');
+        });
+    }
+});
+</script>
+{% endblock %}

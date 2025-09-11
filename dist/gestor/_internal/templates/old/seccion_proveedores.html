@@ -1,0 +1,52 @@
+<!-- templates/seccion_proveedores.html -->
+<div class="card section-card">
+    <div class="card-header"><h2>Proveedores Manuales</h2></div>
+    <div class="card-body">
+        <!-- Añadir proveedor -->
+        <form method="post" action="{{ url_for('agregar_proveedor') }}" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="nombre" class="form-control" placeholder="Nombre del proveedor" required>
+                <button class="btn btn-primary" type="submit">Añadir Proveedor</button>
+            </div>
+        </form>
+        <!-- Añadir producto manual -->
+        <form method="post" action="{{ url_for('agregar_producto_manual') }}" class="mb-3">
+            <div class="input-group">
+                <select name="proveedor_id" class="form-select" required>
+                    {% for proveedor in proveedores %}
+                        <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="nombre" class="form-control" placeholder="Producto" required>
+                <input type="number" name="precio" class="form-control" placeholder="Precio" required>
+                <button class="btn btn-success" type="submit">Añadir Producto</button>
+            </div>
+        </form>
+        <!-- Listado de productos manuales -->
+        <h5>Productos Manuales</h5>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Proveedor</th>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prod in productos_proveedor_manual %}
+                <tr>
+                    <td>
+                        {% for proveedor in proveedores %}
+                            {% if proveedor.id == prod.proveedor_id %}
+                                {{ proveedor.nombre }}
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>{{ prod.nombre }}</td>
+                    <td>${{ "%.2f"|format(prod.precio) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

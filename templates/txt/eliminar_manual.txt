@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Producto Manual{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Eliminar Producto Manual</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p class="card-text">
+            Aquí puedes buscar productos que hayas agregado manualmente (en la sección "Otros Proveedores")
+            para eliminarlos permanentemente del archivo Excel <code>productos_manual.xlsx</code>.
+        </p>
+        
+        <!-- Formulario de búsqueda -->
+        <form method="post" action="{{ url_for('eliminar_manual') }}" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="search_term" class="form-control" placeholder="Buscar por nombre o código..." value="{{ search_term or '' }}" required>
+                <button class="btn btn-primary" type="submit" name="buscar" value="buscar">Buscar</button>
+            </div>
+        </form>
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Resultados de la búsqueda -->
+        {% if search_term and productos %}
+        <h4 class="mt-4">Resultados para "{{ search_term }}"</h4>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Precio</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.Proveedor }}</td>
+                        <td>{{ producto.Nombre }}</td>
+                        <td>{{ producto.Codigo }}</td>
+                        <td>${{ "{:,.2f}".format(producto.Precio).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('eliminar_manual') }}" class="d-inline">
+                                <input type="hidden" name="codigo_a_eliminar" value="{{ producto.Codigo }}">
+                                <button type="submit" name="eliminar" value="eliminar" class="btn btn-danger btn-sm" onclick="return confirm('ATENCIÓN:\n\n¿Seguro que quieres eliminar este producto del archivo Excel?\n\nEsta acción no se puede deshacer.');">
+                                    Eliminar Permanentemente
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% elif search_term %}
+        <p class="text-muted mt-3">No se encontraron productos manuales que coincidan con tu búsqueda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+<!-- Fragment del carrito simplificado y robusto -->
+{% if carrito and carrito|length > 0 %}
+<div class="mb-2">
+    <small class="text-muted">{{ carrito|length }} producto(s) en el carrito</small>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Cant.</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in carrito %}
+            <tr>
+                <td>
+                    <div class="small">
+                        <div><strong>Producto:</strong> {{ item.nombre or 'Sin nombre' }}</div>
+                        {% if item.codigo %}
+                            <div class="text-muted"><strong>Código:</strong> {{ item.codigo }}</div>
+                        {% endif %}
+                        {% if item.proveedor %}
+                            <div class="text-muted small"><strong>Proveedor:</strong> {{ item.proveedor }}</div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if item.precio and item.precio > 0 %}
+                        ${{ "%.2f"|format(item.precio|float) }}
+                    {% else %}
+                        <span class="text-muted">Sin precio</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" 
+                                onclick="carritoAccion('restar', {{ loop.index0 }})">-</button>
+                        <span class="mx-2">{{ item.cantidad or 1 }}</span>
+                        <button type="button" class="btn btn-outline-secondary btn-sm ms-1" 
+                                onclick="carritoAccion('sumar', {{ loop.index0 }})">+</button>
+                    </div>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" 
+                            onclick="carritoAccion('eliminar', {{ loop.index0 }})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-3">
+    <div class="d-flex justify-content-between mb-2">
+        <span>Total estimado:</span>
+        <strong>
+            {% set total = 0 %}
+            {% for item in carrito %}
+                {% set subtotal = (item.precio|float or 0) * (item.cantidad|int or 1) %}
+                {% set total = total + subtotal %}
+            {% endfor %}
+            ${{ "%.2f"|format(total) }}
+        </strong>
+    </div>
+    
+    <div class="d-grid gap-2">
+        <button type="button" class="btn btn-success w-100" onclick="cargarCarritoAjax('ferreteria_general')">
+            <i class="bi bi-check-circle"></i> Cargar al Stock (Ferretería)
+        </button>
+        <button type="button" class="btn btn-primary w-100" onclick="cargarCarritoAjax('ricky')">
+            <i class="bi bi-check-circle"></i> Cargar al Stock (Ricky)
+        </button>
+    </div>
+</div>
+
+<script>
+function carritoAccion(accion, idx, cantidad) {
+    let data = {accion: accion, idx: idx, csrf_token: '{{ csrf_token() }}'};
+    if (typeof cantidad !== 'undefined' && cantidad !== null) data.cantidad = cantidad;
+    
+    fetch("{{ url_for('carrito_accion') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(res => {
+        if(res.success) {
+            if (res.reload) {
+                location.reload();
+            } else if (res.html) {
+                document.getElementById('carrito-container').innerHTML = res.html;
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Error: ' + (res.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la acción');
+    });
+}
+
+function cargarCarritoAjax(dueno) {
+    if (!confirm(dueno === 'ricky' ? '¿Cargar todos al stock de Ricky?' : '¿Cargar todos al stock de Ferretería General?')) return;
+    fetch("{{ url_for('carrito_cargar') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ cargar_carrito: 1, dueno_dest: dueno, csrf_token: '{{ csrf_token() }}' })
+    }).then(r => {
+        if(!r.ok){ throw new Error('HTTP '+r.status); }
+        return r.json();
+    }).then(res => {
+        if (res && res.success) {
+            document.getElementById('carrito-container').innerHTML = res.html || '';
+        } else {
+            alert((res && res.error) || 'Error al cargar al stock');
+        }
+    }).catch((e)=> alert('Error de red o CSRF: '+e.message));
+}
+</script>
+
+{% else %}
+<div class="text-center text-muted py-4">
+    <i class="bi bi-cart display-4"></i>
+    <p class="mt-2">El carrito está vacío</p>
+    <small>Busca productos o agrégalos manualmente</small>
+</div>
+{% endif %}

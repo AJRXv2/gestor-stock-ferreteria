@@ -1,0 +1,510 @@
+ou are in the tarpit, this may take longer than usual.
+See https://www.pythonanywhere.com/tarpit for more information.
+Loading console...  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Installing backend dependencies ... done
+  Preparing metadata (pyproject.toml) ... done
+Collecting openpyxl==3.1.5 (from -r /home/ferreteriacasapauluk/gestor_stock/requirements.txt (line 7))
+  Downloading openpyxl-3.1.5-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting numpy==1.26.4 (from -r /home/ferreteriacasapauluk/gestor_stock/requirements.txt (line 8))
+  Downloading numpy-1.26.4.tar.gz (15.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.8/15.8 MB 12.5 MB/s  0:00:01
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Installing backend dependencies ... done
+  Preparing metadata (pyproject.toml) ... error
+  error: subprocess-exited-with-error
+  
+  × Preparing metadata (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [462 lines of output]
+      + /home/ferreteriacasapauluk/.venvs/gestor-env/bin/python3.13 /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/vendored-meson/meson/meson.py setup /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay -Dbuildtype=release -Db_ndebug=if-release -Db_vscrt=md --native-file=/tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay/meson-python-native-file.ini
+      The Meson build system
+      Version: 1.2.99
+      Source dir: /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a
+      Build dir: /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay
+      Build type: native build
+      Project name: NumPy
+      Project version: 1.26.4
+      C compiler for the host machine: cc (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0")
+      C linker for the host machine: cc ld.bfd 2.38
+      C++ compiler for the host machine: c++ (gcc 11.4.0 "c++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0")
+      C++ linker for the host machine: c++ ld.bfd 2.38
+      Cython compiler for the host machine: cython (cython 3.0.12)
+      Host machine cpu family: x86_64
+      Host machine cpu: x86_64
+      Program python found: YES (/home/ferreteriacasapauluk/.venvs/gestor-env/bin/python3.13)
+      Found pkg-config: /usr/bin/pkg-config (0.29.2)
+      Run-time dependency python found: YES 3.13
+      Has header "Python.h" with dependency python-3.13: YES
+      Compiler for C supports arguments -fno-strict-aliasing: YES
+      Test features "SSE SSE2 SSE3" : Supported
+      Test features "SSSE3" : Supported
+      Test features "SSE41" : Supported
+      Test features "POPCNT" : Supported
+      Test features "SSE42" : Supported
+      Test features "AVX" : Supported
+      Test features "F16C" : Supported
+      Test features "FMA3" : Supported
+      Test features "AVX2" : Supported
+      Test features "AVX512F" : Supported
+      Test features "AVX512CD" : Supported
+      Test features "AVX512_KNL" : Supported
+      Test features "AVX512_KNM" : Supported
+      Test features "AVX512_SKX" : Unsupported due to Compiler fails against the test code of "AVX512_SKX"
+      Test features "AVX512_CLX" : Unsupported due to Implied feature "AVX512_SKX" is not supported
+      Test features "AVX512_CNL" : Unsupported due to Implied feature "AVX512_SKX" is not supported
+      Test features "AVX512_ICL" : Unsupported due to Implied feature "AVX512_SKX" is not supported
+      Test features "AVX512_SPR" : Unsupported due to Implied feature "AVX512_SKX" is not supported
+      Configuring npy_cpu_dispatch_config.h using configuration
+      Message:
+      CPU Optimization Options
+        baseline:
+          Requested : min
+          Enabled   : SSE SSE2 SSE3
+        dispatch:
+          Requested : max -xop -fma4
+          Enabled   : SSSE3 SSE41 POPCNT SSE42 AVX F16C FMA3 AVX2 AVX512F AVX512CD AVX512_KNL AVX512_KNM
+      
+      Library m found: YES
+      Run-time dependency scipy-openblas found: NO (tried pkgconfig)
+      Run-time dependency mkl found: NO (tried pkgconfig and system)
+      Run-time dependency mkl found: NO (tried pkgconfig and system)
+      Run-time dependency accelerate found: NO (tried system)
+      Found CMake: /usr/bin/cmake (3.22.1)
+      WARNING: CMake Toolchain: Failed to determine CMake compilers state
+      Run-time dependency openblas found: NO (tried pkgconfig, pkgconfig, pkgconfig, system and cmake)
+      Run-time dependency flexiblas found: NO (tried pkgconfig and cmake)
+      Run-time dependency blis found: NO (tried pkgconfig and cmake)
+      Run-time dependency blas found: YES 3.10.3
+      ../numpy/meson.build:124: WARNING: Project targets '>=1.2.99' but uses feature introduced in '1.3.0': dep 'blas' custom lookup.
+      Message: BLAS symbol suffix:
+      Run-time dependency mkl found: NO (tried pkgconfig and system)
+      Run-time dependency accelerate found: NO (tried system)
+      Run-time dependency openblas found: NO (tried pkgconfig, pkgconfig, pkgconfig, system and cmake)
+      Run-time dependency flexiblas found: NO (tried pkgconfig and cmake)
+      Run-time dependency lapack found: YES 3.10.3
+      ../numpy/meson.build:187: WARNING: Project targets '>=1.2.99' but uses feature introduced in '1.3.0': dep 'lapack' custom lookup.
+      Program _build_utils/process_src_template.py found: YES (/home/ferreteriacasapauluk/.venvs/gestor-env/bin/python3.13 /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/numpy/_build_utils/process_src_template.py)
+      Program _build_utils/tempita.py found: YES (/home/ferreteriacasapauluk/.venvs/gestor-env/bin/python3.13 /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/numpy/_build_utils/tempita.py)
+      Configuring __config__.py using configuration
+      Checking for size of "short" : 2
+      Checking for size of "int" : 4
+      Checking for size of "long" : 8
+      Checking for size of "long long" : 8
+      Checking for size of "float" : 4
+      Checking for size of "double" : 8
+      Checking for size of "long double" : 16
+      Checking for size of "off_t" : 8
+      Checking for size of "Py_intptr_t" with dependency python-3.13: 8
+      Checking for size of "PY_LONG_LONG" with dependency python-3.13: 8
+      Has header "complex.h" : YES
+      Checking for type "complex float" : YES
+      Checking for size of "struct {float __x; float __y;}" : 8
+      Checking for type "complex double" : YES
+      Checking for size of "struct {double __x; double __y;}" : 16
+      Checking for type "complex long double" : YES
+      Checking for size of "struct {long double __x; long double __y;}" : 32
+      Checking for function "sin" with dependency -lm: YES
+      Checking for function "cos" with dependency -lm: YES
+      Checking for function "tan" with dependency -lm: YES
+      Checking for function "sinh" with dependency -lm: YES
+      Checking for function "cosh" with dependency -lm: YES
+      Checking for function "tanh" with dependency -lm: YES
+      Checking for function "fabs" with dependency -lm: YES
+      Checking for function "floor" with dependency -lm: YES
+      Checking for function "ceil" with dependency -lm: YES
+      Checking for function "sqrt" with dependency -lm: YES
+      Checking for function "log10" with dependency -lm: YES
+      Checking for function "log" with dependency -lm: YES
+      Checking for function "exp" with dependency -lm: YES
+      Checking for function "asin" with dependency -lm: YES
+      Checking for function "acos" with dependency -lm: YES
+      Checking for function "atan" with dependency -lm: YES
+      Checking for function "fmod" with dependency -lm: YES
+      Checking for function "modf" with dependency -lm: YES
+      Checking for function "frexp" with dependency -lm: YES
+      Checking for function "ldexp" with dependency -lm: YES
+      Checking for function "expm1" with dependency -lm: YES
+      Checking for function "log1p" with dependency -lm: YES
+      Checking for function "acosh" with dependency -lm: YES
+      Checking for function "asinh" with dependency -lm: YES
+      Checking for function "atanh" with dependency -lm: YES
+      Checking for function "rint" with dependency -lm: YES
+      Checking for function "trunc" with dependency -lm: YES
+      Checking for function "exp2" with dependency -lm: YES
+      Checking for function "copysign" with dependency -lm: YES
+      Checking for function "nextafter" with dependency -lm: YES
+      Checking for function "cbrt" with dependency -lm: YES
+      Checking for function "log2" with dependency -lm: YES
+      Checking for function "pow" with dependency -lm: YES
+      Checking for function "hypot" with dependency -lm: YES
+      Checking for function "atan2" with dependency -lm: YES
+      Checking for function "csin" with dependency -lm: YES
+      Checking for function "csinh" with dependency -lm: YES
+      Checking for function "ccos" with dependency -lm: YES
+      Checking for function "ccosh" with dependency -lm: YES
+      Checking for function "ctan" with dependency -lm: YES
+      Checking for function "ctanh" with dependency -lm: YES
+      Checking for function "creal" with dependency -lm: YES
+      Checking for function "cimag" with dependency -lm: YES
+      Checking for function "conj" with dependency -lm: YES
+      Checking for function "strtoll" : YES
+      Checking for function "strtoull" : YES
+      Checking for function "cabs" with dependency -lm: YES
+      Checking for function "cabsf" with dependency -lm: YES
+      Checking for function "cabsl" with dependency -lm: YES
+      Checking for function "cacos" with dependency -lm: YES
+      Checking for function "cacosf" with dependency -lm: YES
+      Checking for function "cacosl" with dependency -lm: YES
+      Checking for function "cacosh" with dependency -lm: YES
+      Checking for function "cacoshf" with dependency -lm: YES
+      Checking for function "cacoshl" with dependency -lm: YES
+      Checking for function "carg" with dependency -lm: YES
+      Checking for function "cargf" with dependency -lm: YES
+      Checking for function "cargl" with dependency -lm: YES
+      Checking for function "casin" with dependency -lm: YES
+      Checking for function "casinf" with dependency -lm: YES
+      Checking for function "casinl" with dependency -lm: YES
+      Checking for function "casinh" with dependency -lm: YES
+      Checking for function "casinhf" with dependency -lm: YES
+      Checking for function "casinhl" with dependency -lm: YES
+      Checking for function "catan" with dependency -lm: YES
+      Checking for function "catanf" with dependency -lm: YES
+      Checking for function "catanl" with dependency -lm: YES
+      Checking for function "catanh" with dependency -lm: YES
+      Checking for function "catanhf" with dependency -lm: YES
+      Checking for function "catanhl" with dependency -lm: YES
+      Checking for function "cexp" with dependency -lm: YES
+      Checking for function "cexpf" with dependency -lm: YES
+      Checking for function "cexpl" with dependency -lm: YES
+      Checking for function "clog" with dependency -lm: YES
+      Checking for function "clogf" with dependency -lm: YES
+      Checking for function "clogl" with dependency -lm: YES
+      Checking for function "cpow" with dependency -lm: YES
+      Checking for function "cpowf" with dependency -lm: YES
+      Checking for function "cpowl" with dependency -lm: YES
+      Checking for function "csqrt" with dependency -lm: YES
+      Checking for function "csqrtf" with dependency -lm: YES
+      Checking for function "csqrtl" with dependency -lm: YES
+      Checking for function "csin" with dependency -lm: YES (cached)
+      Checking for function "csinf" with dependency -lm: YES
+      Checking for function "csinl" with dependency -lm: YES
+      Checking for function "csinh" with dependency -lm: YES (cached)
+      Checking for function "csinhf" with dependency -lm: YES
+      Checking for function "csinhl" with dependency -lm: YES
+      Checking for function "ccos" with dependency -lm: YES (cached)
+      Checking for function "ccosf" with dependency -lm: YES
+      Checking for function "ccosl" with dependency -lm: YES
+      Checking for function "ccosh" with dependency -lm: YES (cached)
+      Checking for function "ccoshf" with dependency -lm: YES
+      Checking for function "ccoshl" with dependency -lm: YES
+      Checking for function "ctan" with dependency -lm: YES (cached)
+      Checking for function "ctanf" with dependency -lm: YES
+      Checking for function "ctanl" with dependency -lm: YES
+      Checking for function "ctanh" with dependency -lm: YES (cached)
+      Checking for function "ctanhf" with dependency -lm: YES
+      Checking for function "ctanhl" with dependency -lm: YES
+      Checking for function "isfinite" with dependency -lm: YES
+      Header "Python.h" has symbol "isfinite" with dependency python-3.13: YES
+      Checking for function "isinf" with dependency -lm: YES
+      Header "Python.h" has symbol "isinf" with dependency python-3.13: YES
+      Checking for function "isnan" with dependency -lm: YES
+      Header "Python.h" has symbol "isnan" with dependency python-3.13: YES
+      Checking for function "signbit" with dependency -lm: YES
+      Header "Python.h" has symbol "signbit" with dependency python-3.13: YES
+      Checking for function "fallocate" : YES
+      Header "Python.h" has symbol "HAVE_FTELLO" with dependency python-3.13: YES
+      Header "Python.h" has symbol "HAVE_FSEEKO" with dependency python-3.13: YES
+      Checking for function "backtrace" : YES
+      Checking for function "madvise" : YES
+      Has header "features.h" : YES
+      Has header "xlocale.h" : NO
+      Has header "dlfcn.h" : YES
+      Has header "execinfo.h" : YES
+      Has header "libunwind.h" : YES
+      Has header "sys/mman.h" : YES
+      Checking for function "strtold_l" : YES
+      Compiler for C supports arguments -O3: YES
+      Has header "endian.h" : YES
+      Has header "sys/endian.h" : NO
+      Header "inttypes.h" has symbol "PRIdPTR" : YES
+      Compiler for C supports function attribute visibility:hidden: YES
+      Configuring config.h using configuration
+      Configuring _numpyconfig.h using configuration
+      Configuring npymath.ini using configuration
+      Configuring mlib.ini using configuration
+      Generating multi-targets for "_umath_tests.dispatch.h"
+        Enabled targets: AVX2, SSE41, baseline
+      Generating multi-targets for "argfunc.dispatch.h"
+        Enabled targets: AVX2, SSE42, baseline
+      Generating multi-targets for "simd_qsort.dispatch.h"
+        Enabled targets:
+      Generating multi-targets for "simd_qsort_16bit.dispatch.h"
+        Enabled targets:
+      Generating multi-targets for "loops_arithm_fp.dispatch.h"
+        Enabled targets: FMA3__AVX2, baseline
+      Generating multi-targets for "loops_arithmetic.dispatch.h"
+        Enabled targets: AVX512F, AVX2, SSE41, baseline
+      Generating multi-targets for "loops_comparison.dispatch.h"
+        Enabled targets: AVX512F, AVX2, SSE42, baseline
+      Generating multi-targets for "loops_exponent_log.dispatch.h"
+        Enabled targets: AVX512F, FMA3__AVX2, baseline
+      Generating multi-targets for "loops_hyperbolic.dispatch.h"
+        Enabled targets: FMA3__AVX2, baseline
+      Generating multi-targets for "loops_logical.dispatch.h"
+        Enabled targets: AVX2, baseline
+      Generating multi-targets for "loops_minmax.dispatch.h"
+        Enabled targets: AVX2, baseline
+      Generating multi-targets for "loops_modulo.dispatch.h"
+        Enabled targets: baseline
+      Generating multi-targets for "loops_trigonometric.dispatch.h"
+        Enabled targets: AVX512F, FMA3__AVX2, baseline
+      Generating multi-targets for "loops_umath_fp.dispatch.h"
+        Enabled targets: baseline
+      Generating multi-targets for "loops_unary.dispatch.h"
+        Enabled targets: AVX2, baseline
+      Generating multi-targets for "loops_unary_fp.dispatch.h"
+        Enabled targets: SSE41, baseline
+      Generating multi-targets for "loops_unary_fp_le.dispatch.h"
+        Enabled targets: SSE41, baseline
+      Generating multi-targets for "loops_unary_complex.dispatch.h"
+        Enabled targets: AVX512F, FMA3__AVX2, baseline
+      Generating multi-targets for "loops_autovec.dispatch.h"
+        Enabled targets: AVX2, baseline
+      Generating multi-targets for "_simd.dispatch.h"
+        Enabled targets: SSE42, AVX2, FMA3, FMA3__AVX2, AVX512F, baseline
+      Build targets in project: 88
+      WARNING: Project specifies a minimum meson_version '>=1.2.99' but uses features which were added in newer versions:
+       * 1.3.0: {'dep 'blas' custom lookup', 'dep 'lapack' custom lookup'}
+      
+      NumPy 1.26.4
+      
+        User defined options
+          Native files: /tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay/meson-python-native-file.ini
+          buildtype   : release
+          b_ndebug    : if-release
+          b_vscrt     : md
+      
+      Found ninja-1.13.0.git.kitware.jobserver-pipe-1 at /tmp/pip-build-env-p9k2xzwj/normal/bin/ninja
+      + /tmp/pip-build-env-p9k2xzwj/normal/bin/ninja
+      [1/436] Generating numpy/core/npy_math_internal.h with a custom command
+      [2/436] Generating numpy/core/__umath_generated with a custom command
+      [3/436] Generating 'numpy/core/libnpymath.a.p/ieee754.c'
+      [4/436] Generating numpy/__init__.pxd with a custom command
+      [5/436] Generating numpy/__init__.cython-30.pxd with a custom command
+      [6/436] Generating numpy/__init__.py with a custom command
+      [7/436] Generating 'numpy/core/libnpymath.a.p/npy_math_complex.c'
+      [8/436] Generating 'numpy/core/libargfunc.dispatch.h_baseline.a.p/npy_sort.h'
+      [9/436] Generating 'numpy/core/libargfunc.dispatch.h_AVX2.a.p/arraytypes.h'
+      [10/436] Generating 'numpy/core/libargfunc.dispatch.h_baseline.a.p/arraytypes.h'
+      [11/436] Generating 'numpy/core/libargfunc.dispatch.h_baseline.a.p/argfunc.dispatch.c'
+      [12/436] Generating 'numpy/core/libargfunc.dispatch.h_AVX2.a.p/npy_sort.h'
+      [13/436] Generating 'numpy/core/libargfunc.dispatch.h_SSE42.a.p/arraytypes.h'
+      [14/436] Generating 'numpy/core/libargfunc.dispatch.h_AVX2.a.p/argfunc.dispatch.c'
+      [15/436] Generating 'numpy/core/libargfunc.dispatch.h_SSE42.a.p/npy_sort.h'
+      [16/436] Generating 'numpy/core/libargfunc.dispatch.h_SSE42.a.p/argfunc.dispatch.c'
+      [17/436] Generating 'numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/loops.h'
+      [18/436] Generating numpy/core/__multiarray_api with a custom command
+      [19/436] Generating numpy/core/__ufunc_api with a custom command
+      [20/436] Generating 'numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/loops_utils.h'
+      [21/436] Generating 'numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/loops_arithm_fp.dispatch.c'
+      [22/436] Generating 'numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/loops_arithm_fp.dispatch.c'
+      [23/436] Generating 'numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/loops.h'
+      [24/436] Generating 'numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/loops_utils.h'
+      [25/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/loops_utils.h'
+      [26/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/loops.h'
+      [27/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/loops_arithmetic.dispatch.c'
+      [28/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_AVX512F.a.p/loops_utils.h'
+      [29/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_AVX512F.a.p/loops_arithmetic.dispatch.c'
+      [30/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_AVX2.a.p/loops_utils.h'
+      [31/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_AVX512F.a.p/loops.h'
+      [32/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_AVX2.a.p/loops.h'
+      [33/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_AVX2.a.p/loops_arithmetic.dispatch.c'
+      [34/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_SSE41.a.p/loops.h'
+      [35/436] Generating 'numpy/core/libloops_comparison.dispatch.h_baseline.a.p/loops_utils.h'
+      [36/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_SSE41.a.p/loops_utils.h'
+      [37/436] Generating 'numpy/core/libloops_arithmetic.dispatch.h_SSE41.a.p/loops_arithmetic.dispatch.c'
+      [38/436] Generating 'numpy/core/libloops_comparison.dispatch.h_baseline.a.p/loops.h'
+      [39/436] Generating 'numpy/core/libloops_comparison.dispatch.h_baseline.a.p/loops_comparison.dispatch.c'
+      [40/436] Generating 'numpy/core/libloops_comparison.dispatch.h_AVX512F.a.p/loops_utils.h'
+      [41/436] Generating 'numpy/core/libloops_comparison.dispatch.h_AVX512F.a.p/loops.h'
+      [42/436] Generating 'numpy/core/libloops_comparison.dispatch.h_AVX2.a.p/loops.h'
+      [43/436] Generating 'numpy/core/libloops_comparison.dispatch.h_AVX512F.a.p/loops_comparison.dispatch.c'
+      [44/436] Generating 'numpy/core/libloops_comparison.dispatch.h_AVX2.a.p/loops_utils.h'
+      [45/436] Generating 'numpy/core/libloops_comparison.dispatch.h_AVX2.a.p/loops_comparison.dispatch.c'
+      [46/436] Generating 'numpy/core/libloops_comparison.dispatch.h_SSE42.a.p/loops.h'
+      [47/436] Generating 'numpy/core/libloops_comparison.dispatch.h_SSE42.a.p/loops_utils.h'
+      [48/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_baseline.a.p/loops_utils.h'
+      [49/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_baseline.a.p/loops.h'
+      [50/436] Generating 'numpy/core/libloops_comparison.dispatch.h_SSE42.a.p/loops_comparison.dispatch.c'
+      [51/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_baseline.a.p/loops_exponent_log.dispatch.c'
+      [52/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_AVX512F.a.p/loops.h'
+      [53/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_AVX512F.a.p/loops_exponent_log.dispatch.c'
+      [54/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_AVX512F.a.p/loops_utils.h'
+      [55/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_FMA3__AVX2.a.p/loops_utils.h'
+      [56/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_FMA3__AVX2.a.p/loops.h'
+      [57/436] Generating 'numpy/core/libloops_exponent_log.dispatch.h_FMA3__AVX2.a.p/loops_exponent_log.dispatch.c'
+      [58/436] Generating 'numpy/core/libloops_hyperbolic.dispatch.h_baseline.a.p/loops_utils.h'
+      [59/436] Generating 'numpy/core/libloops_hyperbolic.dispatch.h_FMA3__AVX2.a.p/loops_utils.h'
+      [60/436] Generating 'numpy/core/libloops_hyperbolic.dispatch.h_baseline.a.p/loops.h'
+      [61/436] Generating 'numpy/core/libloops_hyperbolic.dispatch.h_FMA3__AVX2.a.p/loops.h'
+      [62/436] Generating 'numpy/core/libloops_hyperbolic.dispatch.h_baseline.a.p/loops_hyperbolic.dispatch.c'
+      [63/436] Generating 'numpy/core/libloops_hyperbolic.dispatch.h_FMA3__AVX2.a.p/loops_hyperbolic.dispatch.c'
+      [64/436] Generating 'numpy/core/libloops_logical.dispatch.h_baseline.a.p/loops_utils.h'
+      [65/436] Generating 'numpy/core/libloops_logical.dispatch.h_baseline.a.p/loops.h'
+      [66/436] Generating 'numpy/core/libloops_logical.dispatch.h_baseline.a.p/loops_logical.dispatch.c'
+      [67/436] Generating 'numpy/core/libloops_logical.dispatch.h_AVX2.a.p/loops_logical.dispatch.c'
+      [68/436] Generating 'numpy/core/libloops_logical.dispatch.h_AVX2.a.p/loops_utils.h'
+      [69/436] Generating 'numpy/core/libloops_logical.dispatch.h_AVX2.a.p/loops.h'
+      [70/436] Generating 'numpy/core/libloops_minmax.dispatch.h_baseline.a.p/loops.h'
+      [71/436] Generating 'numpy/core/libloops_minmax.dispatch.h_baseline.a.p/loops_utils.h'
+      [72/436] Generating 'numpy/core/libloops_minmax.dispatch.h_AVX2.a.p/loops_utils.h'
+      [73/436] Generating 'numpy/core/libloops_minmax.dispatch.h_AVX2.a.p/loops.h'
+      [74/436] Generating 'numpy/core/libloops_minmax.dispatch.h_baseline.a.p/loops_minmax.dispatch.c'
+      [75/436] Generating 'numpy/core/libloops_modulo.dispatch.h_baseline.a.p/loops_utils.h'
+      [76/436] Generating 'numpy/core/libloops_modulo.dispatch.h_baseline.a.p/loops.h'
+      [77/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_baseline.a.p/loops.h'
+      [78/436] Generating 'numpy/core/libloops_modulo.dispatch.h_baseline.a.p/loops_modulo.dispatch.c'
+      [79/436] Generating 'numpy/core/libloops_minmax.dispatch.h_AVX2.a.p/loops_minmax.dispatch.c'
+      [80/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_baseline.a.p/loops_trigonometric.dispatch.c'
+      [81/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_baseline.a.p/loops_utils.h'
+      [82/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_AVX512F.a.p/loops.h'
+      [83/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_AVX512F.a.p/loops_utils.h'
+      [84/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_AVX512F.a.p/loops_trigonometric.dispatch.c'
+      [85/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_FMA3__AVX2.a.p/loops_utils.h'
+      [86/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_FMA3__AVX2.a.p/loops.h'
+      [87/436] Generating 'numpy/core/libloops_trigonometric.dispatch.h_FMA3__AVX2.a.p/loops_trigonometric.dispatch.c'
+      [88/436] Generating 'numpy/core/libloops_umath_fp.dispatch.h_baseline.a.p/loops.h'
+      [89/436] Generating 'numpy/core/libloops_umath_fp.dispatch.h_baseline.a.p/loops_utils.h'
+      [90/436] Generating 'numpy/core/libloops_umath_fp.dispatch.h_baseline.a.p/loops_umath_fp.dispatch.c'
+      [91/436] Generating 'numpy/core/libloops_unary.dispatch.h_baseline.a.p/loops.h'
+      [92/436] Generating 'numpy/core/libloops_unary.dispatch.h_baseline.a.p/loops_utils.h'
+      [93/436] Generating 'numpy/core/libloops_unary.dispatch.h_baseline.a.p/loops_unary.dispatch.c'
+      [94/436] Generating 'numpy/core/libloops_unary.dispatch.h_AVX2.a.p/loops_utils.h'
+      [95/436] Generating 'numpy/core/libloops_unary.dispatch.h_AVX2.a.p/loops.h'
+      [96/436] Generating 'numpy/core/libloops_unary.dispatch.h_AVX2.a.p/loops_unary.dispatch.c'
+      [97/436] Generating 'numpy/core/libloops_unary_fp.dispatch.h_baseline.a.p/loops.h'
+      [98/436] Generating 'numpy/core/libloops_unary_fp.dispatch.h_baseline.a.p/loops_utils.h'
+      [99/436] Generating 'numpy/core/libloops_unary_fp.dispatch.h_baseline.a.p/loops_unary_fp.dispatch.c'
+      [100/436] Generating 'numpy/core/libloops_unary_fp.dispatch.h_SSE41.a.p/loops.h'
+      [101/436] Generating 'numpy/core/libloops_unary_fp.dispatch.h_SSE41.a.p/loops_utils.h'
+      [102/436] Generating 'numpy/core/libloops_unary_fp_le.dispatch.h_baseline.a.p/loops_utils.h'
+      [103/436] Generating 'numpy/core/libloops_unary_fp_le.dispatch.h_baseline.a.p/loops.h'
+      [104/436] Generating 'numpy/core/libloops_unary_fp.dispatch.h_SSE41.a.p/loops_unary_fp.dispatch.c'
+      [105/436] Generating 'numpy/core/libloops_unary_fp_le.dispatch.h_SSE41.a.p/loops_utils.h'
+      [106/436] Generating 'numpy/core/libloops_unary_fp_le.dispatch.h_baseline.a.p/loops_unary_fp_le.dispatch.c'
+      [107/436] Generating 'numpy/core/libloops_unary_fp_le.dispatch.h_SSE41.a.p/loops.h'
+      [108/436] Generating 'numpy/core/libloops_unary_fp_le.dispatch.h_SSE41.a.p/loops_unary_fp_le.dispatch.c'
+      [109/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_baseline.a.p/loops_utils.h'
+      [110/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_baseline.a.p/loops.h'
+      [111/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_baseline.a.p/loops_unary_complex.dispatch.c'
+      [112/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_AVX512F.a.p/loops_unary_complex.dispatch.c'
+      [113/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_AVX512F.a.p/loops_utils.h'
+      [114/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_AVX512F.a.p/loops.h'
+      [115/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_FMA3__AVX2.a.p/loops.h'
+      [116/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_FMA3__AVX2.a.p/loops_utils.h'
+      [117/436] Generating 'numpy/core/libloops_unary_complex.dispatch.h_FMA3__AVX2.a.p/loops_unary_complex.dispatch.c'
+      [118/436] Generating 'numpy/core/libloops_autovec.dispatch.h_baseline.a.p/loops.h'
+      [119/436] Generating 'numpy/core/libloops_autovec.dispatch.h_baseline.a.p/loops_utils.h'
+      [120/436] Generating 'numpy/core/libloops_autovec.dispatch.h_baseline.a.p/loops_autovec.dispatch.c'
+      [121/436] Generating 'numpy/core/libloops_autovec.dispatch.h_AVX2.a.p/loops_utils.h'
+      [122/436] Generating 'numpy/core/libloops_autovec.dispatch.h_AVX2.a.p/loops.h'
+      [123/436] Generating 'numpy/core/libloops_autovec.dispatch.h_AVX2.a.p/loops_autovec.dispatch.c'
+      [124/436] Generating 'numpy/core/lib_simd.dispatch.h_baseline.a.p/_simd_data.inc'
+      [125/436] Generating 'numpy/core/lib_simd.dispatch.h_baseline.a.p/_simd_inc.h'
+      [126/436] Generating 'numpy/core/lib_simd.dispatch.h_baseline.a.p/_simd.dispatch.c'
+      [127/436] Generating 'numpy/core/lib_simd.dispatch.h_SSE42.a.p/_simd_inc.h'
+      [128/436] Generating 'numpy/core/lib_simd.dispatch.h_SSE42.a.p/_simd_data.inc'
+      [129/436] Generating 'numpy/core/lib_simd.dispatch.h_AVX2.a.p/_simd_inc.h'
+      [130/436] Generating 'numpy/core/lib_simd.dispatch.h_AVX2.a.p/_simd_data.inc'
+      [131/436] Generating 'numpy/core/lib_simd.dispatch.h_SSE42.a.p/_simd.dispatch.c'
+      [132/436] Generating 'numpy/core/lib_simd.dispatch.h_FMA3.a.p/_simd_inc.h'
+      [133/436] Generating 'numpy/core/lib_simd.dispatch.h_FMA3.a.p/_simd_data.inc'
+      [134/436] Generating 'numpy/core/lib_simd.dispatch.h_AVX2.a.p/_simd.dispatch.c'
+      [135/436] Generating 'numpy/core/lib_simd.dispatch.h_FMA3__AVX2.a.p/_simd_inc.h'
+      [136/436] Generating 'numpy/core/lib_simd.dispatch.h_FMA3__AVX2.a.p/_simd_data.inc'
+      [137/436] Generating 'numpy/core/lib_simd.dispatch.h_AVX512F.a.p/_simd_data.inc'
+      [138/436] Generating 'numpy/core/lib_simd.dispatch.h_FMA3.a.p/_simd.dispatch.c'
+      [139/436] Generating 'numpy/core/lib_simd.dispatch.h_AVX512F.a.p/_simd_inc.h'
+      [140/436] Generating 'numpy/core/lib_simd.dispatch.h_FMA3__AVX2.a.p/_simd.dispatch.c'
+      [141/436] Generating 'numpy/core/lib_simd.dispatch.h_AVX512F.a.p/_simd.dispatch.c'
+      [142/436] Generating numpy/random/__init__.py with a custom command
+      [143/436] Generating numpy/random/__init__.pxd with a custom command
+      [144/436] Generating numpy/random/bit_generator.pxd with a custom command
+      [145/436] Generating numpy/random/c_distributions.pxd with a custom command
+      [146/436] Generating numpy/random/_common.pxd with a custom command
+      [147/436] Generating numpy/random/_bounded_integer_pxd with a custom command
+      [148/436] Generating numpy/random/_bounded_integer_pyx with a custom command
+      [149/436] Generating numpy/random/_generator.pyx with a custom command
+      [150/436] Generating numpy/random/mtrand.pyx with a custom command
+      [151/436] Generating numpy/core/_umath_doc_generated with a custom command
+      [152/436] Generating 'numpy/core/_multiarray_tests.cpython-313-x86_64-linux-gnu.so.p/_multiarray_tests.c'
+      [153/436] Generating 'numpy/core/_multiarray_tests.cpython-313-x86_64-linux-gnu.so.p/templ_common.h'
+      [154/436] Compiling C object numpy/core/lib_umath_tests.dispatch.h_baseline.a.p/src_umath__umath_tests.dispatch.c.o
+      [155/436] Compiling C object numpy/core/libnpymath.a.p/meson-generated_ieee754.c.o
+      [156/436] Generating 'numpy/core/_umath_tests.cpython-313-x86_64-linux-gnu.so.p/_umath_tests.c'
+      [157/436] Compiling C object numpy/core/libnpymath.a.p/meson-generated_npy_math_complex.c.o
+      [158/436] Compiling C object numpy/core/libnpymath.a.p/src_npymath_npy_math.c.o
+      [159/436] Compiling C object numpy/core/lib_umath_tests.dispatch.h_SSE41.a.p/src_umath__umath_tests.dispatch.c.o
+      [160/436] Compiling C++ object numpy/core/libnpymath.a.p/src_npymath_halffloat.cpp.o
+      [161/436] Compiling C object numpy/core/lib_umath_tests.dispatch.h_AVX2.a.p/src_umath__umath_tests.dispatch.c.o
+      [162/436] Compiling C object numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/meson-generated_loops_arithm_fp.dispatch.c.o
+      FAILED: [code=1] numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/meson-generated_loops_arithm_fp.dispatch.c.o
+      cc -Inumpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p -Inumpy/core -I../numpy/core -Inumpy/core/include -I../numpy/core/include -I../numpy/core/src/common -I../numpy/core/src/multiarray -I../numpy/core/src/npymath -I../numpy/core/src/umath -I/usr/local/include/python3.13 -I/tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay/meson_cpu -fdiagnostics-color=always -DNDEBUG -Wall -Winvalid-pch -std=c99 -O3 -fno-strict-aliasing -msse -msse2 -msse3 -fPIC -DNPY_INTERNAL_BUILD -DHAVE_NPY_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1 -O3 -DNPY_HAVE_SSE2 -DNPY_HAVE_SSE -DNPY_HAVE_SSE3 -DNPY_HAVE_SSSE3 -DNPY_HAVE_SSE41 -DNPY_HAVE_POPCNT -DNPY_HAVE_SSE42 -DNPY_HAVE_AVX -DNPY_HAVE_F16C -DNPY_HAVE_FMA3 -DNPY_HAVE_AVX2 -msse -msse2 -msse3 -mssse3 -msse4.1 -mpopcnt -msse4.2 -mavx -mf16c -mfma -mavx2 -DNPY_MTARGETS_CURRENT=FMA3__AVX2 -MD -MQ numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/meson-generated_loops_arithm_fp.dispatch.c.o -MF numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/meson-generated_loops_arithm_fp.dispatch.c.o.d -o numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/meson-generated_loops_arithm_fp.dispatch.c.o -c numpy/core/libloops_arithm_fp.dispatch.h_FMA3__AVX2.a.p/loops_arithm_fp.dispatch.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      [163/436] Compiling C object numpy/core/libargfunc.dispatch.h_baseline.a.p/meson-generated_argfunc.dispatch.c.o
+      FAILED: [code=1] numpy/core/libargfunc.dispatch.h_baseline.a.p/meson-generated_argfunc.dispatch.c.o
+      cc -Inumpy/core/libargfunc.dispatch.h_baseline.a.p -Inumpy/core -I../numpy/core -Inumpy/core/include -I../numpy/core/include -I../numpy/core/src/common -I../numpy/core/src/multiarray -I../numpy/core/src/npymath -I../numpy/core/src/umath -I/usr/local/include/python3.13 -I/tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay/meson_cpu -fdiagnostics-color=always -DNDEBUG -Wall -Winvalid-pch -std=c99 -O3 -fno-strict-aliasing -msse -msse2 -msse3 -fPIC -DNPY_INTERNAL_BUILD -DHAVE_NPY_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1 -O3 -DNPY_HAVE_SSE2 -DNPY_HAVE_SSE -DNPY_HAVE_SSE3 -msse -msse2 -msse3 -DNPY_MTARGETS_BASELINE -MD -MQ numpy/core/libargfunc.dispatch.h_baseline.a.p/meson-generated_argfunc.dispatch.c.o -MF numpy/core/libargfunc.dispatch.h_baseline.a.p/meson-generated_argfunc.dispatch.c.o.d -o numpy/core/libargfunc.dispatch.h_baseline.a.p/meson-generated_argfunc.dispatch.c.o -c numpy/core/libargfunc.dispatch.h_baseline.a.p/argfunc.dispatch.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      [164/436] Compiling C object numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/meson-generated_loops_arithm_fp.dispatch.c.o
+      FAILED: [code=1] numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/meson-generated_loops_arithm_fp.dispatch.c.o
+      cc -Inumpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p -Inumpy/core -I../numpy/core -Inumpy/core/include -I../numpy/core/include -I../numpy/core/src/common -I../numpy/core/src/multiarray -I../numpy/core/src/npymath -I../numpy/core/src/umath -I/usr/local/include/python3.13 -I/tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d35564a/.mesonpy-dlnxkvay/meson_cpu -fdiagnostics-color=always -DNDEBUG -Wall -Winvalid-pch -std=c99 -O3 -fno-strict-aliasing -msse -msse2 -msse3 -fPIC -DNPY_INTERNAL_BUILD -DHAVE_NPY_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1 -O3 -DNPY_HAVE_SSE2 -DNPY_HAVE_SSE -DNPY_HAVE_SSE3 -msse -msse2 -msse3 -DNPY_MTARGETS_BASELINE -MD -MQ numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/meson-generated_loops_arithm_fp.dispatch.c.o -MF numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/meson-generated_loops_arithm_fp.dispatch.c.o.d -o numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/meson-generated_loops_arithm_fp.dispatch.c.o -c numpy/core/libloops_arithm_fp.dispatch.h_baseline.a.p/loops_arithm_fp.dispatch.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      [165/436] Compiling C object numpy/core/libargfunc.dispatch.h_AVX2.a.p/meson-generated_argfunc.dispatch.c.o
+      FAILED: [code=1] numpy/core/libargfunc.dispatch.h_AVX2.a.p/meson-generated_argfunc.dispatch.c.o
+      cc -Inumpy/core/libargfunc.dispatch.h_AVX2.a.p -Inumpy/core -I../numpy/core -Inumpy/core/include -I../numpy/core/include -I../numpy/core/src/common -I../numpy/c
+      
+ore/src/multiarray -I../numpy/core/src/npymath -I../numpy/core/src/umath -I/usr/local/include/python3.13 -I/tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d3
+5564a/.mesonpy-dlnxkvay/meson_cpu -fdiagnostics-color=always -DNDEBUG -Wall -Winvalid-pch -std=c99 -O3 -fno-strict-aliasing -msse -msse2 -msse3 -fPIC -DNPY_INTERNAL_B
+UILD -DHAVE_NPY_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1 -O3 -DNPY_HAVE_SSE2 -DNPY_HAVE_SSE -DNPY_HAVE_SSE3 -DNPY_HAVE_SSSE3 -DNP
+Y_HAVE_SSE41 -DNPY_HAVE_POPCNT -DNPY_HAVE_SSE42 -DNPY_HAVE_AVX -DNPY_HAVE_F16C -DNPY_HAVE_AVX2 -msse -msse2 -msse3 -mssse3 -msse4.1 -mpopcnt -msse4.2 -mavx -mf16c -ma
+vx2 -DNPY_MTARGETS_CURRENT=AVX2 -MD -MQ numpy/core/libargfunc.dispatch.h_AVX2.a.p/meson-generated_argfunc.dispatch.c.o -MF numpy/core/libargfunc.dispatch.h_AVX2.a.p/m
+eson-generated_argfunc.dispatch.c.o.d -o numpy/core/libargfunc.dispatch.h_AVX2.a.p/meson-generated_argfunc.dispatch.c.o -c numpy/core/libargfunc.dispatch.h_AVX2.a.p/a
+rgfunc.dispatch.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      [166/436] Compiling C object numpy/core/libargfunc.dispatch.h_SSE42.a.p/meson-generated_argfunc.dispatch.c.o
+      FAILED: [code=1] numpy/core/libargfunc.dispatch.h_SSE42.a.p/meson-generated_argfunc.dispatch.c.o
+      cc -Inumpy/core/libargfunc.dispatch.h_SSE42.a.p -Inumpy/core -I../numpy/core -Inumpy/core/include -I../numpy/core/include -I../numpy/core/src/common -I../numpy/
+core/src/multiarray -I../numpy/core/src/npymath -I../numpy/core/src/umath -I/usr/local/include/python3.13 -I/tmp/pip-install-ueuje8d8/numpy_106097492c9b454ab8815ee92d
+35564a/.mesonpy-dlnxkvay/meson_cpu -fdiagnostics-color=always -DNDEBUG -Wall -Winvalid-pch -std=c99 -O3 -fno-strict-aliasing -msse -msse2 -msse3 -fPIC -DNPY_INTERNAL_
+BUILD -DHAVE_NPY_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1 -O3 -DNPY_HAVE_SSE2 -DNPY_HAVE_SSE -DNPY_HAVE_SSE3 -DNPY_HAVE_SSSE3 -DN
+PY_HAVE_SSE41 -DNPY_HAVE_POPCNT -DNPY_HAVE_SSE42 -msse -msse2 -msse3 -mssse3 -msse4.1 -mpopcnt -msse4.2 -DNPY_MTARGETS_CURRENT=SSE42 -MD -MQ numpy/core/libargfunc.dis
+patch.h_SSE42.a.p/meson-generated_argfunc.dispatch.c.o -MF numpy/core/libargfunc.dispatch.h_SSE42.a.p/meson-generated_argfunc.dispatch.c.o.d -o numpy/core/libargfunc.
+dispatch.h_SSE42.a.p/meson-generated_argfunc.dispatch.c.o -c numpy/core/libargfunc.dispatch.h_SSE42.a.p/argfunc.dispatch.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      [167/436] Compiling C object numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/meson-generated_loops_arithmetic.dispatch.c.o
+      FAILED: [code=1] numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/meson-generated_loops_arithmetic.dispatch.c.o
+      cc -Inumpy/core/libloops_arithmetic.dispatch.h_baseline.a.p -Inumpy/core -I../numpy/core -Inumpy/core/include -I../numpy/core/include -I../numpy/core/src/common
+ -I../numpy/core/src/multiarray -I../numpy/core/src/npymath -I../numpy/core/src/umath -I/usr/local/include/python3.13 -I/tmp/pip-install-ueuje8d8/numpy_106097492c9b45
+4ab8815ee92d35564a/.mesonpy-dlnxkvay/meson_cpu -fdiagnostics-color=always -DNDEBUG -Wall -Winvalid-pch -std=c99 -O3 -fno-strict-aliasing -msse -msse2 -msse3 -fPIC -DN
+PY_INTERNAL_BUILD -DHAVE_NPY_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1 -O3 -DNPY_HAVE_SSE2 -DNPY_HAVE_SSE -DNPY_HAVE_SSE3 -msse -m
+sse2 -msse3 -DNPY_MTARGETS_BASELINE -MD -MQ numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/meson-generated_loops_arithmetic.dispatch.c.o -MF numpy/core/libloo
+ps_arithmetic.dispatch.h_baseline.a.p/meson-generated_loops_arithmetic.dispatch.c.o.d -o numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/meson-generated_loops_
+arithmetic.dispatch.c.o -c numpy/core/libloops_arithmetic.dispatch.h_baseline.a.p/loops_arithmetic.dispatch.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      ninja: build stopped: subcommand failed.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: metadata-generation-failed
+× Encountered error while generating package metadata.
+╰─> See above for output.
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details.

@@ -1,0 +1,30 @@
+<!-- ...existing code... -->
+<div class="table-responsive">
+  <table class="table table-sm table-striped">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>Proveedor</th>
+        <th>Precio</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in resultados_excel %}
+      <tr>
+        <td>{{ r.codigo }}</td>
+        <td>{{ r.nombre }}</td>
+        <td>{{ r.proveedor }}</td>
+        <td>{{ r.precio }}</td>
+        <td>
+          <button type="button" class="btn btn-sm btn-primary" onclick="cargarFormulario('{{ r.codigo }}', '{{ r.nombre }}', '{{ r.precio }}', '{{ r.proveedor }}', '{{ r.observaciones }}')">
+            <i class="bi bi-arrow-right-circle"></i>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<!-- ...existing code... -->

@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h1>Bienvenido al Gestor de Stock</h1>
+    <p>Utiliza el menú para gestionar productos, proveedores y ver el historial de stock.</p>
+    <img src="{{ url_for('static', filename='logoferreteria.png') }}" alt="Logo Ferretería" width="120" class="my-4">
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>Historial y Gestión de Stock</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{{ url_for('index') }}" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o código..." value="{{ termino_busqueda }}">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha Compra</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Precio Unit.</th>
+                        <th>Cantidad Actual</th>
+                        <th>Acción (Venta)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productos %}
+                    <tr>
+                        <td>{{ p.fecha_compra }}</td>
+                        <td>{{ p.codigo or 'N/A' }}</td>
+                        <td>{{ p.nombre }}</td>
+                        <td>${{ "%.2f"|format(p.precio) }}</td>
+                        <td><strong>{{ p.cantidad }}</strong></td>
+                        <td>
+                            {% if p.cantidad > 0 %}
+                            <form method="post" action="{{ url_for('actualizar_stock', id=p.id) }}" class="d-flex">
+                                <input type="number" name="cantidad_vendida" class="form-control form-control-sm me-2" placeholder="Cant." min="1" max="{{ p.cantidad }}" required style="width: 80px;">
+                                <button type="submit" class="btn btn-success btn-sm">Vender</button>
+                            </form>
+                            {% else %}
+                            <span class="badge bg-danger">Sin Stock</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No hay productos en el stock. Comience agregando uno.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

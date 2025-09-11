@@ -1,0 +1,472 @@
+import os
+import sqlite3
+import pandas as pd
+from flask import Flask, render_template, request, redirect, url_for, flash
+from datetime import datetime
+import glob
+import webbrowser
+from threading import Timer
+
+# --- Configuración de la Aplicación ---
+app = Flask(__name__)
+app.secret_key = 'supersecretkey'
+
+# --- Rutas de Archivos y Carpetas ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'stock.db')
+EXCEL_FOLDER = os.path.join(BASE_DIR, 'listas_excel')
+
+# --- Funciones de Base de Datos ---
+def init_db():
+    if not os.path.exists(EXCEL_FOLDER):
+        os.makedirs(EXCEL_FOLDER)
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS stock (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo TEXT,
+            nombre TEXT NOT NULL,
+            precio REAL NOT NULL,
+            cantidad INTEGER NOT NULL,
+            fecha_compra TEXT NOT NULL,
+            proveedor TEXT
+        )
+    ''')
+    # Añadir columna observaciones si no existe
+    cursor.execute("PRAGMA table_info(stock)")
+    columns = [col[1] for col in cursor.fetchall()]
+    if 'observaciones' not in columns:
+        cursor.execute("ALTER TABLE stock ADD COLUMN observaciones TEXT")
+    if 'precio_texto' not in columns:
+        cursor.execute("ALTER TABLE stock ADD COLUMN precio_texto TEXT")
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS proveedores_manual (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS productos_manual (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            proveedor_id INTEGER,
+            nombre TEXT NOT NULL,
+            codigo TEXT,
+            precio REAL NOT NULL,
+            FOREIGN KEY (proveedor_id) REFERENCES proveedores_manual(id)
+        )
+    ''')
+    # Añadir proveedores de Excel si no existen
+    proveedores_excel = ['BremenTools', 'Crossmaster', 'Berger', 'Chiesa', 'Cachan']
+    for nombre in proveedores_excel:
+        cursor.execute("INSERT OR IGNORE INTO proveedores_manual (nombre) VALUES (?)", (nombre,))
+    conn.commit()
+    conn.close()
+
+def db_query(query, params=()):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(query, params)
+    if query.strip().upper().startswith('SELECT'):
+        result = [dict(row) for row in cursor.fetchall()]
+    else:
+        conn.commit()
+        result = None
+    conn.close()
+    return result
+
+# --- Funciones de Lógica de Negocio ---
+def normalize_text(text):
+    if not isinstance(text, str):
+        return ''
+    return ''.join(filter(str.isalpha, text)).lower()
+
+def buscar_en_excel(termino_busqueda, proveedor_filtro=None):
+    PROVEEDOR_CONFIG = {
+        'brementools': {
+            'fila_encabezado': 5,
+            'codigo': ['codigo', 'Código', 'CODIGO'],
+            'producto': ['producto', 'Producto', 'PRODUCTO']
+        },
+        'crossmaster': {
+            'fila_encabezado': 11,
+            'codigo': ['codigo', 'Codigo', 'CODIGO'],
+            'producto': ['descripcion', 'Descripcion', 'DESCRIPCION']
+        },
+        'berger': {
+            'fila_encabezado': 0,
+            'codigo': ['cod', 'COD', 'codigo', 'Codigo'],
+            'producto': ['detalle', 'DETALLE', 'producto', 'Producto'],
+            'extra_datos': ['marca', 'MARCA']
+        },
+        'chiesa': {
+            'fila_encabezado': 1,
+            'codigo': ['codigo', 'Codigo', 'CODIGO'],
+            'producto': ['descripción', 'Descripción', 'descripcion', 'Descripcion']
+        },
+        'cachan': {
+            'fila_encabezado': 0,
+            'codigo': ['codigo', 'Codigo', 'CODIGO'],
+            'producto': ['nombre', 'Nombre', 'NOMBRE']
+        },
+        'otros_proveedores': {
+            'archivo_excel': os.path.join(EXCEL_FOLDER, 'productos_manual.xlsx'),
+            'codigo': ['Codigo'],
+            'producto': ['Nombre'],
+            'proveedor': ['Proveedor'],
+            'precio': ['Precio']
+        }
+    }
+    resultados = []
+    archivos_excel = []
+
+    # Si se filtra por un proveedor específico
+    if proveedor_filtro == 'otros_proveedores':
+        otros_path = PROVEEDOR_CONFIG['otros_proveedores']['archivo_excel']
+        if os.path.exists(otros_path):
+            archivos_excel = [otros_path]
+    elif proveedor_filtro:
+        # Buscar solo el archivo de ese proveedor
+        for key in PROVEEDOR_CONFIG:
+            if key == proveedor_filtro and key != 'otros_proveedores':
+                pattern = os.path.join(EXCEL_FOLDER, f"*{key}*.xlsx")
+                archivos_excel = glob.glob(pattern)
+                break
+    else:
+        # Buscar todos los archivos de Excel y añadir el de otros_proveedores si existe
+        archivos_excel = glob.glob(os.path.join(EXCEL_FOLDER, '*.xlsx'))
+        otros_path = PROVEEDOR_CONFIG['otros_proveedores']['archivo_excel']
+        if os.path.exists(otros_path):
+            archivos_excel.append(otros_path)
+
+    for archivo in archivos_excel:
+        try:
+            nombre_archivo = os.path.basename(archivo).lower()
+            proveedor_key = None
+            for key in PROVEEDOR_CONFIG:
+                if (key != 'otros_proveedores' and key in nombre_archivo) or (key == 'otros_proveedores' and archivo == PROVEEDOR_CONFIG['otros_proveedores']['archivo_excel']):
+                    proveedor_key = key
+                    break
+            if not proveedor_key:
+                continue
+            config = PROVEEDOR_CONFIG[proveedor_key]
+            fila_encabezado = config.get('fila_encabezado', 0)
+            df = pd.read_excel(archivo, header=fila_encabezado, dtype={'Precio': str})
+            df.columns = [str(col).strip() for col in df.columns]
+            print(f"\nColumnas disponibles en el Excel: {df.columns.tolist()}")
+            col_codigo = next((alias for alias in config['codigo'] if alias in df.columns), None)
+            col_producto = next((alias for alias in config['producto'] if alias in df.columns), None)
+            col_extra = next((alias for alias in config.get('extra_datos', []) if alias in df.columns), None)
+            col_proveedor = next((alias for alias in config.get('proveedor', []) if alias in df.columns), None)
+            col_precio = next((alias for alias in config.get('precio', []) if alias in df.columns), None)
+            if not col_codigo or not col_producto:
+                print(f"Archivo {archivo}: no se encontraron las columnas de código/producto según la configuración.")
+                continue
+            df_filtrado = df[
+                df[col_producto].astype(str).str.contains(termino_busqueda, case=False, na=False) |
+                df[col_codigo].astype(str).str.contains(termino_busqueda, case=False, na=False)
+            ].copy()
+            for _, row in df_filtrado.iterrows():
+                nombre_final = row[col_producto]
+                if col_extra and pd.notna(row.get(col_extra, None)):
+                    nombre_final = f"{nombre_final} ({row[col_extra]})"
+                # Manejo de precio numérico o texto
+                # Obtener el precio del Excel
+                if col_precio and pd.notna(row[col_precio]):
+                    precio_val = str(row[col_precio])
+                else:
+                    precio_val = ''
+
+                print(f"\nProcesando precio para {row[col_producto]}")
+                print(f"Valor original del Excel: '{precio_val}' (tipo: {type(row[col_precio])})")
+                
+                try:
+                    if not precio_val or precio_val.lower() == 'nan' or precio_val.strip() == '':
+                        print("Precio vacío o NaN")
+                        precio_num = 0
+                        precio_texto = ''
+                    else:
+                        # Limpiamos el valor de cualquier formato
+                        precio_limpio = precio_val.replace('$', '').replace(' ', '').strip()
+                        print(f"Precio después de limpieza inicial: '{precio_limpio}'")
+                        
+                        # Si tiene coma decimal (formato europeo)
+                        if ',' in precio_limpio:
+                            # Primero quitamos los puntos de miles
+                            temp = precio_limpio.replace('.', '')
+                            # Luego convertimos la coma en punto decimal
+                            temp = temp.replace(',', '.')
+                            print(f"Precio en formato europeo convertido: '{temp}'")
+                            precio_num = float(temp)
+                        else:
+                            # Intentamos convertir directamente
+                            print(f"Intentando convertir precio directo: '{precio_limpio}'")
+                            precio_num = float(precio_limpio)
+                        
+                        print(f"Precio final convertido: {precio_num}")
+                        precio_texto = ''
+                        
+                except Exception as e:
+                    print(f"ERROR procesando precio: {str(e)}")
+                    precio_num = 0
+                    precio_texto = precio_val
+                except Exception as e:
+                    print(f"Error al convertir precio '{precio_val}': {e}")
+                    precio_num = 0
+                    precio_texto = precio_val
+                resultados.append({
+                    'codigo': row[col_codigo],
+                    'nombre': nombre_final,
+                    'proveedor': row[col_proveedor] if col_proveedor else (config.get('nombre', 'Otros Proveedores') if proveedor_key == 'otros_proveedores' else proveedor_key.capitalize()),
+                    'precio': precio_num,
+                    'precio_texto': precio_texto,
+                    'Observaciones': row.get('Observaciones', '') if proveedor_key == 'otros_proveedores' else ''
+                })
+        except Exception as e:
+            print(f"Error al procesar el archivo {archivo}: {e}")
+    return resultados
+
+# --- Rutas de la Aplicación Web (Flask) ---
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/historial')
+def historial():
+    termino = request.args.get('q', '')
+    if termino:
+        productos = db_query(
+            "SELECT * FROM stock WHERE nombre LIKE ? OR codigo LIKE ? OR proveedor LIKE ? OR observaciones LIKE ? ORDER BY fecha_compra DESC",
+            (f'%{termino}%', f'%{termino}%', f'%{termino}%', f'%{termino}%')
+        )
+    else:
+        productos = db_query("SELECT * FROM stock ORDER BY fecha_compra DESC")
+    return render_template('historial.html', productos=productos, termino_busqueda=termino)
+
+@app.route('/agregar', methods=['GET', 'POST'])
+def agregar_producto():
+    if request.method == 'POST':
+        codigo = request.form.get('codigo')
+        nombre = request.form['nombre']
+        precio_raw = request.form['precio']
+        # Permitir formato europeo: puntos para miles, coma para decimales
+        precio_str = str(precio_raw).replace('.', '').replace(',', '.')
+        try:
+            precio = float(precio_str)
+            precio_texto = ''
+        except Exception:
+            precio = 0.0
+            precio_texto = precio_raw
+        cantidad = int(request.form['cantidad'])
+        fecha_compra = request.form['fecha_compra']
+        proveedor = request.form.get('proveedor')
+        observaciones = request.form.get('observaciones', '')
+
+        # Buscar en productos_manual.xlsx si el producto existe
+        file_path = os.path.join(EXCEL_FOLDER, 'productos_manual.xlsx')
+        producto_manual = None
+        if os.path.exists(file_path):
+            df_manual = pd.read_excel(file_path)
+            # Buscar por código o nombre
+            filtro = (
+                (df_manual['Codigo'].astype(str).str.lower() == str(codigo).lower()) |
+                (df_manual['Nombre'].astype(str).str.lower() == str(nombre).lower())
+            )
+            resultado = df_manual[filtro]
+            if not resultado.empty:
+                # Si lo encuentra, toma los datos del Excel
+                producto_manual = resultado.iloc[0]
+                codigo = producto_manual['Codigo']
+                nombre = producto_manual['Nombre']
+                precio = producto_manual['Precio']
+                proveedor = 'Otros Proveedores'
+        # Asegura que precio sea float
+        if not isinstance(precio, float):
+            try:
+                precio = float(precio)
+            except Exception:
+                precio = 0.0
+
+        db_query(
+            "INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto)
+        )
+        flash('Producto agregado al stock con éxito.', 'success')
+        return redirect(url_for('historial'))
+
+    # --- NUEVO: Búsqueda por proveedor y filtro secundario ---
+    termino_excel = request.args.get('busqueda_excel', '')
+    proveedor_excel = request.args.get('proveedor_excel', '')
+    filtro_excel = request.args.get('filtro_excel', '')
+    resultados_excel = []
+
+    # Lista de proveedores con Excel
+    proveedores_excel = [
+        {'key': 'brementools', 'nombre': 'BremenTools'},
+        {'key': 'crossmaster', 'nombre': 'Crossmaster'},
+        {'key': 'berger', 'nombre': 'Berger'},
+        {'key': 'chiesa', 'nombre': 'Chiesa'},
+        {'key': 'cachan', 'nombre': 'Cachan'},
+        {'key': 'otros_proveedores', 'nombre': 'Otros Proveedores'}
+    ]
+
+    if termino_excel:
+        resultados_raw = buscar_en_excel(termino_excel, proveedor_excel if proveedor_excel else None)
+        resultados_excel = resultados_raw
+
+        # Aplica filtro secundario si existe
+        if filtro_excel and resultados_excel:
+            filtro_lower = filtro_excel.lower()
+            resultados_excel = [
+                r for r in resultados_excel
+                if filtro_lower in str(r.get('nombre', '')).lower()
+                or filtro_lower in str(r.get('codigo', '')).lower()
+                or filtro_lower in str(r.get('nombre', '')).replace(' ', '').lower()
+                or filtro_lower in str(r.get('codigo', '')).replace(' ', '').lower()
+                or filtro_lower in str(r.get('nombre', '')).replace('/', '').lower()
+                or filtro_lower in str(r.get('codigo', '')).replace('/', '').lower()
+            ]
+
+    # Consulta proveedores and productos manuales
+    proveedores_manual = db_query("SELECT * FROM proveedores_manual")
+    productos_manual = db_query(
+        "SELECT productos_manual.*, proveedores_manual.nombre as proveedor_nombre FROM productos_manual JOIN proveedores_manual ON productos_manual.proveedor_id = proveedores_manual.id"
+    )
+
+    return render_template(
+        'agregar.html',
+        resultados_excel=resultados_excel,
+        termino_excel=termino_excel,
+        proveedor_excel=proveedor_excel,
+        filtro_excel=filtro_excel,
+        proveedores_excel=proveedores_excel,
+        proveedores_manual=proveedores_manual,
+        productos_manual=productos_manual,
+        fecha_actual=datetime.now().strftime('%Y-%m-%d')
+    )
+
+@app.route('/actualizar_stock/<int:id>', methods=['POST'])
+def actualizar_stock(id):
+    try:
+        cantidad_vendida = int(request.form['cantidad_vendida'])
+        producto_actual = db_query("SELECT cantidad FROM stock WHERE id = ?", (id,))[0]
+        if cantidad_vendida <= 0:
+            flash('La cantidad vendida debe ser mayor que cero.', 'warning')
+        elif cantidad_vendida > producto_actual['cantidad']:
+            flash('No se puede vender más de la cantidad disponible en stock.', 'danger')
+        else:
+            nueva_cantidad = producto_actual['cantidad'] - cantidad_vendida
+            db_query("UPDATE stock SET cantidad = ? WHERE id = ?", (nueva_cantidad, id))
+            flash('Stock actualizado correctamente.', 'success')
+    except (ValueError, IndexError):
+        flash('Error al actualizar el stock. Verifique los datos.', 'danger')
+    return redirect(url_for('historial'))
+
+@app.route('/proveedores', methods=['GET'])
+def proveedores():
+    proveedores_manual = db_query("SELECT * FROM proveedores_manual")
+    productos_manual = db_query(
+        "SELECT productos_manual.*, proveedores_manual.nombre as proveedor_nombre FROM productos_manual JOIN proveedores_manual ON productos_manual.proveedor_id = proveedores_manual.id"
+    )
+    return render_template('proveedores.html', proveedores_manual=proveedores_manual, productos_manual=productos_manual)
+
+@app.route('/agregar_proveedor_manual', methods=['POST'])
+def agregar_proveedor_manual():
+    nombre = request.form['nombre']
+    db_query("INSERT OR IGNORE INTO proveedores_manual (nombre) VALUES (?)", (nombre,))
+    flash('Proveedor manual agregado.', 'success')
+    return redirect(url_for('proveedores'))
+
+@app.route('/eliminar_proveedor_manual/<int:id>', methods=['POST'])
+def eliminar_proveedor_manual(id):
+    db_query("DELETE FROM proveedores_manual WHERE id = ?", (id,))
+    db_query("DELETE FROM productos_manual WHERE proveedor_id = ?", (id,))
+    flash('Proveedor manual eliminado.', 'success')
+    return redirect(url_for('proveedores'))
+
+@app.route('/agregar_producto_manual', methods=['POST'])
+def agregar_producto_manual():
+    proveedor_id = request.form['proveedor_id']
+    nombre = request.form['nombre']
+    codigo = request.form.get('codigo', '')
+    precio_raw = request.form['precio']
+    observaciones = request.form.get('observaciones', '')
+    # Solo permitir números, puntos y comas
+    try:
+        precio_limpio = str(precio_raw).replace('$', '').replace(' ', '').strip()
+        if ',' in precio_limpio:
+            # Formato europeo (20.000.000,50)
+            precio_str = precio_limpio.replace('.', '').replace(',', '.')
+            precio = float(precio_str)
+        else:
+            precio = float(precio_limpio)
+        if precio > 999999999:  # Validar número máximo
+            raise ValueError("Precio demasiado grande")
+    except Exception:
+        precio = 0.0
+
+    # Obtener el nombre del proveedor
+    proveedor_row = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (proveedor_id,))
+    proveedor_nombre = proveedor_row[0]['nombre'] if proveedor_row else ''
+
+    # Guardar en archivo Excel
+    file_path = os.path.join(EXCEL_FOLDER, 'productos_manual.xlsx')
+    # Si el archivo existe, cargarlo, si no, crear uno nuevo
+    if os.path.exists(file_path):
+        df = pd.read_excel(file_path)
+        if 'Observaciones' not in df.columns:
+            df['Observaciones'] = ''
+    else:
+        df = pd.DataFrame(columns=['Proveedor', 'Nombre', 'Codigo', 'Precio', 'Observaciones'])
+
+    # Crear nuevo registro como DataFrame y concatenar
+    nuevo_producto = pd.DataFrame([{
+        'Proveedor': proveedor_nombre,
+        'Nombre': nombre,
+        'Codigo': codigo,
+        'Precio': precio,
+        'Observaciones': observaciones
+    }])
+    df = pd.concat([df, nuevo_producto], ignore_index=True)
+    df.to_excel(file_path, index=False)
+
+    flash('Producto manual agregado exitosamente.', 'success')
+    return redirect(url_for('agregar_producto'))
+
+@app.route('/eliminar_producto_manual/<int:id>', methods=['POST'])
+def eliminar_producto_manual(id):
+    db_query("DELETE FROM productos_manual WHERE id = ?", (id,))
+    flash('Producto manual eliminado.', 'success')
+    return redirect(url_for('proveedores'))
+
+@app.route('/eliminar_producto_stock/<int:id>', methods=['POST'])
+def eliminar_producto_stock(id):
+    db_query("DELETE FROM stock WHERE id = ?", (id,))
+    flash('Producto eliminado del stock.', 'success')
+    return redirect(url_for('historial'))
+
+@app.route('/eliminar_producto_otros_proveedores/<codigo>', methods=['POST'])
+def eliminar_producto_otros_proveedores(codigo):
+    # Eliminar del stock
+    db_query("DELETE FROM stock WHERE codigo = ?", (codigo,))
+    # Eliminar del Excel de otros proveedores
+    file_path = os.path.join(EXCEL_FOLDER, 'productos_manual.xlsx')
+    if os.path.exists(file_path):
+        df = pd.read_excel(file_path)
+        df = df[df['Codigo'].astype(str) != str(codigo)]
+        df.to_excel(file_path, index=False)
+    flash('Producto eliminado del stock y del Excel de Otros Proveedores.', 'success')
+    return redirect(url_for('historial'))
+
+# --- Ejecución de la Aplicación ---
+if __name__ == '__main__':
+    init_db()
+    port = 5001
+    url = f"http://127.0.0.1:{port}"
+    def open_browser():
+        webbrowser.open_new(url)
+    # Solo abrir navegador si no es el reloader
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        Timer(1, open_browser).start()
+    app.run(debug=True, port=port)

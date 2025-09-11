@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Historial de Stock</h1>
+</div>
+
+<!-- Formulario de búsqueda -->
+<form method="get" action="{{ url_for('historial') }}" class="mb-4">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="Buscar por nombre, código, proveedor, observaciones..." value="{{ termino_busqueda or '' }}">
+        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+    </div>
+</form>
+
+<!-- Mensajes Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Formulario para eliminar seleccionados -->
+<form method="post" action="{{ url_for('eliminar_seleccionados') }}" id="form-eliminar-seleccionados">
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th><input type="checkbox" id="check-todos" onclick="toggleTodos(this)"></th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Fecha Compra</th>
+                <th>Proveedor</th>
+                <th>Observaciones</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr>
+                <td><input type="checkbox" name="seleccionados" value="{{ producto.id }}"></td>
+                <td>{{ producto.codigo }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>
+                    {% if producto.precio_texto %}
+                        {{ producto.precio_texto }}
+                    {% else %}
+                        ${{ "{:,.2f}".format(producto.precio).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                    {% endif %}
+                </td>
+                <td>{{ producto.cantidad }}</td>
+                <td>{{ producto.fecha_compra }}</td>
+                <td>{{ producto.proveedor }}</td>
+                <td>{{ producto.observaciones }}</td>
+                <td class="text-nowrap">
+                    <!-- Formulario para actualizar stock (vender) -->
+                    <form action="{{ url_for('actualizar_stock', id=producto.id) }}" method="post" class="d-inline-block mb-1">
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                            <input type="number" name="cantidad_vendida" class="form-control" placeholder="Cant." min="1" max="{{ producto.cantidad }}" required>
+                            <button type="submit" class="btn btn-success btn-sm">Vender</button>
+                        </div>
+                    </form>
+                    <!-- Botón para quitar del historial -->
+                    <form action="{{ url_for('eliminar_producto_stock', id=producto.id) }}" method="post" class="d-inline-block">
+                        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('¿Estás seguro de que quieres quitar este producto del historial?\n\nEsta acción no lo borra de ninguna lista de precios.');">Quitar</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center">No hay productos en el historial.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="d-flex gap-2 mb-3">
+    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Eliminar los productos seleccionados?')">Eliminar seleccionados</button>
+</div>
+</form>
+<form method="post" action="{{ url_for('eliminar_todo_historial') }}" onsubmit="return confirm('¿Eliminar TODOS los productos del historial? Esta acción no se puede deshacer.')" class="mb-3">
+    <button type="submit" class="btn btn-dark">Eliminar todo</button>
+</form>
+<script>
+function toggleTodos(source) {
+    const checkboxes = document.querySelectorAll('input[name="seleccionados"]');
+    for (let cb of checkboxes) {
+        cb.checked = source.checked;
+    }
+}
+</script>
+{% endblock %}
