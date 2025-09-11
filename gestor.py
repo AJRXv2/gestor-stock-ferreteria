@@ -205,7 +205,7 @@ PROVEEDOR_CONFIG = {
         'fila_encabezado': 1,
         'codigo': ['codigo', 'Codigo', 'CODIGO'],
         'producto': ['descripción', 'Descripción', 'descripcion', 'Descripcion'],
-        'precio': ['precio', 'Precio', 'PRECIO']
+        'precio': ['precio', 'Precio', 'PRECIO', 'Pr.Unit', 'pr.unit', 'PR.UNIT']
     },
     'cachan': {
         'fila_encabezado': 0,
@@ -1292,14 +1292,18 @@ def eliminar_proveedor_manual():
 def agregar_carrito_ajax():
     try:
         data = request.get_json()
+        print(f"🛒 [AGREGAR_CARRITO_AJAX] Datos recibidos: {data}")
         
         # Si viene con ID, es de productos_manual (base de datos)
         producto_id = data.get('id')
+        print(f"🛒 [AGREGAR_CARRITO_AJAX] Producto ID: {producto_id}")
         if producto_id:
             cantidad = int(data.get('cantidad', 1))
+            print(f"🛒 [AGREGAR_CARRITO_AJAX] Procesando producto manual - ID: {producto_id}, Cantidad: {cantidad}")
             
             producto = db_query("SELECT * FROM productos_manual WHERE id = ?", (producto_id,), fetch=True)
             if not producto:
+                print(f"🛒 [AGREGAR_CARRITO_AJAX] ERROR: Producto no encontrado en BD")
                 return jsonify({'success': False, 'error': 'Producto no encontrado'})
             
             producto = producto[0]
@@ -1353,8 +1357,16 @@ def agregar_carrito_ajax():
             proveedor = data.get('proveedor', '').strip()
             observaciones = data.get('observaciones', '').strip()
             
+            print(f"🛒 [AGREGAR_CARRITO_AJAX] Procesando producto Excel:")
+            print(f"  - Nombre: '{nombre}'")
+            print(f"  - Código: '{codigo}'")
+            print(f"  - Precio raw: '{precio_raw}' (tipo: {type(precio_raw)})")
+            print(f"  - Cantidad: '{cantidad_raw}'")
+            print(f"  - Proveedor: '{proveedor}'")
+            
             # Validar nombre obligatorio
             if not nombre:
+                print(f"🛒 [AGREGAR_CARRITO_AJAX] ERROR: Nombre vacío")
                 return jsonify({'success': False, 'error': 'El nombre del producto es obligatorio'})
             
             # Procesar cantidad
@@ -1372,14 +1384,18 @@ def agregar_carrito_ajax():
                 if isinstance(precio_raw, (int, float)):
                     precio = float(precio_raw)
                     precio_texto = str(precio_raw)
+                    print(f"🛒 [AGREGAR_CARRITO_AJAX] Precio numérico procesado: {precio}")
                 else:
                     precio_str = str(precio_raw).strip()
                     if precio_str:
                         precio, precio_error = parse_price(precio_str)
                         precio_texto = precio_str
+                        print(f"🛒 [AGREGAR_CARRITO_AJAX] Precio string procesado: '{precio_str}' -> {precio} (error: {precio_error})")
+            else:
+                print(f"🛒 [AGREGAR_CARRITO_AJAX] Precio vacío, usando 0.0")
             
             carrito = session.get('carrito', [])
-            carrito.append({
+            item_carrito = {
                 'id': f'excel_{len(carrito)}_{datetime.now().timestamp()}',
                 'nombre': nombre,
                 'codigo': codigo,
@@ -1391,19 +1407,26 @@ def agregar_carrito_ajax():
                 'precio_texto': precio_texto,
                 'avisar_bajo_stock': 0,
                 'min_stock_aviso': None
-            })
+            }
+            carrito.append(item_carrito)
             
+            print(f"🛒 [AGREGAR_CARRITO_AJAX] Item agregado al carrito: {item_carrito}")
             session['carrito'] = carrito
+            print(f"🛒 [AGREGAR_CARRITO_AJAX] Carrito actualizado, total items: {len(carrito)}")
             
             # Renderizar fragment actualizado del carrito
             try:
                 html = render_template('carrito_fragment_simple.html', carrito=carrito)
+                print(f"🛒 [AGREGAR_CARRITO_AJAX] ✅ ÉXITO: Producto agregado, HTML generado")
                 return jsonify({'success': True, 'msg': f'Producto "{nombre}" agregado al carrito', 'html': html})
             except Exception as render_error:
-                print(f"Error renderizando carrito_fragment: {render_error}")
+                print(f"🛒 [AGREGAR_CARRITO_AJAX] ERROR renderizando carrito_fragment: {render_error}")
                 return jsonify({'success': True, 'msg': f'Producto "{nombre}" agregado al carrito', 'reload': True})
         
     except Exception as e:
+        print(f"🛒 [AGREGAR_CARRITO_AJAX] ERROR GENERAL: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': f'Error al procesar: {str(e)}'})
 
 @app.route('/agregar_carrito_manual_ajax', methods=['POST'])
@@ -2559,6 +2582,7 @@ def agregar_producto_manual_excel():
 def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
     """Buscar productos en archivos Excel de proveedores y productos manuales"""
     resultados = []
+    print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
     
     # 1. Buscar en productos manuales
     if proveedor_filtro and proveedor_filtro.startswith('manual_'):
@@ -2650,6 +2674,10 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             
             resultados_archivo = procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, archivo, dueno)
             resultados.extend(resultados_archivo)
+    
+    print(f"🔍 [BUSCAR_EXCEL] ✅ Búsqueda completada. Total resultados: {len(resultados)}")
+    for i, resultado in enumerate(resultados):
+        print(f"  {i+1}. {resultado.get('codigo', 'N/A')} - {resultado.get('nombre', 'N/A')} - ${resultado.get('precio', 0)}")
     
     return resultados
 
@@ -2757,6 +2785,7 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
 def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key, dueno='ricky'):
     """Procesar un archivo Excel específico"""
     resultados = []
+    print(f"📊 [PROCESAR_EXCEL] Procesando archivo: '{archivo}' | Proveedor: '{proveedor_key}' | Dueño: '{dueno}' | Término: '{termino_busqueda}'")
     
     try:
         # Obtener la carpeta específica del dueño
@@ -2797,7 +2826,12 @@ def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, 
         col_producto = encontrar_columna(df.columns, config['producto'])
         col_precio = encontrar_columna(df.columns, config['precio'])
         
+        print(f"📊 [PROCESAR_EXCEL] Columnas encontradas - Código: '{col_codigo}' | Producto: '{col_producto}' | Precio: '{col_precio}'")
+        print(f"📊 [PROCESAR_EXCEL] Configuración de precio: {config['precio']}")
+        print(f"📊 [PROCESAR_EXCEL] Columnas disponibles: {list(df.columns)}")
+        
         if not col_producto:
+            print(f"📊 [PROCESAR_EXCEL] ERROR: No se encontró columna de producto")
             return resultados
         
         # Convertir columnas a string para evitar errores con .str accessor
@@ -2921,6 +2955,7 @@ def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, 
                     'es_manual': False
                 }
                 resultados.append(resultado)
+                print(f"📊 [PROCESAR_EXCEL] ✅ Producto agregado: {codigo} - {nombre} - Precio: {precio_val}")
     
     except Exception as e:
         print(f"Error al procesar archivo {archivo}: {e}")

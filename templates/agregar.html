@@ -66,10 +66,22 @@
                                     {% if precio_final %} | <strong>Precio:</strong> {{ precio_final }}{% endif %}
                                 </div>
                                 {% if r.Observaciones %}<br><span class="text-muted small">Obs: {{ r.Observaciones }}</span>{% endif %}
-                                <button type="button" class="btn btn-sm btn-success float-end ms-2" onclick="agregarExcelAlCarrito('{{ r.codigo|escape }}', '{{ r.nombre|escape }}', '{{ precio_final|escape }}', '{{ r.proveedor|escape }}', 1)">
+                                <button type="button" class="btn btn-sm btn-success float-end ms-2" 
+                                        data-codigo="{{ r.codigo|escape }}" 
+                                        data-nombre="{{ r.nombre|escape }}" 
+                                        data-precio="{{ precio_final|escape }}" 
+                                        data-proveedor="{{ r.proveedor|escape }}" 
+                                        data-observaciones="{{ r.Observaciones|default('')|escape }}"
+                                        onclick="agregarExcelAlCarritoFromButton(this)">
                                     <i class="bi bi-cart-plus"></i> Al Carrito
                                 </button>
-                                <button type="button" class="btn btn-sm btn-primary float-end" onclick="cargarFormulario('{{ r.codigo|escape }}', '{{ r.nombre|escape }}', '{{ precio_final|escape }}', '{{ r.proveedor|escape }}', '{{ r.Observaciones|default('')|escape }}')">Pasar al formulario</button>
+                                <button type="button" class="btn btn-sm btn-primary float-end" 
+                                        data-codigo="{{ r.codigo|escape }}" 
+                                        data-nombre="{{ r.nombre|escape }}" 
+                                        data-precio="{{ precio_final|escape }}" 
+                                        data-proveedor="{{ r.proveedor|escape }}" 
+                                        data-observaciones="{{ r.Observaciones|default('')|escape }}"
+                                        onclick="cargarFormularioFromButton(this)">Pasar al formulario</button>
                             </li>
                         {% endfor %}
                     </ul>
@@ -217,6 +229,8 @@
 
 <script>
 function cargarFormulario(codigo, nombre, precio, proveedor, observaciones) {
+    console.log('📝 [JS] cargarFormulario llamado con:', {codigo, nombre, precio, proveedor, observaciones});
+    
     document.getElementById('codigo').value = codigo || '';
     document.getElementById('nombre').value = nombre || '';
     document.getElementById('precio').value = precio || '';
@@ -226,6 +240,32 @@ function cargarFormulario(codigo, nombre, precio, proveedor, observaciones) {
     }
     document.getElementById('cantidad').focus();
     actualizarMaxAviso();
+    
+    console.log('📝 [JS] Formulario cargado correctamente');
+}
+
+function cargarFormularioFromButton(button) {
+    const codigo = button.getAttribute('data-codigo') || '';
+    const nombre = button.getAttribute('data-nombre') || '';
+    const precio = button.getAttribute('data-precio') || '';
+    const proveedor = button.getAttribute('data-proveedor') || '';
+    const observaciones = button.getAttribute('data-observaciones') || '';
+    
+    console.log('📝 [JS] cargarFormularioFromButton llamado con:', {codigo, nombre, precio, proveedor, observaciones});
+    
+    cargarFormulario(codigo, nombre, precio, proveedor, observaciones);
+}
+
+function agregarExcelAlCarritoFromButton(button) {
+    const codigo = button.getAttribute('data-codigo') || '';
+    const nombre = button.getAttribute('data-nombre') || '';
+    const precio = button.getAttribute('data-precio') || '';
+    const proveedor = button.getAttribute('data-proveedor') || '';
+    const cantidad = 1;
+    
+    console.log('🛒 [JS] agregarExcelAlCarritoFromButton llamado con:', {codigo, nombre, precio, proveedor, cantidad});
+    
+    agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad);
 }
 function toggleAvisoStock() {
     var cb = document.getElementById('avisar_bajo_stock');
@@ -249,6 +289,8 @@ function actualizarMaxAviso() {
 }
 
 function agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad) {
+    console.log('🛒 [JS] agregarExcelAlCarrito llamado con:', {codigo, nombre, precio, proveedor, cantidad});
+    
     const data = {
         codigo: codigo,
         nombre: nombre,
@@ -260,6 +302,9 @@ function agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad) {
         csrf_token: '{{ csrf_token() }}'
     };
     
+    console.log('🛒 [JS] Datos a enviar:', data);
+    console.log('🛒 [JS] URL:', '{{ url_for("agregar_carrito_ajax") }}');
+    
     fetch('{{ url_for("agregar_carrito_ajax") }}', {
         method: 'POST',
         headers: {
@@ -268,8 +313,12 @@ function agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('🛒 [JS] Respuesta recibida:', response);
+        return response.json();
+    })
     .then(data => {
+        console.log('🛒 [JS] Datos de respuesta:', data);
         if (data.success) {
             if (data.html) {
                 document.getElementById('carrito-container').innerHTML = data.html;
@@ -280,11 +329,12 @@ function agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad) {
             }
             showMessage(data.msg || 'Producto agregado al carrito', 'success');
         } else {
+            console.log('🛒 [JS] Error en respuesta:', data.error);
             showMessage(data.error || 'Error al agregar producto', 'error');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('🛒 [JS] Error en fetch:', error);
         showMessage('Error de conexión al agregar producto', 'error');
     });
 }
