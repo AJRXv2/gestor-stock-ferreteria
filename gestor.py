@@ -1989,6 +1989,28 @@ def manual_listar_ajax():
                         mask = df['Proveedor'].astype(str).str.contains(nombre_prov, case=False, na=False)
                         if dueno:
                             mask &= df['Dueno'].astype(str).str.lower().eq(dueno)
+                        # Aplicar filtro de término de búsqueda también para proveedor específico
+                        if termino:
+                            tokens = [t.strip() for t in termino.split() if t.strip()]
+                            for tok in tokens:
+                                tok_mask = (
+                                    df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
+                                    df['Codigo'].astype(str).str.contains(tok, case=False, na=False)
+                                )
+                                mask &= tok_mask
+                        # Aplicar la máscara y devolver resultados
+                        df2 = df[mask]
+                        if not df2.empty:
+                            rows = []
+                            for _, r in df2.iterrows():
+                                rows.append({
+                                    'codigo': str(r.get('Codigo', '') or ''),
+                                    'nombre': str(r.get('Nombre', '') or ''),
+                                    'precio': str(r.get('Precio', '') or ''),
+                                    'proveedor': str(r.get('Proveedor', '') or ''),
+                                    'dueno': str(r.get('Dueno', '') or '')
+                                })
+                            return jsonify({'success': True, 'productos': rows})
                     else:
                         mask = pd.Series(False, index=df.index)
                 else:
@@ -2019,45 +2041,52 @@ def manual_listar_ajax():
         except Exception as _e:
             # si Excel falla, se continúa con la base local
             pass
-        # 2) Fallback: leer desde base local productos_manual para reflejar ediciones/movimientos
-        # Construir JOIN filtrando por dueño si viene, y garantizando valor de dueno
-        and_dueno_join = ''
-        join_params = []
-        if dueno:
-            and_dueno_join = ' AND m.dueno = ?'
-            join_params.append(dueno)
-        # WHERE
-        params = []
-        where = ['pm.proveedor_id = ?']
-        params.append(proveedor_id)
-        if termino:
-            where.append('(pm.nombre LIKE ? OR pm.codigo LIKE ?)')
-            like = f"%{termino}%"
-            params.extend([like, like])
-        where_clause = ' AND '.join(where)
-        query = f"""
-            SELECT pm.codigo, pm.nombre, pm.precio, p.nombre AS proveedor,
-                   COALESCE(m.dueno, ?) AS dueno
-            FROM productos_manual pm
-            JOIN proveedores_manual p ON p.id = pm.proveedor_id
-            LEFT JOIN proveedores_meta m ON LOWER(m.nombre) = LOWER(p.nombre){and_dueno_join}
-            WHERE {where_clause}
-            ORDER BY pm.nombre
-        """
-        res = db_query(query, tuple([dueno or ''] + join_params + params), fetch=True) or []
-        rows = []
-        for r in res:
-            dueno_row = (r.get('dueno','') or '').strip().lower()
-            if not dueno_row:
-                dueno_row = dueno or ''
-            rows.append({
-                'codigo': r.get('codigo','') or '',
-                'nombre': r.get('nombre','') or '',
-                'precio': str(r.get('precio','') or ''),
-                'proveedor': r.get('proveedor','') or '',
-                'dueno': dueno_row
-            })
-        return jsonify({'success': True, 'productos': rows})
+        # 2) Fallback: Si Excel falló, intentar leer desde Excel de nuevo con manejo de errores más robusto
+        try:
+            if os.path.exists(MANUAL_PRODUCTS_FILE):
+                df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+                
+                # Aplicar filtros
+                mask = pd.Series(True, index=df.index)
+                
+                if proveedor_id:
+                    prov = db_query('SELECT nombre FROM proveedores_manual WHERE id = ?', (proveedor_id,), fetch=True)
+                    if prov:
+                        nombre_prov = prov[0]['nombre']
+                        mask &= df['Proveedor'].astype(str).str.contains(nombre_prov, case=False, na=False)
+                    else:
+                        mask = pd.Series(False, index=df.index)
+                
+                if dueno:
+                    mask &= df['Dueno'].astype(str).str.lower().eq(dueno)
+                
+                if termino:
+                    tokens = [t.strip() for t in termino.split() if t.strip()]
+                    for tok in tokens:
+                        tok_mask = (
+                            df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
+                            df['Codigo'].astype(str).str.contains(tok, case=False, na=False)
+                        )
+                        mask &= tok_mask
+                
+                df2 = df[mask]
+                if not df2.empty:
+                    rows = []
+                    for _, r in df2.iterrows():
+                        rows.append({
+                            'codigo': str(r.get('Codigo', '') or ''),
+                            'nombre': str(r.get('Nombre', '') or ''),
+                            'precio': str(r.get('Precio', '') or ''),
+                            'proveedor': str(r.get('Proveedor', '') or ''),
+                            'dueno': str(r.get('Dueno', '') or '')
+                        })
+                    return jsonify({'success': True, 'productos': rows})
+        except Exception as e:
+            print(f"Error en fallback Excel: {e}")
+        
+        # 3) Si todo falla, devolver lista vacía
+        return jsonify({'success': True, 'productos': []})
     except Exception as e:
         return jsonify({'success': False, 'html': f'<div class="alert alert-danger">Error: {str(e)}</div>'})
 
@@ -2143,17 +2172,49 @@ def manual_actualizar_ajax():
             prov_res = db_query('SELECT pm.id FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) WHERE LOWER(pm.nombre)=LOWER(?) AND m.dueno=? LIMIT 1', (proveedor_nombre, dueno_sel), fetch=True)
             if prov_res:
                 proveedor_id = prov_res[0]['id']
-        # Validar/proveer proveedor y dueño
-        if proveedor_id:
-            prov = db_query('SELECT nombre FROM proveedores_manual WHERE id=?', (proveedor_id,), fetch=True)
-            if not prov:
-                return jsonify({'success': False, 'msg': 'Proveedor seleccionado inválido.'})
-            nombre_prov = prov[0]['nombre']
-            if dueno_sel:
-                meta = db_query('SELECT 1 FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) AND dueno=?', (nombre_prov, dueno_sel), fetch=True)
-                if not meta:
-                    return jsonify({'success': False, 'msg': 'El proveedor no existe para el dueño seleccionado. Agregue el proveedor primero.'})
-        # Actualizar Excel productos_manual.xlsx
+        # Validar proveedor ANTES de actualizar Excel
+        nombre_prov_para_validar = None
+        dueno_para_validar = None
+        
+        # Caso 1: Se cambió proveedor Y dueño
+        if proveedor_nombre and dueno_sel:
+            nombre_prov_para_validar = proveedor_nombre
+            dueno_para_validar = dueno_sel
+        
+        # Caso 2: Solo se cambió proveedor (sin cambiar dueño)
+        elif proveedor_nombre and not dueno_sel:
+            # Obtener el dueño actual del producto desde Excel
+            if os.path.exists(MANUAL_PRODUCTS_FILE):
+                df_temp = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                df_temp.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+                mask_temp = df_temp['Codigo'].astype(str).eq(codigo_original)
+                if len(df_temp[mask_temp]) > 0:
+                    dueno_actual = df_temp[mask_temp].iloc[0]['Dueno']
+                    if dueno_actual:
+                        nombre_prov_para_validar = proveedor_nombre
+                        dueno_para_validar = dueno_actual
+        
+        # Caso 3: Se cambió dueño pero no proveedor
+        elif not proveedor_nombre and dueno_sel:
+            # Obtener el proveedor actual del producto desde Excel
+            if os.path.exists(MANUAL_PRODUCTS_FILE):
+                df_temp = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                df_temp.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+                mask_temp = df_temp['Codigo'].astype(str).eq(codigo_original)
+                if len(df_temp[mask_temp]) > 0:
+                    proveedor_actual = df_temp[mask_temp].iloc[0]['Proveedor']
+                    if proveedor_actual:
+                        nombre_prov_para_validar = proveedor_actual
+                        dueno_para_validar = dueno_sel
+        
+        # Ejecutar validación si hay algo que validar
+        if nombre_prov_para_validar and dueno_para_validar:
+            meta = db_query('SELECT 1 FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) AND dueno=?', (nombre_prov_para_validar, dueno_para_validar), fetch=True)
+            if not meta:
+                dueno_nombre = DUENOS_CONFIG.get(dueno_para_validar, {}).get('nombre', dueno_para_validar)
+                return jsonify({'success': False, 'msg': f'❌ No se pudo cambiar el producto. El proveedor "{nombre_prov_para_validar}" no está cargado para {dueno_nombre}. Cárgalo manualmente en "Gestionar Proveedores" primero.'})
+        
+        # Si llegamos aquí, la validación pasó - ahora actualizar Excel productos_manual.xlsx
         if not os.path.exists(MANUAL_PRODUCTS_FILE):
             return jsonify({'success': False, 'msg': 'No existe productos_manual.xlsx'})
         df = pd.read_excel(MANUAL_PRODUCTS_FILE)
@@ -2176,10 +2237,146 @@ def manual_actualizar_ajax():
             df.loc[idx, 'Dueno'] = 'ricky' if dueno_sel == 'ricky' else 'ferreteria_general'
         with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
             df.to_excel(writer, index=False)
-        return jsonify({'success': True, 'msg': 'Producto actualizado.'})
+        
+        # Sincronizar con la base de datos para mantener consistencia
+        try:
+            # Obtener los datos actualizados del Excel
+            if len(idx) > 0:
+                proveedor_actualizado = df.loc[idx, 'Proveedor'].iloc[0]
+                codigo_actualizado = df.loc[idx, 'Codigo'].iloc[0]
+                nombre_actualizado = df.loc[idx, 'Nombre'].iloc[0]
+                precio_actualizado = df.loc[idx, 'Precio'].iloc[0]
+                dueno_actualizado = df.loc[idx, 'Dueno'].iloc[0]
+                
+                # Obtener el proveedor_id del proveedor actualizado
+                prov_res = db_query('SELECT id FROM proveedores_manual WHERE nombre = ?', (proveedor_actualizado,), fetch=True)
+                if prov_res:
+                    proveedor_id_actualizado = prov_res[0]['id']
+                    
+                    # Primero, eliminar cualquier registro existente con el código original (por si cambió el código)
+                    db_query('DELETE FROM productos_manual WHERE codigo = ?', (codigo_original,))
+                    
+                    # También eliminar si existe con el código nuevo (por si es diferente)
+                    if codigo_actualizado != codigo_original:
+                        db_query('DELETE FROM productos_manual WHERE codigo = ?', (codigo_actualizado,))
+                    
+                    # Insertar el registro actualizado
+                    db_query('INSERT INTO productos_manual (nombre, codigo, precio, proveedor_id) VALUES (?, ?, ?, ?)', 
+                            (nombre_actualizado, codigo_actualizado, precio_actualizado, proveedor_id_actualizado))
+                    
+                    print(f"Sincronizado: {nombre_actualizado} ({codigo_actualizado}) - {proveedor_actualizado} - {dueno_actualizado}")
+        except Exception as e:
+            print(f"Error sincronizando con BD: {e}")
+        
+        # Crear mensaje de éxito detallado
+        cambios = []
+        
+        # Obtener valores originales antes de los cambios
+        if len(idx) > 0:
+            nombre_original = df.loc[idx, 'Nombre'].iloc[0]
+            codigo_original_excel = df.loc[idx, 'Codigo'].iloc[0]
+            precio_original = df.loc[idx, 'Precio'].iloc[0]
+            proveedor_original = df.loc[idx, 'Proveedor'].iloc[0]
+            dueno_original = df.loc[idx, 'Dueno'].iloc[0]
+            
+            # Verificar qué cambió
+            if nombre and nombre != nombre_original:
+                cambios.append("nombre")
+            if codigo and codigo != codigo_original_excel:
+                cambios.append("código")
+            if precio_str and precio != precio_original:
+                cambios.append("precio")
+            if proveedor_nombre and proveedor_nombre != proveedor_original:
+                cambios.append("proveedor")
+            if dueno_sel:
+                dueno_nuevo = 'ricky' if dueno_sel == 'ricky' else 'ferreteria_general'
+                if dueno_nuevo != dueno_original:
+                    cambios.append("dueño")
+        
+        if cambios:
+            cambios_texto = ", ".join(cambios)
+            mensaje = f"✅ Producto actualizado exitosamente. Cambios realizados: {cambios_texto}."
+        else:
+            mensaje = "✅ Producto actualizado exitosamente."
+        
+        return jsonify({'success': True, 'msg': mensaje})
         return jsonify({'success': False, 'msg': 'No se pudo actualizar.'})
     except Exception as e:
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
+
+@app.route('/agregar_productos_masivo_ajax', methods=['POST'])
+@login_required
+def agregar_productos_masivo_ajax():
+    """Agregar múltiples productos manuales de una vez"""
+    try:
+        data = request.get_json() or {}
+        productos = data.get('productos', [])
+        
+        if not productos:
+            return jsonify({'success': False, 'msg': 'No hay productos para agregar.'})
+        
+        productos_agregados = 0
+        productos_con_error = []
+        
+        for producto in productos:
+            try:
+                nombre = producto.get('nombre', '').strip()
+                codigo = producto.get('codigo', '').strip()
+                precio_str = producto.get('precio', '').strip()
+                proveedor_nombre = producto.get('proveedor', '').strip()
+                dueno = producto.get('dueno', '').strip()
+                observaciones = producto.get('observaciones', '').strip()
+                
+                if not nombre or not precio_str or not proveedor_nombre or not dueno:
+                    productos_con_error.append(f"{nombre or 'Sin nombre'}: Datos incompletos")
+                    continue
+                
+                # Validar precio
+                precio, error_precio = parse_price(precio_str)
+                if error_precio:
+                    productos_con_error.append(f"{nombre}: Error en precio - {error_precio}")
+                    continue
+                
+                # Validar que el proveedor existe para el dueño
+                meta = db_query('SELECT 1 FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) AND dueno=?', (proveedor_nombre, dueno), fetch=True)
+                if not meta:
+                    dueno_nombre = DUENOS_CONFIG.get(dueno, {}).get('nombre', dueno)
+                    productos_con_error.append(f"{nombre}: Proveedor '{proveedor_nombre}' no existe para {dueno_nombre}")
+                    continue
+                
+                # Agregar al Excel
+                if agregar_producto_excel_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno):
+                    productos_agregados += 1
+                else:
+                    productos_con_error.append(f"{nombre}: Error al agregar al Excel")
+                    
+            except Exception as e:
+                productos_con_error.append(f"{producto.get('nombre', 'Sin nombre')}: {str(e)}")
+        
+        # Crear mensaje de resultado
+        if productos_agregados == len(productos):
+            mensaje = f"✅ Todos los productos agregados exitosamente ({productos_agregados} producto(s))."
+        elif productos_agregados > 0:
+            mensaje = f"⚠️ {productos_agregados} de {len(productos)} productos agregados exitosamente."
+            if productos_con_error:
+                mensaje += f" Errores: {', '.join(productos_con_error[:3])}"
+                if len(productos_con_error) > 3:
+                    mensaje += f" y {len(productos_con_error) - 3} más."
+        else:
+            mensaje = f"❌ No se pudo agregar ningún producto. Errores: {', '.join(productos_con_error[:3])}"
+            if len(productos_con_error) > 3:
+                mensaje += f" y {len(productos_con_error) - 3} más."
+        
+        return jsonify({
+            'success': productos_agregados > 0,
+            'msg': mensaje,
+            'agregados': productos_agregados,
+            'total': len(productos),
+            'errores': productos_con_error
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'msg': f'Error general: {str(e)}'})
 
 @app.route('/gestionar_manual_actualizar_ajax', methods=['POST'])
 @login_required

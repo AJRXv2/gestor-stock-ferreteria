@@ -187,8 +187,31 @@
                     <textarea name="observaciones" class="form-control" placeholder="Observaciones" rows="2"></textarea>
                 </div>
             </div>
-            <button class="btn btn-success mt-2 w-100" type="submit">Añadir Producto Manual</button>
+            <div class="row g-2 mt-2">
+                <div class="col-md-6">
+                    <button class="btn btn-success w-100" type="submit">Añadir Producto Manual</button>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-primary w-100" id="btn-agregar-lista">Agregar a Lista</button>
+                </div>
+            </div>
         </form>
+    </div>
+</div>
+
+<!-- Lista de productos pendientes -->
+<div class="card mt-4" id="lista-pendientes" style="display: none;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4>Productos Pendientes de Agregar</h4>
+        <div>
+            <button type="button" class="btn btn-success btn-sm" id="btn-confirmar-todos">Confirmar Todos</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" id="btn-limpiar-lista">Limpiar Lista</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="productos-pendientes">
+            <!-- Los productos se agregarán aquí dinámicamente -->
+        </div>
     </div>
 </div>
 
@@ -409,5 +432,173 @@ window.cargarCarritoAjax = function(dueno) {
         }
     }).catch(() => alert('Error de red'));
 }
+
+// --- Funcionalidad de Agregado Masivo ---
+let productosPendientes = [];
+
+document.getElementById('btn-agregar-lista')?.addEventListener('click', function() {
+    const form = document.querySelector('form[action="{{ url_for("agregar_producto_manual") }}"]');
+    const formData = new FormData(form);
+    
+    // Validar campos requeridos
+    const nombre = formData.get('nombre')?.trim();
+    const precio = formData.get('precio')?.trim();
+    const proveedorId = document.getElementById('proveedor_id_hidden').value;
+    
+    if (!nombre) {
+        showMessage('El nombre del producto es obligatorio', 'error');
+        return;
+    }
+    
+    if (!precio) {
+        showMessage('El precio es obligatorio', 'error');
+        return;
+    }
+    
+    if (!proveedorId) {
+        showMessage('Debe seleccionar un proveedor', 'error');
+        return;
+    }
+    
+    // Obtener información del proveedor y dueño
+    const selR = document.getElementById('sel_prov_ricky');
+    const selF = document.getElementById('sel_prov_fg');
+    let proveedorNombre = '';
+    let dueno = '';
+    
+    if (selR.value) {
+        const option = selR.options[selR.selectedIndex];
+        proveedorNombre = option.text.replace(' (Ricky)', '');
+        dueno = 'ricky';
+    } else if (selF.value) {
+        const option = selF.options[selF.selectedIndex];
+        proveedorNombre = option.text.replace(' (Ferretería General)', '');
+        dueno = 'ferreteria_general';
+    }
+    
+    // Debug: mostrar información
+    console.log('Proveedor seleccionado:', proveedorNombre);
+    console.log('Dueño:', dueno);
+    console.log('Proveedor ID:', proveedorId);
+    
+    // Crear objeto del producto
+    const producto = {
+        id: Date.now(), // ID temporal único
+        nombre: nombre,
+        codigo: formData.get('codigo')?.trim() || '',
+        precio: precio,
+        proveedor: proveedorNombre,
+        dueno: dueno,
+        observaciones: formData.get('observaciones')?.trim() || ''
+    };
+    
+    // Agregar a la lista
+    productosPendientes.push(producto);
+    
+    // Actualizar la vista
+    actualizarListaPendientes();
+    
+    // Limpiar formulario
+    form.reset();
+    document.getElementById('proveedor_id_hidden').value = '';
+    
+    showMessage(`Producto "${nombre}" agregado a la lista`, 'success');
+});
+
+function actualizarListaPendientes() {
+    const container = document.getElementById('productos-pendientes');
+    const listaCard = document.getElementById('lista-pendientes');
+    
+    if (productosPendientes.length === 0) {
+        listaCard.style.display = 'none';
+        return;
+    }
+    
+    listaCard.style.display = 'block';
+    
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Nombre</th><th>Código</th><th>Precio</th><th>Proveedor</th><th>Dueño</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody>';
+    
+    productosPendientes.forEach(producto => {
+        const duenoNombre = producto.dueno === 'ricky' ? 'Ricky' : 'Ferretería General';
+        html += `
+            <tr>
+                <td>${producto.nombre}</td>
+                <td>${producto.codigo || '-'}</td>
+                <td>${producto.precio}</td>
+                <td>${producto.proveedor}</td>
+                <td>${duenoNombre}</td>
+                <td>${producto.observaciones || '-'}</td>
+                <td>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarDeLista(${producto.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    html += `<p class="text-muted">Total: ${productosPendientes.length} producto(s) pendiente(s)</p>`;
+    
+    container.innerHTML = html;
+}
+
+function eliminarDeLista(id) {
+    productosPendientes = productosPendientes.filter(p => p.id !== id);
+    actualizarListaPendientes();
+    showMessage('Producto eliminado de la lista', 'success');
+}
+
+document.getElementById('btn-confirmar-todos')?.addEventListener('click', function() {
+    if (productosPendientes.length === 0) {
+        showMessage('No hay productos en la lista', 'error');
+        return;
+    }
+    
+    if (!confirm(`¿Confirmar agregar ${productosPendientes.length} producto(s)?`)) {
+        return;
+    }
+    
+    // Enviar todos los productos
+    fetch('{{ url_for("agregar_productos_masivo_ajax") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            productos: productosPendientes,
+            csrf_token: '{{ csrf_token() }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.msg, 'success');
+            productosPendientes = [];
+            actualizarListaPendientes();
+        } else {
+            showMessage(data.msg, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Error de conexión', 'error');
+    });
+});
+
+document.getElementById('btn-limpiar-lista')?.addEventListener('click', function() {
+    if (productosPendientes.length === 0) {
+        showMessage('La lista ya está vacía', 'error');
+        return;
+    }
+    
+    if (confirm('¿Limpiar toda la lista de productos pendientes?')) {
+        productosPendientes = [];
+        actualizarListaPendientes();
+        showMessage('Lista limpiada', 'success');
+    }
+});
 </script>
 {% endblock %}
