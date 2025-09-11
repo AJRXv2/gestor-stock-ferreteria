@@ -170,12 +170,14 @@ DUENOS_CONFIG = {
     'ricky': {
         'nombre': 'Ricky',
         'proveedores_excel': ['brementools', 'berger', 'cachan', 'chiesa', 'crossmaster'],
-        'puede_excel': True
+        'puede_excel': True,
+        'carpeta_excel': 'ricky'
     },
     'ferreteria_general': {
         'nombre': 'Ferretería General', 
-        'proveedores_excel': [],
-        'puede_excel': False
+        'proveedores_excel': ['ferreteria_prov1', 'ferreteria_prov2', 'ferreteria_prov3', 'nortedist'],
+        'puede_excel': True,
+        'carpeta_excel': 'ferreteria_general'
     }
 }
 
@@ -210,10 +212,93 @@ PROVEEDOR_CONFIG = {
         'codigo': ['codigo', 'Codigo', 'CODIGO'],
         'producto': ['nombre', 'Nombre', 'NOMBRE'],
         'precio': ['precio', 'Precio', 'PRECIO']
+    },
+    # Proveedores de Ferretería General
+    'ferreteria_prov1': {
+        'fila_encabezado': 0,
+        'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
+        'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA']
+    },
+    'ferreteria_prov2': {
+        'fila_encabezado': 0,
+        'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
+        'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA']
+    },
+    'ferreteria_prov3': {
+        'fila_encabezado': 0,
+        'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
+        'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA']
+    },
+    'nortedist': {
+        'fila_encabezado': 0,
+        'codigo': ['codigo_barra', 'codigo', 'Codigo', 'CODIGO'],
+        'producto': ['descripcion', 'Descripcion', 'DESCRIPCION', 'producto', 'Producto'],
+        'precio': ['NORTE SIN IVA', 'NORTE', 'precio', 'Precio'],
+        'marca': ['marca', 'Marca', 'MARCA'],
+        'usar_colores': True,
+        'color_precio': 'FFFF00',  # Amarillo en formato RGB
+        'columnas_precio': ['NORTE SIN IVA', 'NORTE']
     }
 }
 
 # --- Funciones de Utilidad ---
+def get_excel_folder_for_dueno(dueno):
+    """Obtener la carpeta Excel específica para un dueño"""
+    if dueno not in DUENOS_CONFIG:
+        return EXCEL_FOLDER
+    
+    carpeta_dueno = DUENOS_CONFIG[dueno].get('carpeta_excel', dueno)
+    carpeta_path = os.path.join(EXCEL_FOLDER, carpeta_dueno)
+    
+    # Crear la carpeta si no existe
+    if not os.path.exists(carpeta_path):
+        os.makedirs(carpeta_path)
+    
+    return carpeta_path
+
+def leer_celda_coloreada(ws, row, col, color_objetivo):
+    """Leer el valor de una celda si tiene el color de fondo especificado"""
+    try:
+        cell = ws.cell(row=row, column=col)
+        
+        # Verificar si la celda tiene color de fondo
+        if cell.fill and cell.fill.start_color:
+            color_celda = cell.fill.start_color.rgb
+            if color_celda:
+                # Convertir RGB object a string si es necesario
+                if hasattr(color_celda, 'upper'):
+                    color_celda_str = color_celda.upper()
+                else:
+                    color_celda_str = str(color_celda).upper()
+                
+                color_objetivo_normalizado = color_objetivo.upper()
+                
+                # Remover transparencia si existe (FFFFFF00 -> FFFF00)
+                if len(color_celda_str) == 8 and color_celda_str.startswith('FF'):
+                    color_celda_str = color_celda_str[2:]
+                
+                if color_celda_str == color_objetivo_normalizado:
+                    return cell.value
+        return None
+    except Exception as e:
+        print(f"Error leyendo celda coloreada: {e}")
+        return None
+
+def obtener_precio_por_color(ws, row, columnas_precio, color_objetivo):
+    """Obtener el precio de la primera celda coloreada encontrada en las columnas especificadas"""
+    for col_name in columnas_precio:
+        # Buscar la columna por nombre
+        for col_idx in range(1, ws.max_column + 1):
+            header_cell = ws.cell(row=1, column=col_idx)
+            if header_cell.value and str(header_cell.value).strip().upper() == col_name.upper():
+                precio = leer_celda_coloreada(ws, row, col_idx, color_objetivo)
+                if precio is not None:
+                    return precio, col_name
+    return None, None
+
 def parse_price(price_str):
     """
     Interpreta precios con distintos formatos:
@@ -926,17 +1011,26 @@ def agregar_producto():
     # Obtener lista de proveedores disponibles divididos por dueño (para UI ordenada)
     proveedores_excel_ricky = []
     proveedores_excel_fg = []
-    # 1) Excel (Ricky)
-    ocultos_excel = db_query("SELECT LOWER(nombre) as nombre FROM proveedores_ocultos WHERE dueno='ricky'", fetch=True) or []
-    ocultos_excel_set = {o['nombre'] for o in ocultos_excel}
-    for key, config in PROVEEDOR_CONFIG.items():
-        if key.lower() in ocultos_excel_set:
-            continue
-        archivos = [f for f in os.listdir(EXCEL_FOLDER) if f.lower().startswith(key.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
-        if archivos:
-            archivo_excel = os.path.join(EXCEL_FOLDER, archivos[0])
-            if os.path.exists(archivo_excel):
-                proveedores_excel_ricky.append({ 'key': key, 'nombre': key.title().replace('tools','Tools') + ' (Ricky)' })
+    
+    # 1) Excel por dueño
+    for dueno in ['ricky', 'ferreteria_general']:
+        if dueno in DUENOS_CONFIG:
+            proveedores_dueno = DUENOS_CONFIG[dueno]['proveedores_excel']
+            ocultos_excel = db_query("SELECT LOWER(nombre) as nombre FROM proveedores_ocultos WHERE dueno=?", (dueno,), fetch=True) or []
+            ocultos_excel_set = {o['nombre'] for o in ocultos_excel}
+            
+            for key in proveedores_dueno:
+                if key in PROVEEDOR_CONFIG and key.lower() not in ocultos_excel_set:
+                    # Buscar archivos en la carpeta específica del dueño
+                    carpeta_dueno = get_excel_folder_for_dueno(dueno)
+                    archivos = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(key.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
+                    if archivos:
+                        dueno_display = 'Ricky' if dueno == 'ricky' else 'Ferretería General'
+                        item = { 'key': key, 'nombre': key.title().replace('tools','Tools') + f' ({dueno_display})' }
+                        if dueno == 'ricky':
+                            proveedores_excel_ricky.append(item)
+                        else:
+                            proveedores_excel_fg.append(item)
     # 2) Manuales por dueño (desde mappings activos)
     ocultos_rows = db_query("SELECT LOWER(nombre) as nombre, dueno FROM proveedores_ocultos", fetch=True) or []
     ocultos_pairs = {(o['nombre'], o['dueno']) for o in ocultos_rows}
@@ -2489,35 +2583,72 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             resultados_manuales = buscar_en_excel_manual(termino_busqueda)
         resultados.extend(resultados_manuales)
     
-    # 2. Buscar en archivos Excel de proveedores (solo de Ricky)
+    # 2. Buscar en archivos Excel de proveedores por dueño
     if proveedor_filtro:
         if proveedor_filtro in PROVEEDOR_CONFIG:
-            archivos_a_buscar = [proveedor_filtro]
+            # Determinar el dueño del proveedor
+            dueno_proveedor = None
+            for dueno, config in DUENOS_CONFIG.items():
+                if proveedor_filtro in config.get('proveedores_excel', []):
+                    dueno_proveedor = dueno
+                    break
+            
+            if dueno_proveedor:
+                archivos_a_buscar = [(proveedor_filtro, dueno_proveedor)]
+                print(f"🔍 Proveedor específico: {proveedor_filtro} -> Dueño: {dueno_proveedor}")
+            else:
+                archivos_a_buscar = []
+                print(f"❌ Proveedor no encontrado en configuración: {proveedor_filtro}")
         else:
             archivos_a_buscar = []
     else:
-        # Buscar en todos los archivos Excel disponibles
+        # Buscar en todos los archivos Excel disponibles por dueño
         archivos_a_buscar = []
-        for key in PROVEEDOR_CONFIG.keys():
-            # Buscar archivos que empiecen con el nombre del proveedor (case insensitive)
-            archivos = [f for f in os.listdir(EXCEL_FOLDER) if f.lower().startswith(key.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
-            if archivos:
-                archivos_a_buscar.append(key)
+        
+        # Determinar qué dueños buscar
+        duenos_a_buscar = []
+        if solo_ricky and not solo_fg:
+            duenos_a_buscar = ['ricky']
+        elif solo_fg and not solo_ricky:
+            duenos_a_buscar = ['ferreteria_general']
+        else:
+            duenos_a_buscar = ['ricky', 'ferreteria_general']
+        
+        for dueno in duenos_a_buscar:
+            if dueno in DUENOS_CONFIG:
+                proveedores_dueno = DUENOS_CONFIG[dueno]['proveedores_excel']
+                for key in proveedores_dueno:
+                    if key in PROVEEDOR_CONFIG:
+                        # Buscar archivos en la carpeta específica del dueño
+                        carpeta_dueno = get_excel_folder_for_dueno(dueno)
+                        archivos = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(key.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
+                        if archivos:
+                            archivos_a_buscar.append((key, dueno))
     
     # Procesar cada archivo Excel
-    # Excluir proveedores ocultos de Ricky al buscar en Excels
-    ocultos = db_query("SELECT LOWER(nombre) as nombre FROM proveedores_ocultos WHERE dueno = 'ricky'", fetch=True) or []
-    ocultos_set = {o['nombre'] for o in ocultos}
-    for archivo in archivos_a_buscar:
+    for archivo_info in archivos_a_buscar:
+        if isinstance(archivo_info, tuple):
+            archivo, dueno = archivo_info
+        else:
+            archivo = archivo_info
+            dueno = 'ricky'  # Por defecto para compatibilidad
+        
         if archivo in PROVEEDOR_CONFIG:
             config = PROVEEDOR_CONFIG[archivo]
-            # Saltar si este proveedor excel está oculto
+            
+            # Excluir proveedores ocultos
+            ocultos = db_query("SELECT LOWER(nombre) as nombre FROM proveedores_ocultos WHERE dueno = ?", (dueno,), fetch=True) or []
+            ocultos_set = {o['nombre'] for o in ocultos}
             if archivo.lower() in ocultos_set:
                 continue
-            # Excel nativos pertenecen al dueño Ricky; si se solicitó solo FG, omitir
-            if solo_fg and not solo_ricky:
+            
+            # Aplicar filtros de dueño
+            if solo_fg and not solo_ricky and dueno != 'ferreteria_general':
                 continue
-            resultados_archivo = procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, archivo)
+            if solo_ricky and not solo_fg and dueno != 'ricky':
+                continue
+            
+            resultados_archivo = procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, archivo, dueno)
             resultados.extend(resultados_archivo)
     
     return resultados
@@ -2623,20 +2754,23 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
         print(f"Error en buscar_en_excel_manual: {e}")
     return resultados
 
-def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key):
+def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key, dueno='ricky'):
     """Procesar un archivo Excel específico"""
     resultados = []
     
     try:
-        # Buscar el archivo que coincida
-        archivos = [f for f in os.listdir(EXCEL_FOLDER) if f.lower().startswith(archivo.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
+        # Obtener la carpeta específica del dueño
+        carpeta_dueno = get_excel_folder_for_dueno(dueno)
+        
+        # Buscar el archivo que coincida en la carpeta del dueño
+        archivos = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(archivo.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
         if not archivos:
             # Intentar con patrón Nombre-*.xlsx por si hay sufijos de fecha
-            archivos = [f for f in os.listdir(EXCEL_FOLDER) if f.lower().startswith(f"{archivo.lower()}-") and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
+            archivos = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(f"{archivo.lower()}-") and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
             if not archivos:
                 return resultados
         
-        archivo_path = os.path.join(EXCEL_FOLDER, archivos[0])
+        archivo_path = os.path.join(carpeta_dueno, archivos[0])
         if not os.path.exists(archivo_path):
             return resultados
         
@@ -2690,28 +2824,103 @@ def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, 
                 mask_adicional |= df[col_codigo].str.contains(filtro_adicional, case=False, na=False)
             df = df[mask_adicional]
         
-        # Convertir a lista de resultados
-        for _, row in df.iterrows():
-            codigo = str(row[col_codigo]).strip() if col_codigo and pd.notna(row[col_codigo]) else ''
-            nombre = str(row[col_producto]).strip() if pd.notna(row[col_producto]) else ''
-            precio_raw = row[col_precio] if col_precio and pd.notna(row[col_precio]) else ''
+        # Verificar si este proveedor usa colores
+        usar_colores = config.get('usar_colores', False)
+        color_precio = config.get('color_precio', 'FFFF00')
+        columnas_precio = config.get('columnas_precio', [])
+        
+        if usar_colores and columnas_precio:
+            # Procesar con colores usando openpyxl directamente
+            from openpyxl import load_workbook
+            print(f"🎨 Procesando archivo con colores: {archivo_path}")
+            wb = load_workbook(archivo_path)
+            ws = wb.active
+            print(f"📊 Archivo cargado: {ws.max_row} filas, {ws.max_column} columnas")
             
-            if not nombre:
-                continue
+            # Encontrar índices de columnas
+            col_codigo_idx = None
+            col_producto_idx = None
+            col_marca_idx = None
             
-            precio_val, precio_error = parse_price(precio_raw)
+            for col_idx in range(1, ws.max_column + 1):
+                header_cell = ws.cell(row=1, column=col_idx)
+                if header_cell.value:
+                    header_val = str(header_cell.value).strip().upper()
+                    if col_codigo and any(alias.upper() == header_val for alias in config['codigo']):
+                        col_codigo_idx = col_idx
+                    elif any(alias.upper() == header_val for alias in config['producto']):
+                        col_producto_idx = col_idx
+                    elif 'marca' in config and any(alias.upper() == header_val for alias in config['marca']):
+                        col_marca_idx = col_idx
             
-            resultado = {
-                'codigo': codigo,
-                'nombre': nombre,
-                'precio': precio_val,
-                'precio_texto': str(precio_raw) if precio_error else None,
-                'proveedor': proveedor_key.title(),
-                'observaciones': '',
-                'dueno': 'ricky',
-                'es_manual': False
-            }
-            resultados.append(resultado)
+            # Procesar fila por fila
+            for row_idx in range(2, ws.max_row + 1):  # Saltar encabezado
+                # Obtener datos básicos
+                codigo = ws.cell(row=row_idx, column=col_codigo_idx).value if col_codigo_idx else ''
+                nombre = ws.cell(row=row_idx, column=col_producto_idx).value if col_producto_idx else ''
+                marca = ws.cell(row=row_idx, column=col_marca_idx).value if col_marca_idx else ''
+                
+                if not nombre:
+                    continue
+                
+                # Aplicar filtros de búsqueda
+                if termino_busqueda:
+                    tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
+                    coincide = True
+                    for tok in tokens:
+                        if not (tok.lower() in str(nombre).lower() or 
+                               (codigo and tok.lower() in str(codigo).lower()) or
+                               (marca and tok.lower() in str(marca).lower())):
+                            coincide = False
+                            break
+                    if not coincide:
+                        continue
+                
+                # Obtener precio de celda coloreada
+                precio_raw, col_precio_usada = obtener_precio_por_color(ws, row_idx, columnas_precio, color_precio)
+                
+                if precio_raw is None:
+                    continue  # Solo incluir productos con precio coloreado
+                
+                print(f"✅ Producto encontrado: {nombre} - Precio: {precio_raw} (Columna: {col_precio_usada})")
+                
+                precio_val, precio_error = parse_price(precio_raw)
+                
+                resultado = {
+                    'codigo': str(codigo).strip() if codigo else '',
+                    'nombre': str(nombre).strip(),
+                    'precio': precio_val,
+                    'precio_texto': str(precio_raw) if precio_error else None,
+                    'proveedor': proveedor_key.title(),
+                    'observaciones': f'Marca: {marca}' if marca else '',
+                    'dueno': dueno,
+                    'es_manual': False,
+                    'columna_precio': col_precio_usada
+                }
+                resultados.append(resultado)
+        else:
+            # Procesamiento normal sin colores
+            for _, row in df.iterrows():
+                codigo = str(row[col_codigo]).strip() if col_codigo and pd.notna(row[col_codigo]) else ''
+                nombre = str(row[col_producto]).strip() if pd.notna(row[col_producto]) else ''
+                precio_raw = row[col_precio] if col_precio and pd.notna(row[col_precio]) else ''
+                
+                if not nombre:
+                    continue
+                
+                precio_val, precio_error = parse_price(precio_raw)
+                
+                resultado = {
+                    'codigo': codigo,
+                    'nombre': nombre,
+                    'precio': precio_val,
+                    'precio_texto': str(precio_raw) if precio_error else None,
+                    'proveedor': proveedor_key.title(),
+                    'observaciones': '',
+                    'dueno': dueno,
+                    'es_manual': False
+                }
+                resultados.append(resultado)
     
     except Exception as e:
         print(f"Error al procesar archivo {archivo}: {e}")
