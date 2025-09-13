@@ -195,8 +195,21 @@ document.getElementById('btnImportarCSV')?.addEventListener('click', function(){
   fd.append('existing_mode', existingMode);
   const btn = this;
   btn.disabled = true; btn.textContent = 'Procesando...';
-  fetch('/import_stock_csv', {method:'POST', body: fd})
-    .then(r=>r.json())
+  fetch('/import_stock_csv', {method:'POST', body: fd, headers: { 'X-CSRFToken': csrfToken }})
+    .then(async r=>{
+      const ct = r.headers.get('Content-Type') || '';
+      if(!r.ok){
+        // Intentar extraer texto para diagnosticar
+        const text = await r.text();
+        throw new Error('HTTP '+r.status+' '+text.slice(0,200));
+      }
+      if(ct.includes('application/json')){
+        return r.json();
+      } else {
+        const text = await r.text();
+        throw new Error('Respuesta no JSON (posible login/HTML): '+text.slice(0,120));
+      }
+    })
     .then(data=>{
       btn.disabled = false; btn.textContent = 'Importar CSV';
       if(!data.success){
@@ -211,7 +224,7 @@ document.getElementById('btnImportarCSV')?.addEventListener('click', function(){
     })
     .catch(err=>{
       btn.disabled = false; btn.textContent = 'Importar CSV';
-      document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Error de red: '+err+'</div>';
+      document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Error: '+err.message+'</div>';
     });
 });
 </script>
