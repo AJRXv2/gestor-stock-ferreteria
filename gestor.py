@@ -1211,6 +1211,161 @@ def export_stock_history_csv():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/import_stock_csv', methods=['POST'])
+@login_required
+def import_stock_csv():
+    """Importar un CSV previamente exportado (stock_export.csv) con opciones:
+    Parámetros (form-data):
+      - file: archivo CSV.
+      - dry_run=1 (opcional) -> No aplica cambios, solo muestra resumen.
+      - existing_mode in [update, skip] (default update) -> Qué hacer si existe fila.
+    Estrategia base:
+      - Espera columnas: FechaCompra,Codigo,Nombre,Proveedor,Precio,Cantidad,Observaciones,Dueno,CreatedAt
+      - Clave de coincidencia: (codigo, proveedor, dueno) ignorando mayúsculas.
+      - INSERT si no existe; si existe y existing_mode=update -> UPDATE; si skip -> se cuenta skipped_exist.
+      - Log a stock_history: import (nuevo), import_update (update efectivo)
+    Backup: si no es dry_run genera un CSV de respaldo previo en carpeta 'backups' exportando estado actual.
+    Devuelve JSON con métricas.
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No se envió archivo'}), 400
+        f = request.files['file']
+        if not f.filename.lower().endswith('.csv'):
+            return jsonify({'success': False, 'error': 'Debe ser .csv'}), 400
+        dry_run = request.form.get('dry_run') == '1'
+        existing_mode = request.form.get('existing_mode', 'update')
+        if existing_mode not in ('update','skip'):
+            return jsonify({'success': False, 'error': 'existing_mode inválido'}), 400
+        import csv, io
+        content = f.read().decode('utf-8', errors='replace')
+        reader = csv.reader(io.StringIO(content))
+        header = next(reader, None)
+        expected = ['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','Observaciones','Dueno','CreatedAt']
+        if not header:
+            return jsonify({'success': False, 'error': 'CSV vacío'}), 400
+        # Normalizar header (casos, espacios)
+        norm = [h.strip() for h in header]
+        if norm != expected:
+            return jsonify({'success': False, 'error': f'Encabezados inválidos. Se esperaba {expected} y llegó {norm}'}), 400
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Sin conexión BD'}), 500
+        cur = conn.cursor()
+        use_postgres = _is_postgres_configured()
+        # Backup previo si no es dry_run
+        backup_filename = None
+        if not dry_run:
+            try:
+                import os, datetime as _dt
+                os.makedirs('backups', exist_ok=True)
+                ts = _dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+                backup_filename = f'backups/stock_pre_import_{ts}.csv'
+                # Export rápido del stock actual
+                bcur = conn.cursor()
+                if use_postgres:
+                    bcur.execute("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,observaciones,dueno,created_at FROM stock")
+                else:
+                    bcur.execute("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,observaciones,dueno,created_at FROM stock")
+                rows_b = bcur.fetchall()
+                with open(backup_filename,'w',encoding='utf-8',newline='') as bf:
+                    bw = csv.writer(bf)
+                    bw.writerow(expected)
+                    for rb in rows_b:
+                        bw.writerow([rb[0],rb[1],rb[2],rb[3],rb[4],rb[5],rb[6],rb[7],rb[8]])
+            except Exception as e_bk:
+                print(f"[WARN] Backup previo falló: {e_bk}")
+        inserted = 0
+        updated = 0
+        skipped = 0
+        skipped_exist = 0
+        errores = []
+        for line_no, row in enumerate(reader, start=2):
+            if len(row) != len(expected):
+                errores.append(f'L{line_no}: columnas {len(row)}')
+                continue
+            fecha_compra, codigo, nombre, proveedor, precio_raw, cantidad_raw, observ, dueno, created_at = [c.strip() for c in row]
+            if not codigo and not nombre:
+                skipped += 1
+                continue
+            try:
+                precio_val = 0.0
+                if precio_raw:
+                    try:
+                        precio_val = float(str(precio_raw).replace(',', '.'))
+                    except Exception:
+                        precio_val = 0.0
+                cantidad_val = 0
+                if cantidad_raw:
+                    try:
+                        cantidad_val = int(float(cantidad_raw))
+                    except Exception:
+                        cantidad_val = 0
+                # Claves normalizadas
+                codigo_l = (codigo or '').lower()
+                proveedor_l = (proveedor or '').lower()
+                dueno_l = (dueno or '').lower() if dueno else ''
+                # Buscar existente
+                if use_postgres:
+                    sel_sql = "SELECT * FROM stock WHERE LOWER(codigo)=%s AND COALESCE(LOWER(proveedor),'')=%s AND COALESCE(LOWER(dueno),'')=%s ORDER BY id DESC LIMIT 1"
+                    cur.execute(sel_sql, (codigo_l, proveedor_l, dueno_l))
+                else:
+                    sel_sql = "SELECT * FROM stock WHERE LOWER(codigo)=? AND COALESCE(LOWER(proveedor),'')=? AND COALESCE(LOWER(dueno),'')=? ORDER BY id DESC LIMIT 1"
+                    cur.execute(sel_sql, (codigo_l, proveedor_l, dueno_l))
+                row_exist = cur.fetchone()
+                if row_exist:
+                    if existing_mode == 'skip':
+                        skipped_exist += 1
+                    else:
+                        if not dry_run:
+                            if use_postgres:
+                                upd_sql = ("UPDATE stock SET nombre=%s, precio=%s, cantidad=%s, fecha_compra=%s, proveedor=%s, observaciones=%s, precio_texto=%s, dueno=%s WHERE id=%s")
+                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, row_exist[0]))
+                            else:
+                                upd_sql = ("UPDATE stock SET nombre=?, precio=?, cantidad=?, fecha_compra=?, proveedor=?, observaciones=?, precio_texto=?, dueno=? WHERE id=?")
+                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, row_exist[0]))
+                        updated += 1
+                        try:
+                            stock_row = {
+                                'id': row_exist[0], 'codigo': codigo, 'nombre': nombre, 'precio': precio_val, 'cantidad': cantidad_val,
+                                'fecha_compra': fecha_compra, 'proveedor': proveedor, 'observaciones': observ, 'precio_texto': str(precio_val), 'dueno': dueno_l, 'created_at': created_at
+                            }
+                            if not dry_run:
+                                log_stock_history('import_update', fuente='import_stock_csv', stock_row=stock_row)
+                        except Exception as e_logu:
+                            print(f"[WARN] log update import: {e_logu}")
+                else:
+                    if not dry_run:
+                        if use_postgres:
+                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id")
+                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat()))
+                            new_id = cur.fetchone()[0]
+                        else:
+                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
+                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat()))
+                            new_id = cur.lastrowid
+                    else:
+                        new_id = -1  # marcador
+                    inserted += 1
+                    try:
+                        stock_row = {
+                            'id': new_id, 'codigo': codigo, 'nombre': nombre, 'precio': precio_val, 'cantidad': cantidad_val,
+                            'fecha_compra': fecha_compra, 'proveedor': proveedor, 'observaciones': observ, 'precio_texto': str(precio_val), 'dueno': dueno_l, 'created_at': created_at
+                        }
+                        if not dry_run:
+                            log_stock_history('import', fuente='import_stock_csv', stock_row=stock_row)
+                    except Exception as e_logi:
+                        print(f"[WARN] log insert import: {e_logi}")
+            except Exception as ex_row:
+                errores.append(f'L{line_no}: {ex_row}')
+        if dry_run:
+            conn.rollback()
+        else:
+            conn.commit()
+        return jsonify({'success': True, 'inserted': inserted, 'updated': updated, 'skipped': skipped, 'skipped_existentes': skipped_exist, 'dry_run': dry_run, 'existing_mode': existing_mode, 'backup': backup_filename, 'errores': errores[:15], 'errores_total': len(errores)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/debug_routes')
 @login_required
 def debug_routes():

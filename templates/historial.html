@@ -7,6 +7,36 @@
 
 <div class="card mb-3">
   <div class="card-body row g-2 align-items-end">
+    <div class="card mb-3 p-3">
+      <h5>Importar CSV de Stock</h5>
+      <form id="formImportCSV" class="row g-2 align-items-end" enctype="multipart/form-data" onsubmit="return false;">
+        <div class="col-md-4">
+          <label class="form-label">Archivo CSV</label>
+          <input type="file" accept=".csv" class="form-control" id="csvFileInput" required />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Dry Run</label>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="chkDryRun" checked>
+            <label class="form-check-label small" for="chkDryRun">Simular</label>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Al existir fila</label>
+          <select id="existingMode" class="form-select">
+            <option value="update" selected>Actualizar</option>
+            <option value="skip">Omitir</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-grid">
+          <button id="btnImportarCSV" class="btn btn-primary" type="button">Importar CSV</button>
+        </div>
+        <div class="col-12 small text-muted">
+          Formato esperado: FechaCompra,Codigo,Nombre,Proveedor,Precio,Cantidad,Observaciones,Dueno,CreatedAt
+        </div>
+      </form>
+      <div id="importResult" class="mt-2"></div>
+    </div>
     <div class="col-sm-3">
       <label class="form-label">Dueño</label>
       <select id="filtro-dueno" class="form-select">
@@ -150,5 +180,39 @@ function inicializarAccionesFila(){
     });
   });
 }
+// --- Importar CSV ---
+document.getElementById('btnImportarCSV')?.addEventListener('click', function(){
+  const fileInput = document.getElementById('csvFileInput');
+  if(!fileInput.files.length){
+    alert('Seleccione un archivo CSV');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  const dryRun = document.getElementById('chkDryRun').checked ? '1':'0';
+  const existingMode = document.getElementById('existingMode').value;
+  fd.append('dry_run', dryRun);
+  fd.append('existing_mode', existingMode);
+  const btn = this;
+  btn.disabled = true; btn.textContent = 'Procesando...';
+  fetch('/import_stock_csv', {method:'POST', body: fd})
+    .then(r=>r.json())
+    .then(data=>{
+      btn.disabled = false; btn.textContent = 'Importar CSV';
+      if(!data.success){
+        document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Error: '+ (data.error||'') +'</div>';
+      } else {
+        const errs = (data.errores||[]).map(e=>'<li>'+e+'</li>').join('');
+        document.getElementById('importResult').innerHTML = '<div class="alert alert-'+(data.dry_run?'warning':'success')+'">'+(data.dry_run?'Dry Run (simulación) ':'Importación completa ')+'Insertados: '+data.inserted+' Actualizados: '+data.updated+' Omitidos vacíos: '+data.skipped+' Omitidos existentes: '+data.skipped_existentes+' Errores: '+data.errores_total+(data.backup?(' Backup: '+data.backup):'')+'</div>' + (errs?'<ul class="small">'+errs+'</ul>':'');
+        if(!data.dry_run){
+          cargarHistorial();
+        }
+      }
+    })
+    .catch(err=>{
+      btn.disabled = false; btn.textContent = 'Importar CSV';
+      document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Error de red: '+err+'</div>';
+    });
+});
 </script>
 {% endblock %}

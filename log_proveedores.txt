@@ -1,0 +1,336 @@
+{
+  "agrupados": [
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config",
+        "excel_manual",
+        "meta"
+      ],
+      "normalizado": "berger",
+      "oculto": false,
+      "originales": [
+        "Berger",
+        "berger"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config",
+        "meta",
+        "stock"
+      ],
+      "normalizado": "brementools",
+      "oculto": false,
+      "originales": [
+        "BremenTools",
+        "brementools"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config",
+        "meta"
+      ],
+      "normalizado": "cachan",
+      "oculto": false,
+      "originales": [
+        "Cachan",
+        "cachan"
+      ]
+    },
+    {
+      "eliminado": true,
+      "fuentes": [
+        "config",
+        "meta",
+        "stock"
+      ],
+      "normalizado": "chiesa",
+      "oculto": false,
+      "originales": [
+        "Chiesa",
+        "chiesa"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config",
+        "meta",
+        "stock"
+      ],
+      "normalizado": "crossmaster",
+      "oculto": false,
+      "originales": [
+        "Crossmaster",
+        "crossmaster"
+      ]
+    },
+    {
+      "eliminado": true,
+      "fuentes": [
+        "excel_manual"
+      ],
+      "normalizado": "dewalt",
+      "oculto": false,
+      "originales": [
+        "DEWALT"
+      ]
+    }
+  ],
+  "detalle_fuentes": [
+    {
+      "eliminado": false,
+      "fuente": "stock",
+      "normalizado": "brementools",
+      "oculto": false,
+      "original": "BremenTools"
+    },
+    {
+      "eliminado": true,
+      "fuente": "stock",
+      "normalizado": "chiesa",
+      "oculto": false,
+      "original": "Chiesa"
+    },
+    {
+      "eliminado": false,
+      "fuente": "stock",
+      "normalizado": "crossmaster",
+      "oculto": false,
+      "original": "Crossmaster"
+    },
+    {
+      "eliminado": false,
+      "fuente": "meta",
+      "normalizado": "brementools",
+      "oculto": false,
+      "original": "BremenTools"
+    },
+    {
+      "eliminado": false,
+      "fuente": "meta",
+      "normalizado": "crossmaster",
+      "oculto": false,
+      "original": "Crossmaster"
+    },
+    {
+      "eliminado": false,
+      "fuente": "meta",
+      "normalizado": "berger",
+      "oculto": false,
+      "original": "Berger"
+    },
+    {
+      "eliminado": true,
+      "fuente": "meta",
+      "normalizado": "chiesa",
+      "oculto": false,
+      "original": "Chiesa"
+    },
+    {
+      "eliminado": false,
+      "fuente": "meta",
+      "normalizado": "cachan",
+      "oculto": false,
+      "original": "Cachan"
+    },
+    {
+      "eliminado": true,
+      "fuente": "excel_manual",
+      "normalizado": "dewalt",
+      "oculto": false,
+      "original": "DEWALT"
+    },
+    {
+      "eliminado": false,
+      "fuente": "excel_manual",
+      "normalizado": "berger",
+      "oculto": false,
+      "original": "Berger"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "brementools",
+      "oculto": false,
+      "original": "brementools"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "berger",
+      "oculto": false,
+      "original": "berger"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "cachan",
+      "oculto": false,
+      "original": "cachan"
+    },
+    {
+      "eliminado": true,
+      "fuente": "config",
+      "normalizado": "chiesa",
+      "oculto": false,
+      "original": "chiesa"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "crossmaster",
+      "oculto": false,
+      "original": "crossmaster"
+    }
+  ],
+  "dueno": "ricky",
+  "eliminados_norm": [
+    "chiesa",
+    "dewalt",
+    "hoteche",
+    "sorbalok"
+  ],
+  "ocultos_norm": [],
+  "success": true
+}
+
+
+
+
+
+{
+  "agrupados": [
+    {
+      "eliminado": false,
+      "fuentes": [
+        "stock"
+      ],
+      "normalizado": "chiesa",
+      "oculto": false,
+      "originales": [
+        "Chiesa"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config"
+      ],
+      "normalizado": "dewalt",
+      "oculto": false,
+      "originales": [
+        "dewalt"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config"
+      ],
+      "normalizado": "nortedist",
+      "oculto": false,
+      "originales": [
+        "nortedist"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "meta"
+      ],
+      "normalizado": "otros proveedores",
+      "oculto": false,
+      "originales": [
+        "Otros Proveedores"
+      ]
+    },
+    {
+      "eliminado": true,
+      "fuentes": [
+        "config"
+      ],
+      "normalizado": "sica",
+      "oculto": false,
+      "originales": [
+        "sica"
+      ]
+    },
+    {
+      "eliminado": false,
+      "fuentes": [
+        "config",
+        "meta"
+      ],
+      "normalizado": "sorbalok",
+      "oculto": false,
+      "originales": [
+        "Sorbalok",
+        "sorbalok"
+      ]
+    }
+  ],
+  "detalle_fuentes": [
+    {
+      "eliminado": false,
+      "fuente": "stock",
+      "normalizado": "chiesa",
+      "oculto": false,
+      "original": "Chiesa"
+    },
+    {
+      "eliminado": false,
+      "fuente": "meta",
+      "normalizado": "sorbalok",
+      "oculto": false,
+      "original": "Sorbalok"
+    },
+    {
+      "eliminado": false,
+      "fuente": "meta",
+      "normalizado": "otros proveedores",
+      "oculto": false,
+      "original": "Otros Proveedores"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "dewalt",
+      "oculto": false,
+      "original": "dewalt"
+    },
+    {
+      "eliminado": true,
+      "fuente": "config",
+      "normalizado": "sica",
+      "oculto": false,
+      "original": "sica"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "sorbalok",
+      "oculto": false,
+      "original": "sorbalok"
+    },
+    {
+      "eliminado": false,
+      "fuente": "config",
+      "normalizado": "nortedist",
+      "oculto": false,
+      "original": "nortedist"
+    }
+  ],
+  "dueno": "ferreteria_general",
+  "eliminados_norm": [
+    "mig",
+    "sica",
+    "stanley"
+  ],
+  "ocultos_norm": [],
+  "success": true
+}
