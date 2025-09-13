@@ -600,6 +600,7 @@ def init_db():
             return
 
         use_postgres = _is_postgres_configured()
+        print(f"[INIT] Motor de base de datos activo: {'Postgres' if use_postgres else 'SQLite'}")
         cursor = conn.cursor()
         
         # Crear tabla stock
