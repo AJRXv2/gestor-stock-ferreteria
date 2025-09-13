@@ -753,36 +753,47 @@ def init_db():
         # Ajuste: originalmente nombre era UNIQUE impidiendo ocultar el mismo proveedor para ambos dueños.
         # Migración a UNIQUE(nombre, dueno)
         try:
-            cursor.execute("PRAGMA table_info(proveedores_ocultos)")
-            cols = cursor.fetchall()
-            # Detectar si existe la tabla y si la constraint antigua bloquea duplicados por dueño
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='proveedores_ocultos'")
-            existe = cursor.fetchone()
-            if existe:
-                # Intentar detectar índice único solo sobre nombre (heurística: probar inserción temporal)
-                cursor.execute("CREATE TABLE IF NOT EXISTS __tmp_test_oculto(nombre TEXT UNIQUE)")
-                cursor.execute("DROP TABLE __tmp_test_oculto")
-                # Para migrar: renombrar, recrear, reinsertar
-                cursor.execute("ALTER TABLE proveedores_ocultos RENAME TO proveedores_ocultos_old")
-                cursor.execute('''CREATE TABLE proveedores_ocultos (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+            if use_postgres:
+                # En Postgres no usamos PRAGMA. Creamos tabla si no existe con clave compuesta.
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS proveedores_ocultos (
+                        id SERIAL PRIMARY KEY,
                         nombre TEXT NOT NULL,
                         dueno TEXT,
-                        UNIQUE(nombre, dueno)
-                    )''')
-                # Reinsertar datos antiguos (el UNIQUE compuesto evitará duplicados exactos)
-                cursor.execute('''INSERT OR IGNORE INTO proveedores_ocultos(nombre, dueno)
-                                   SELECT nombre, dueno FROM proveedores_ocultos_old''')
-                cursor.execute('DROP TABLE proveedores_ocultos_old')
+                        CONSTRAINT uq_prov_ocultos UNIQUE (nombre, dueno)
+                    )
+                ''')
             else:
-                cursor.execute('''CREATE TABLE proveedores_ocultos (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        nombre TEXT NOT NULL,
-                        dueno TEXT,
-                        UNIQUE(nombre, dueno)
-                    )''')
+                # Ruta SQLite con migración desde esquema antiguo (sólo nombre UNIQUE) a (nombre,dueno)
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='proveedores_ocultos'")
+                existe = cursor.fetchone()
+                if existe:
+                    # Intentar detectar si falta UNIQUE compuesto revisando sql
+                    schema = cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='proveedores_ocultos'").fetchone()
+                    if schema and 'UNIQUE(nombre, dueno)' not in (schema[0] or ''):
+                        cursor.execute("ALTER TABLE proveedores_ocultos RENAME TO proveedores_ocultos_old")
+                        cursor.execute('''CREATE TABLE proveedores_ocultos (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                nombre TEXT NOT NULL,
+                                dueno TEXT,
+                                UNIQUE(nombre, dueno)
+                            )''')
+                        cursor.execute('''INSERT OR IGNORE INTO proveedores_ocultos(nombre, dueno)
+                                           SELECT nombre, dueno FROM proveedores_ocultos_old''')
+                        cursor.execute('DROP TABLE proveedores_ocultos_old')
+                else:
+                    cursor.execute('''CREATE TABLE proveedores_ocultos (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            nombre TEXT NOT NULL,
+                            dueno TEXT,
+                            UNIQUE(nombre, dueno)
+                        )''')
         except Exception as e:
-            print(f"[WARN] Migración proveedores_ocultos falló (puede ya estar migrada): {e}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            print(f"[WARN] Migración proveedores_ocultos (ignorando) : {e}")
         # Tabla para registrar proveedores eliminados definitivamente (para seguir excluyéndolos del historial)
         try:
             cursor.execute(_adapt_sql_for_postgres('''
