@@ -5,7 +5,7 @@ try:
     from datetime import datetime, timedelta
     from openpyxl import Workbook, load_workbook
     import pandas as pd
-    import os, unicodedata, sqlite3
+    import os, unicodedata, sqlite3, re
     try:
         import psycopg2
         HAS_POSTGRES = True
