@@ -438,6 +438,7 @@ def get_db_connection():
                 conn.autocommit = True
             except Exception:
                 pass
+            print(f"\n[INIT] 🐘 Motor de base de datos activo: PostgreSQL ({dsn.split('@')[1] if '@' in dsn else 'remoto'})\n")
             return conn
         except Exception as e:
             print(f"Error de conexión a PostgreSQL: {e}")
@@ -446,6 +447,7 @@ def get_db_connection():
     try:
         conn = sqlite3.connect(DATABASE_FILE)
         conn.row_factory = sqlite3.Row
+        print(f"[INIT] Motor de base de datos activo: SQLite")
         return conn
     except sqlite3.Error as e:
         print(f"Error de conexión a SQLite: {e}")
@@ -864,6 +866,7 @@ def init_db():
             return
 
         use_postgres = _is_postgres_configured()
+        print("🔧 Inicializando base de datos...")
         print(f"[INIT] Motor de base de datos activo: {'Postgres' if use_postgres else 'SQLite'}")
         cursor = conn.cursor()
         
@@ -1283,8 +1286,10 @@ def init_db():
         conn.close()
         if use_postgres:
             print("Base de datos PostgreSQL inicializada/verificada con éxito.")
+            print("✅ PostgreSQL listo para usarse. Modo: PRODUCCIÓN 🚀")
         else:
             print("Base de datos SQLite inicializada/verificada con éxito.")
+            print("✅ Base de datos inicializada correctamente")
         
         # Inicializar también el Excel de productos manuales
         init_excel_manual()
@@ -6359,7 +6364,11 @@ if __name__ == '__main__':
             except Exception as _e_ai:
                 print(f'[AUTO_INIT_DB] Advertencia: fallo en auto init: {_e_ai}')
         init_db()
-        print("✅ Base de datos inicializada correctamente")
+        
+        # Añadir información del tipo de entorno
+        if _is_postgres_configured():
+            print("\n🚀 MODO PRODUCCIÓN: PostgreSQL activado 🐘")
+            print("🔗 Conectado a: " + os.environ.get('DATABASE_URL', 'DATABASE_URL configurado'))
         
         print("🌐 Iniciando servidor Flask...")
         print("📋 Accede a: http://localhost:5000")
