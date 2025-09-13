@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Importar Factura PDF</h3>
+<p class="text-muted">Subí una factura en PDF y el sistema intentará reconocer las líneas de productos (código, descripción, cantidad y precio unitario). Ahora primero podrás revisar, editar, eliminar o añadir líneas antes de enviarlas al carrito.</p>
+{% if not soporte_pdf %}
+<div class="alert alert-warning">La librería <code>pdfplumber</code> no está instalada en el servidor. No se podrá procesar el PDF.</div>
+{% endif %}
+<form id="form-pdf" method="post" enctype="multipart/form-data" action="{{ url_for('importar_factura_pdf') }}" class="mb-3">
+  <div class="mb-3">
+    <label class="form-label">Archivo PDF</label>
+    <input type="file" name="file" accept="application/pdf" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Proveedor (opcional)</label>
+    <select name="proveedor" class="form-select">
+      <option value="">-- Seleccionar --</option>
+      {% for p in proveedores %}
+        <option value="{{ p }}">{{ p }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-primary" type="submit">Procesar Factura</button>
+</form>
+<div id="resultado-pdf"></div>
+
+<div id="panel-revision" style="display:none;" class="mt-4">
+  <h5>Revisión de Productos Detectados</h5>
+  <div class="d-flex align-items-end flex-wrap gap-3 mb-2">
+    <div style="max-width:260px">
+      <label class="form-label mb-1">Proveedor para verificación</label>
+      <select id="proveedor-verif" class="form-select form-select-sm">
+        <option value="">-- Seleccionar --</option>
+        {% for p in proveedores %}
+          <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-check mt-4">
+      <input class="form-check-input" type="checkbox" id="incluir-manual" checked>
+      <label class="form-check-label" for="incluir-manual">Incluir productos manuales</label>
+    </div>
+    <div class="mt-4">
+      <button type="button" class="btn btn-outline-primary btn-sm" id="btn-verificar-codigos" title="Verificar códigos contra el Excel del proveedor">Verificar Códigos</button>
+    </div>
+    <div class="mt-4 small" id="status-verificacion"></div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle" id="tabla-items">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Cant.</th>
+          <th>Precio Unit.</th>
+          <th>Proveedor</th>
+          <th>Obs.</th>
+          <th>Avisar</th>
+          <th>Min.</th>
+          <th>Verif.</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-add-row">Añadir línea vacía</button>
+  <button class="btn btn-success float-end" type="button" id="btn-confirmar">Agregar al Carrito</button>
+  <div class="clearfix"></div>
+</div>
+<script>
+const form = document.getElementById('form-pdf');
+form?.addEventListener('submit', function(e){
+  e.preventDefault();
+  const fd = new FormData(form);
+  fd.append('csrf_token','{{ csrf_token() }}');
+  const cont = document.getElementById('resultado-pdf');
+  cont.innerHTML = '<div class="alert alert-info">Procesando PDF...</div>';
+  fetch("{{ url_for('importar_factura_pdf') }}", {method:'POST', body: fd})
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.success){
+        cont.innerHTML = `<div class='alert alert-success'>Se detectaron ${data.items_detectados} líneas. Revisá y editá antes de confirmar.</div>`;
+        mostrarRevision(data.items || [], fd.get('proveedor') || '');
+      } else {
+        cont.innerHTML = `<div class='alert alert-danger'>${data.error || 'Error al procesar el PDF'}</div>`;
+      }
+    }).catch(err=>{
+      cont.innerHTML = `<div class='alert alert-danger'>Error de red: ${err}</div>`;
+    });
+});
+
+function mostrarRevision(items, proveedorDefault){
+  const panel = document.getElementById('panel-revision');
+  const tbody = document.querySelector('#tabla-items tbody');
+  tbody.innerHTML='';
+  items.forEach((it, idx)=>{
+    insertarFila(tbody, {
+      codigo: it.codigo || '',
+      nombre: it.nombre || '',
+      cantidad: it.cantidad || 1,
+      precio: it.precio || 0,
+      proveedor: proveedorDefault,
+      observaciones: ''
+    });
+  });
+  if(items.length===0){
+    insertarFila(tbody, {codigo:'',nombre:'',cantidad:1,precio:0,proveedor:proveedorDefault,observaciones:''});
+  }
+  panel.style.display='block';
+}
+
+function insertarFila(tbody, data){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class='index'></td>
+    <td><input type='text' class='form-control form-control-sm codigo' value="${escapeHtml(data.codigo)}"></td>
+    <td><input type='text' class='form-control form-control-sm nombre' value="${escapeHtml(data.nombre)}" required></td>
+    <td style='width:95px'><input type='number' min='1' class='form-control form-control-sm cantidad' value='${data.cantidad}'></td>
+    <td style='width:130px'><input type='text' class='form-control form-control-sm precio' value='${data.precio}'></td>
+    <td><input type='text' class='form-control form-control-sm proveedor' value='${escapeHtml(data.proveedor||'')}'></td>
+    <td><input type='text' class='form-control form-control-sm observaciones' value='${escapeHtml(data.observaciones||'')}'></td>
+    <td class='text-center'><input type='checkbox' class='form-check-input avisar_bajo_stock' ${data.avisar_bajo_stock? 'checked':''}></td>
+  <td style='width:85px'><input type='number' min='1' class='form-control form-control-sm min_stock_aviso' value='${data.min_stock_aviso||''}' ${data.avisar_bajo_stock? '':'disabled'}></td>
+  <td class='text-center verif-cell' title='Sin verificar'><span class='text-muted'>?</span></td>
+  <td style='width:40px'><button type='button' class='btn btn-outline-danger btn-sm' onclick='eliminarFila(this)' title='Eliminar'><i class='bi bi-trash'></i></button></td>`;
+  // Toggle habilitar min cuando se marca avisar
+  const cb = tr.querySelector('.avisar_bajo_stock');
+  const minInput = tr.querySelector('.min_stock_aviso');
+  cb.addEventListener('change',()=>{
+    if(cb.checked){
+      minInput.disabled = false;
+      if(!minInput.value) minInput.value = 1;
+    } else {
+      minInput.disabled = true;
+      minInput.value = '';
+    }
+  });
+  tbody.appendChild(tr);
+  reindexarFilas();
+}
+
+function eliminarFila(btn){
+  const tr = btn.closest('tr');
+  tr.remove();
+  reindexarFilas();
+}
+function reindexarFilas(){
+  document.querySelectorAll('#tabla-items tbody tr').forEach((tr,i)=>{tr.querySelector('.index').textContent = i+1;});
+}
+
+document.getElementById('btn-add-row')?.addEventListener('click', ()=>{
+  const tbody = document.querySelector('#tabla-items tbody');
+  insertarFila(tbody,{codigo:'',nombre:'',cantidad:1,precio:0,proveedor:'',observaciones:''});
+});
+
+// Verificación de códigos contra proveedor seleccionado
+document.getElementById('btn-verificar-codigos')?.addEventListener('click', ()=>{
+  const proveedor = document.getElementById('proveedor-verif').value.trim();
+  const incluirManual = document.getElementById('incluir-manual').checked;
+  const status = document.getElementById('status-verificacion');
+  if(!proveedor){
+    alert('Ingresá el nombre del proveedor configurado para verificar.');
+    return;
+  }
+  const rows = Array.from(document.querySelectorAll('#tabla-items tbody tr'));
+  const codigos = rows.map(r=> r.querySelector('.codigo').value.trim()).filter(c=>c);
+  if(codigos.length===0){
+    alert('No hay códigos para verificar.');
+    return;
+  }
+  status.innerHTML = '<span class="text-info">Verificando...</span>';
+  fetch("{{ url_for('verificar_codigos_proveedor') }}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+    body: JSON.stringify({proveedor: proveedor, codigos: codigos, incluir_manual: incluirManual, csrf_token: '{{ csrf_token() }}'})
+  }).then(r=> r.json())
+    .then(res=>{
+      if(!res.success){
+        status.innerHTML = `<span class='text-danger'>${res.error || 'Error en verificación'}</span>`;
+        return;
+      }
+      const detalle = res.detalles || {};
+      let ok = 0; let fail = 0;
+      rows.forEach(r=>{
+        const code = r.querySelector('.codigo').value.trim();
+        const cell = r.querySelector('.verif-cell');
+        if(!code){
+          cell.innerHTML = '<span class="text-muted">-</span>';
+          cell.title = 'Sin código';
+          return;
+        }
+        const encontrado = detalle[code] === true || detalle[code] === 'true' || detalle[code] === 1;
+        if(encontrado){
+          ok++;
+          cell.innerHTML = '<span class="text-success" title="Encontrado en proveedor">✓</span>';
+          cell.title = 'Encontrado';
+          r.classList.remove('table-danger');
+          r.classList.add('table-success');
+        } else {
+          fail++;
+          cell.innerHTML = '<span class="text-danger" title="No encontrado">✗</span>';
+          cell.title = 'No encontrado';
+          r.classList.remove('table-success');
+          r.classList.add('table-danger');
+        }
+      });
+      status.innerHTML = `<span class='text-success'>Verificación completa: ${ok} encontrado(s), ${fail} no.</span>`;
+    }).catch(err=>{
+      status.innerHTML = `<span class='text-danger'>Error: ${err}</span>`;
+    });
+});
+
+document.getElementById('btn-confirmar')?.addEventListener('click', ()=>{
+  const rows = Array.from(document.querySelectorAll('#tabla-items tbody tr'));
+  const items = [];
+  let valido = true;
+  rows.forEach(r=>{
+    const nombre = r.querySelector('.nombre').value.trim();
+    if(!nombre){valido=false; r.querySelector('.nombre').classList.add('is-invalid'); return;}
+    const obj = {
+      codigo: r.querySelector('.codigo').value.trim(),
+      nombre: nombre,
+      cantidad: parseInt(r.querySelector('.cantidad').value || '1'),
+      precio: r.querySelector('.precio').value.trim(),
+      proveedor: r.querySelector('.proveedor').value.trim(),
+      observaciones: r.querySelector('.observaciones').value.trim(),
+      avisar_bajo_stock: r.querySelector('.avisar_bajo_stock').checked ? 1 : 0,
+      min_stock_aviso: (r.querySelector('.avisar_bajo_stock').checked ? (parseInt(r.querySelector('.min_stock_aviso').value||'0')||0) : null)
+    };
+    if(!obj.cantidad || obj.cantidad<=0) obj.cantidad = 1;
+    items.push(obj);
+  });
+  if(!valido){
+    alert('Corregí los campos marcados antes de confirmar.');
+    return;
+  }
+  fetch("{{ url_for('importar_factura_pdf_confirm') }}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+    body: JSON.stringify({items: items, csrf_token: '{{ csrf_token() }}'})
+  }).then(r=>r.json()).then(data=>{
+    if(data.success){
+      alert(`Se agregaron ${data.items_agregados} items al carrito`);
+      if(data.html){
+        const carrito = document.getElementById('carrito-container');
+        if(carrito) carrito.innerHTML = data.html;
+      } else {
+        location.reload();
+      }
+    } else {
+      alert(data.error || 'Error al confirmar');
+    }
+  }).catch(err=>alert('Error de red: '+err));
+});
+
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+}
+</script>
+{% endblock %}

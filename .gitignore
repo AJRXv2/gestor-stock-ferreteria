@@ -1,11 +1,21 @@
+###############################################
+# Git Ignore para Gestor de Stock
+# Ajusta según necesites versionar ciertos datos
+###############################################
+
 # --- Persistencia y bases de datos locales ---
 *.db
+*.db.bak
 *.sqlite3
+*.sqlite3.bak
 *.sqlite
 
-# Evitar subir respaldos accidentales
+# Backups y directorios históricos
 backup*/
+backups/
 old_version/
+"backup pre rediseño"/
+copias del gestor/
 
 # PyInstaller / build artefacts
 dist/
@@ -15,15 +25,30 @@ build/
 # Bytecode / cache
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 
 # Entornos virtuales
 venv/
+.venv/
+ENV/
 .env
+.env.*
 
 # Logs
 *.log
+log_*.txt
 
-# Excel y datos manuales
+# Archivos temporales / exportaciones
+*.tmp
+*.bak
+*.swp
+~$*
+historial_con_id_*.csv
+stock_pre_import_*.csv
+rescate_desde_roto.csv
+
+# Excel y datos manuales (descomenta si quieres versionar alguno)
 listas_excel/
 *.xlsx
 
@@ -31,7 +56,16 @@ listas_excel/
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE / Editor
 .vscode/
 .idea/
+
+# Node (por si se añade frontend)
+node_modules/
+
+# Archivos sueltos no necesarios
+copy
+queda
+
+# Nota: Elimina de aquí cualquier archivo que SI quieras versionar.
 

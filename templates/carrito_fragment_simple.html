@@ -16,7 +16,7 @@
         </thead>
         <tbody>
             {% for item in carrito %}
-            <tr>
+            <tr {% if item.avisar_bajo_stock and item.min_stock_aviso and item.cantidad <= item.min_stock_aviso %}class="table-warning"{% endif %}>
                 <td>
                     <div class="small">
                         <div><strong>Producto:</strong> {{ item.nombre or 'Sin nombre' }}</div>
@@ -25,6 +25,14 @@
                         {% endif %}
                         {% if item.proveedor %}
                             <div class="text-muted small"><strong>Proveedor:</strong> {{ item.proveedor }}</div>
+                        {% endif %}
+                        {% if item.avisar_bajo_stock and item.min_stock_aviso %}
+                            <div class="mt-1">
+                                <span class="badge bg-warning text-dark">Avisar ≤ {{ item.min_stock_aviso }}</span>
+                                {% if item.cantidad <= item.min_stock_aviso %}
+                                    <i class="bi bi-exclamation-triangle-fill text-warning" title="Stock bajo ({{ item.cantidad }} / {{ item.min_stock_aviso }})"></i>
+                                {% endif %}
+                            </div>
                         {% endif %}
                     </div>
                 </td>

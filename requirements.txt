@@ -1,10 +1,24 @@
+############################################################
+# Requerimientos congelados para entorno Python 3.12 (Windows)
+# Objetivo: usar versiones con wheels precompilados y evitar
+# compilaciones de pandas/numpy que fallaban en Python 3.13.
+# Si en el futuro se migra a Python 3.13+, se pueden subir:
+#   numpy >= 2.0, pandas >= 2.2, openpyxl >= 3.1.5
+############################################################
 Flask==3.0.3
 Flask-WTF==1.2.1
 Werkzeug==3.0.3
 itsdangerous==2.2.0
 Jinja2==3.1.4
-pandas==2.2.0
-openpyxl==3.1.2
-numpy==1.26.4
+
+# Versiones retrocompatibles para evitar build:
+numpy==1.26.4        # Última 1.x con wheel para cp312
+pandas==2.1.4        # Compatible 3.12, evita build en 3.13
+openpyxl==3.1.2      # Estable y suficiente para lectura/escritura Excel
+
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1
+pdfplumber==0.11.0   # Parser de facturas PDF
+
+# Dependencias transitivas (pdfplumber -> pdfminer.six, Pillow) se instalarán automáticamente.
+

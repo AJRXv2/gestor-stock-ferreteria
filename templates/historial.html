@@ -8,11 +8,11 @@
 <div class="card mb-3">
   <div class="card-body row g-2 align-items-end">
     <div class="card mb-3 p-3">
-      <h5>Importar CSV de Stock</h5>
-      <form id="formImportCSV" class="row g-2 align-items-end" enctype="multipart/form-data" onsubmit="return false;">
+      <h5>Importar Stock (CSV o XLSX)</h5>
+      <form id="formImportUnified" class="row g-2 align-items-end" enctype="multipart/form-data" onsubmit="return false;">
         <div class="col-md-4">
-          <label class="form-label">Archivo CSV</label>
-          <input type="file" accept=".csv" class="form-control" id="csvFileInput" required />
+          <label class="form-label">Archivo</label>
+          <input type="file" accept=".csv,.xlsx" class="form-control" id="fileInputUnified" required />
         </div>
         <div class="col-md-2">
           <label class="form-label">Dry Run</label>
@@ -29,12 +29,19 @@
           </select>
         </div>
         <div class="col-md-3 d-grid">
-          <button id="btnImportarCSV" class="btn btn-primary" type="button">Importar CSV</button>
+          <button id="btnImportUnified" class="btn btn-primary" type="button">Importar</button>
         </div>
         <div class="col-12 small text-muted">
-          Formato esperado: FechaCompra,Codigo,Nombre,Proveedor,Precio,Cantidad,Observaciones,Dueno,CreatedAt
+          Columnas: FechaCompra,Codigo,Nombre,Proveedor,Precio,Cantidad,Observaciones,Dueno,CreatedAt (Dueno/CreatedAt opcionales en backups viejos).<br>
+          Elige CSV o XLSX. Se hará backup automático previo (si no es Dry Run).
         </div>
       </form>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <a class="btn btn-outline-secondary btn-sm" href="/export_stock_csv">Descargar Stock CSV</a>
+        <a class="btn btn-outline-secondary btn-sm" href="/export_stock_xlsx">Descargar Stock XLSX</a>
+        <a class="btn btn-outline-secondary btn-sm" href="/export_stock_history_csv">Historial CSV</a>
+        <a class="btn btn-outline-secondary btn-sm" href="/export_stock_history_xlsx">Historial XLSX</a>
+      </div>
       <div id="importResult" class="mt-2"></div>
     </div>
     <div class="col-sm-3">
@@ -164,42 +171,105 @@ function inicializarAccionesFila(){
       }).then(r=>r.json()).then(res=>{
         if(res && res.success){
           const row = this.closest('tr');
-          const cantidadCell = row?.querySelector('td:nth-child(7)');
+          const cantidadCell = row?.querySelector('td[data-col="cantidad"]');
           if(cantidadCell){ cantidadCell.textContent = res.nueva_cantidad; }
-          const statusCell = row?.querySelector('td:nth-child(9)');
+          const statusCell = row?.querySelector('td[data-col="stock_bajo"]');
           if(statusCell){
             let html='';
-            if(res.nueva_cantidad <= 0){ html='<i class="bi bi-x-circle text-danger" title="Sin stock"></i>'; }
-            else if(parseInt(res.avisar_bajo_stock||0,10)===1 && res.min_stock_aviso!==null && res.nueva_cantidad <= parseInt(res.min_stock_aviso||0,10)){
+            if(res.estado === 'sin'){
+              html='<i class="bi bi-x-circle text-danger" title="Sin stock"></i>';
+            } else if(res.estado === 'bajo') {
               html = `<i class=\"bi bi-exclamation-triangle text-warning\" title=\"Stock bajo (${res.nueva_cantidad} / ${res.min_stock_aviso})\"></i>`;
-            } else { html='<i class="bi bi-check-circle text-success" title="Stock suficiente"></i>'; }
+            } else {
+              html='<i class="bi bi-check-circle text-success" title="Stock suficiente"></i>';
+            }
             statusCell.innerHTML = html;
           }
+          if(res.mostrar_toast){
+            mostrarToastNotificacion();
+          }
+          // Refrescar fila completa desde servidor para mantener consistencia (precio_texto, iconos futuros, etc.)
+          fetch(`/stock_row/${res.id || this.dataset.id}`)
+            .then(r=>r.ok?r.json():Promise.reject())
+            .then(dataRow=>{
+              if(dataRow.success && dataRow.html){
+                const tmp = document.createElement('tbody');
+                tmp.innerHTML = dataRow.html.trim();
+                const newTr = tmp.querySelector('tr');
+                if(newTr){
+                  row.replaceWith(newTr);
+                  // Aplicar efecto visual
+                  newTr.classList.add('flash-update');
+                  setTimeout(()=>newTr.classList.remove('flash-update'), 1200);
+                }
+                // Re-vincular acciones en la nueva fila
+                inicializarAccionesFila();
+              } else {
+                // Si falla, aplicar efecto a la fila existente
+                row.classList.add('flash-update');
+                setTimeout(()=>row.classList.remove('flash-update'), 1200);
+              }
+            }).catch(()=>{
+              row.classList.add('flash-update');
+              setTimeout(()=>row.classList.remove('flash-update'), 1200);
+            });
+        // Efecto visual mínimo si no se refresca (ya cubierto en fallback)
         } else { alert((res && res.error)||'Error al vender'); }
       }).catch(()=>alert('Error de red'));
     });
   });
 }
-// --- Importar CSV ---
-document.getElementById('btnImportarCSV')?.addEventListener('click', function(){
-  const fileInput = document.getElementById('csvFileInput');
+// Toast dinámico inmediato
+function mostrarToastNotificacion(){
+  let c = document.getElementById('toast-dinamico-container');
+  if(!c){
+    c = document.createElement('div');
+    c.id = 'toast-dinamico-container';
+    c.className = 'toast-container position-fixed top-0 end-0 p-3';
+    document.body.appendChild(c);
+  }
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<div class="toast align-items-center text-bg-warning border-0 show" role="alert" aria-live="assertive" aria-atomic="true" style="min-width:300px;">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-bell-fill me-2"></i> Revisar el área de notificaciones
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+    </div>
+  </div>`;
+  const toastEl = wrapper.firstElementChild;
+  c.appendChild(toastEl);
+  setTimeout(()=>{
+    toastEl.classList.remove('show');
+    toastEl.classList.add('hide');
+    setTimeout(()=>toastEl.remove(), 800);
+  }, 4000);
+}
+// --- Importar CSV / XLSX unificado ---
+document.getElementById('btnImportUnified')?.addEventListener('click', function(){
+  const fileInput = document.getElementById('fileInputUnified');
   if(!fileInput.files.length){
-    alert('Seleccione un archivo CSV');
+    alert('Seleccione un archivo');
     return;
   }
+  const file = fileInput.files[0];
+  const name = file.name.toLowerCase();
+  let endpoint = '';
+  if(name.endsWith('.csv')) endpoint = '/import_stock_csv';
+  else if(name.endsWith('.xlsx')) endpoint = '/import_stock_xlsx';
+  else { alert('Extensión no soportada'); return; }
   const fd = new FormData();
-  fd.append('file', fileInput.files[0]);
+  fd.append('file', file);
   const dryRun = document.getElementById('chkDryRun').checked ? '1':'0';
   const existingMode = document.getElementById('existingMode').value;
   fd.append('dry_run', dryRun);
   fd.append('existing_mode', existingMode);
   const btn = this;
   btn.disabled = true; btn.textContent = 'Procesando...';
-  fetch('/import_stock_csv', {method:'POST', body: fd, headers: { 'X-CSRFToken': csrfToken }})
+  fetch(endpoint, {method:'POST', body: fd, headers: { 'X-CSRFToken': csrfToken }})
     .then(async r=>{
       const ct = r.headers.get('Content-Type') || '';
       if(!r.ok){
-        // Intentar extraer texto para diagnosticar
         const text = await r.text();
         throw new Error('HTTP '+r.status+' '+text.slice(0,200));
       }
@@ -211,7 +281,7 @@ document.getElementById('btnImportarCSV')?.addEventListener('click', function(){
       }
     })
     .then(data=>{
-      btn.disabled = false; btn.textContent = 'Importar CSV';
+      btn.disabled = false; btn.textContent = 'Importar';
       if(!data.success){
         document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Error: '+ (data.error||'') +'</div>';
       } else {
@@ -223,9 +293,13 @@ document.getElementById('btnImportarCSV')?.addEventListener('click', function(){
       }
     })
     .catch(err=>{
-      btn.disabled = false; btn.textContent = 'Importar CSV';
+      btn.disabled = false; btn.textContent = 'Importar';
       document.getElementById('importResult').innerHTML = '<div class="alert alert-danger">Error: '+err.message+'</div>';
     });
 });
 </script>
+<style>
+.flash-update{ animation: flashBg 1.2s ease-in-out; }
+@keyframes flashBg{ 0%{ background:#fff3cd; } 50%{ background:#ffe8a1; } 100%{ background:inherit; } }
+</style>
 {% endblock %}

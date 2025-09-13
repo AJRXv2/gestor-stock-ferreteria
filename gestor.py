@@ -47,6 +47,22 @@ from decimal import Decimal, InvalidOperation
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 print("✅ Werkzeug y functools importados correctamente")
+try:
+    import pdfplumber
+    _HAS_PDF = True
+    print("✅ pdfplumber disponible para lectura de facturas PDF")
+except Exception as e:
+    _HAS_PDF = False
+    import sys, importlib.util
+    print(f"⚠️ pdfplumber no disponible ({e}); la importación de facturas PDF estará deshabilitada")
+    print("🛠️ Debug pdfplumber:")
+    print("  - Python exe:", sys.executable)
+    print("  - Version:", sys.version)
+    print("  - sys.path entries:")
+    for p in sys.path:
+        print("     *", p)
+    spec = importlib.util.find_spec('pdfplumber')
+    print("  - importlib.util.find_spec('pdfplumber') ->", bool(spec))
 
 # --- Utilidades de normalización de nombres de proveedor ---
 def _normalizar_nombre_proveedor(nombre: str) -> str:
@@ -93,6 +109,31 @@ else:
         'agregar_producto',
         'carrito_cargar'
     }
+
+    # Endpoint de diagnóstico rápido para revisar estado de pdfplumber y entorno Python
+    @app.route('/debug_pdf')
+    def debug_pdf():
+        import sys, importlib.util, traceback
+        info = {}
+        info['HAS_FLAG'] = _HAS_PDF
+        info['executable'] = sys.executable
+        info['version'] = sys.version
+        info['cwd'] = os.getcwd()
+        info['sys_path'] = sys.path
+        spec = importlib.util.find_spec('pdfplumber')
+        info['find_spec'] = bool(spec)
+        if spec:
+            info['spec_origin'] = spec.origin
+        # Intentar import en vivo
+        try:
+            import pdfplumber as pp
+            info['live_import'] = True
+            info['pdfplumber_file'] = getattr(pp, '__file__', 'desconocido')
+        except Exception as e:
+            info['live_import'] = False
+            info['live_import_error'] = str(e)
+            info['trace_tail'] = traceback.format_exc().splitlines()[-5:]
+        return jsonify(info)
     # Rutas exactas que también pueden omitir CSRF (por si request.endpoint no coincide)
     CSRF_WHITELIST_PATHS = {
         '/eliminar_seleccionados',
@@ -368,7 +409,17 @@ def get_db_connection():
     """Crear conexión a la base de datos (PostgreSQL si está configurado; si no, SQLite)."""
     if _is_postgres_configured():
         try:
-            conn = psycopg2.connect(os.environ['DATABASE_URL'])
+            # Railway a veces entrega postgres:// en lugar de postgresql://
+            dsn = os.environ.get('DATABASE_URL')
+            if dsn and dsn.startswith('postgres://'):
+                # psycopg2 recomienda reemplazar el esquema
+                dsn = dsn.replace('postgres://', 'postgresql://', 1)
+            conn = psycopg2.connect(dsn)
+            # Usar autocommit para simplificar lógica (commit manual solo en SQLite)
+            try:
+                conn.autocommit = True
+            except Exception:
+                pass
             return conn
         except Exception as e:
             print(f"Error de conexión a PostgreSQL: {e}")
@@ -382,59 +433,107 @@ def get_db_connection():
         print(f"Error de conexión a SQLite: {e}")
         return None
 
+_SQL_INSERT_OR_IGNORE_REGEX = re.compile(r"INSERT\s+OR\s+IGNORE\s+INTO\s+([A-Za-z0-9_\.\"]+)", re.IGNORECASE)
+
 def _adapt_sql_for_postgres(sql: str) -> str:
-    # Reemplazos básicos para compatibilidad
-    sql2 = sql.replace('INSERT OR IGNORE', 'INSERT ON CONFLICT DO NOTHING')
-    sql2 = sql2.replace('AUTOINCREMENT', 'SERIAL')
-    sql2 = sql2.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+    """Adaptaciones mínimas de sintaxis para PostgreSQL.
+    - INSERT OR IGNORE INTO tabla ...  => INSERT INTO tabla ... ON CONFLICT DO NOTHING
+    - AUTOINCREMENT => (ignorado, PostgreSQL usa SERIAL / IDENTITY)
+    - INTEGER PRIMARY KEY AUTOINCREMENT => SERIAL PRIMARY KEY
+    Nota: No intenta cobertura completa de dialecto; sólo los casos usados.
+    """
+    original = sql
+    # Transformar INSERT OR IGNORE INTO <tabla>
+    def repl(m):
+        table = m.group(1)
+        return f"INSERT INTO {table}"
+    sql2 = _SQL_INSERT_OR_IGNORE_REGEX.sub(repl, sql)
+    # Si hicimos un cambio de OR IGNORE añadimos ON CONFLICT DO NOTHING al final antes de ; si no existe ya.
+    if sql2 != original and 'ON CONFLICT' not in sql2.upper():
+        # Insertar justo antes de RETURNING si existiera, de lo contrario al final.
+        upper_sql = sql2.upper()
+        if 'RETURNING' in upper_sql:
+            parts = re.split(r'(?i)RETURNING', sql2, maxsplit=1)
+            sql2 = parts[0].rstrip() + ' ON CONFLICT DO NOTHING RETURNING' + parts[1]
+        else:
+            sql2 = sql2.rstrip().rstrip(';') + ' ON CONFLICT DO NOTHING'
+    # Adaptar autoincrement
+    sql2 = re.sub(r'INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT', 'SERIAL PRIMARY KEY', sql2, flags=re.IGNORECASE)
+    # No reemplazar genérico AUTOINCREMENT dentro de contexto ya transformado, pero limpiar palabra suelta
+    sql2 = re.sub(r'AUTOINCREMENT', '', sql2, flags=re.IGNORECASE)
     return sql2
 
+def _convert_placeholders(sql: str) -> str:
+    """Convertir placeholders estilo SQLite (?) a estilo psycopg2 (%s). Evita reemplazar dentro de strings simples.
+    Aproximación sencilla: contar '?' y reemplazar secuencialmente por %s salvo que ya existan %s.
+    """
+    if '%s' in sql:
+        return sql  # ya adaptado
+    # Ignorar signos de pregunta dentro de literales simples '...?...'
+    parts = []
+    in_str = False
+    for ch in sql:
+        if ch == "'":
+            in_str = not in_str
+            parts.append(ch)
+        elif ch == '?' and not in_str:
+            parts.append('%s')
+        else:
+            parts.append(ch)
+    return ''.join(parts)
+
+def _prepare_sql(query: str, use_postgres: bool) -> str:
+    if not use_postgres:
+        return query
+    q = _adapt_sql_for_postgres(query)
+    q = _convert_placeholders(q)
+    return q
+
 def db_query(query, params=(), fetch=False):
-    """Ejecutar consulta en la base de datos (PostgreSQL o SQLite)."""
+    """Ejecutar consulta en la base de datos (PostgreSQL o SQLite).
+
+    - Adapta sintaxis y placeholders automáticamente para PostgreSQL.
+    - Retorna lista de dicts si fetch=True, True/False según éxito si fetch=False.
+    - Cierra siempre la conexión (uso simple por operación). Para alto volumen podría añadirse pool.
+    """
     conn = get_db_connection()
     if not conn:
         return None
     use_postgres = _is_postgres_configured()
+    sql_exec = _prepare_sql(query, use_postgres)
+    cursor = None
     try:
-        if use_postgres:
-            sql = _adapt_sql_for_postgres(query)
-            # Adaptar placeholders: '?' -> '%s'
-            num_q = sql.count('?')
-            if num_q:
-                sql = sql.replace('?', '%s')
-            cursor = conn.cursor()
-            cursor.execute(sql, tuple(params))
-        else:
-            cursor = conn.cursor()
-            cursor.execute(query, params)
+        cursor = conn.cursor()
+        cursor.execute(sql_exec, tuple(params))
         if fetch:
             rows = cursor.fetchall()
             if use_postgres:
-                # Convertir a diccionarios para PostgreSQL
-                columns = [desc[0] for desc in cursor.description]
-                result = [dict(zip(columns, row)) for row in rows]
+                cols = [d[0] for d in cursor.description]
+                return [dict(zip(cols, r)) for r in rows]
             else:
-                result = [dict(row) for row in rows]
+                return [dict(r) for r in rows]
         else:
-            conn.commit()
-            result = True
+            if not use_postgres:
+                # En PostgreSQL autocommit ya activo
+                conn.commit()
+            return True
     except Exception as e:
-        print(f"Error en la consulta a la base de datos: {e}\nSQL: {query}\nParams: {params}")
+        print(f"Error en la consulta a la base de datos: {e}\nSQL original: {query}\nSQL ejecutado: {sql_exec}\nParams: {params}")
         try:
-            conn.rollback()
+            if not use_postgres:
+                conn.rollback()
         except Exception:
             pass
-        result = False
+        return False
     finally:
         try:
-            cursor.close()
+            cursor and cursor.close()
         except Exception:
             pass
         try:
             conn.close()
         except Exception:
             pass
-    return result
 
 def init_excel_manual():
     """Inicializar el archivo Excel de productos manuales"""
@@ -719,6 +818,67 @@ def init_db():
                 nombre TEXT NOT NULL UNIQUE 
             ) 
         '''))
+        # Tabla de notificaciones persistentes
+        try:
+            cursor.execute(_adapt_sql_for_postgres('''
+                CREATE TABLE IF NOT EXISTS notificaciones (
+                    id SERIAL PRIMARY KEY,
+                    codigo TEXT,
+                    nombre TEXT,
+                    proveedor TEXT,
+                    mensaje TEXT NOT NULL,
+                    ts TEXT NOT NULL,
+                    leida INTEGER DEFAULT 0,
+                    user_id INTEGER
+                )
+            '''))
+            try: cursor.execute("CREATE INDEX IF NOT EXISTS idx_notif_ts ON notificaciones(ts)")
+            except Exception: pass
+            # Migración específica SQLite: asegurar que id sea INTEGER PRIMARY KEY AUTOINCREMENT si quedaron filas con id NULL
+            if not use_postgres:
+                try:
+                    cur2 = conn.cursor()
+                    cur2.execute("PRAGMA table_info(notificaciones)")
+                    cols = cur2.fetchall()
+                    # Detectar si la columna id no es INTEGER PRIMARY KEY (cuando SERIAL no se tradujo bien)
+                    col_id = next((c for c in cols if c[1].lower()=="id"), None)
+                    need_migration = False
+                    if col_id:
+                        type_decl = (col_id[2] or '').upper()
+                        if 'INT' not in type_decl: # tipo inesperado
+                            need_migration = True
+                    # Verificar si hay ids NULL
+                    cur2.execute("SELECT COUNT(1) FROM notificaciones WHERE id IS NULL")
+                    null_count = cur2.fetchone()[0]
+                    if null_count > 0:
+                        need_migration = True
+                    if need_migration:
+                        print(f"[MIGRA] Reparando tabla notificaciones (ids nulos={null_count})")
+                        # Renombrar tabla actual
+                        cur2.execute("ALTER TABLE notificaciones RENAME TO notificaciones_old")
+                        cur2.execute('''CREATE TABLE notificaciones (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            codigo TEXT,
+                            nombre TEXT,
+                            proveedor TEXT,
+                            mensaje TEXT NOT NULL,
+                            ts TEXT NOT NULL,
+                            leida INTEGER DEFAULT 0,
+                            user_id INTEGER
+                        )''')
+                        # Copiar datos (generará nuevos ids autoincrement)
+                        cur2.execute('''INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id)
+                                         SELECT codigo,nombre,proveedor,mensaje,ts,leida,user_id FROM notificaciones_old''')
+                        cur2.execute("DROP TABLE notificaciones_old")
+                        try:
+                            cur2.execute("CREATE INDEX IF NOT EXISTS idx_notif_ts ON notificaciones(ts)")
+                        except Exception:
+                            pass
+                        conn.commit()
+                except Exception as mig_e:
+                    print(f"[WARN] Migración notificaciones SQLite falló: {mig_e}")
+        except Exception as e:
+            print(f"[WARN] No se pudo crear tabla notificaciones: {e}")
         # Tabla meta para asociar uno o más dueños a un mismo proveedor (permitir duplicados por dueño)
         cursor.execute(_adapt_sql_for_postgres('''
             CREATE TABLE IF NOT EXISTS proveedores_meta (
@@ -1136,45 +1296,32 @@ def export_sqlite():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/export_sqlite_base64')
-@login_required
-def export_sqlite_base64():
-    """Devuelve el archivo SQLite codificado en base64 (fallback si la descarga directa falla)."""
-    import base64
-    try:
-        for fname in ["gestor_stock.sqlite3", "gestor_stock.db", "stock.db"]:
-            if os.path.exists(fname):
-                with open(fname, 'rb') as f:
-                    data = f.read()
-                b64 = base64.b64encode(data).decode('utf-8')
-                return jsonify({'success': True, 'filename': fname, 'base64': b64})
-        return jsonify({'success': False, 'error': 'No se encontró archivo .sqlite3 / .db.'}), 404
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
+@app.route('/export_sqlite_base64')  # compat heredado
 @app.route('/export_stock_csv')
 @login_required
 def export_stock_csv():
     """Exportar datos de stock en CSV estándar.
-    Encabezados: FechaCompra,Codigo,Nombre,Proveedor,Precio,Cantidad,Observaciones,Dueno,CreatedAt
+    Encabezados: FechaCompra,Codigo,Nombre,Proveedor,Precio,Cantidad,AvisarBajoStock,MinStockAviso,Observaciones,Dueno,CreatedAt
     """
     import csv, io
     try:
-        rows = db_query("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,observaciones,dueno,created_at FROM stock ORDER BY id ASC", fetch=True) or []
+        rows = db_query("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,avisar_bajo_stock,min_stock_aviso,observaciones,dueno,created_at FROM stock ORDER BY id ASC", fetch=True) or []
         buff = io.StringIO()
         w = csv.writer(buff)
-        w.writerow(['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','Observaciones','Dueno','CreatedAt'])
+        w.writerow(['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','AvisarBajoStock','MinStockAviso','Observaciones','Dueno','CreatedAt'])
         for r in rows:
             w.writerow([
-                r['fecha_compra'] or '',
-                r['codigo'] or '',
-                r['nombre'] or '',
-                r['proveedor'] or '',
-                r['precio'] if r['precio'] is not None else 0,
-                r['cantidad'] if r['cantidad'] is not None else 0,
-                (r['observaciones'] or '').replace('\n',' ').replace('\r',' '),
-                r['dueno'] or '',
-                r['created_at'] or ''
+                r.get('fecha_compra') or '',
+                r.get('codigo') or '',
+                r.get('nombre') or '',
+                r.get('proveedor') or '',
+                r.get('precio') if r.get('precio') is not None else 0,
+                r.get('cantidad') if r.get('cantidad') is not None else 0,
+                r.get('avisar_bajo_stock', 0) or 0,
+                r.get('min_stock_aviso') if r.get('min_stock_aviso') is not None else '',
+                (r.get('observaciones') or '').replace('\n',' ').replace('\r',' '),
+                r.get('dueno') or '',
+                r.get('created_at') or ''
             ])
         buff.seek(0)
         from flask import Response
@@ -1211,6 +1358,174 @@ def export_stock_history_csv():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/export_stock_xlsx')
+@login_required
+def export_stock_xlsx():
+    """Exportar datos de stock en XLSX con columnas de avisos y colores.
+    Hoja: Stock
+    Columnas: FechaCompra, Codigo, Nombre, Proveedor, Precio, Cantidad, AvisarBajoStock, MinStockAviso, Observaciones, Dueno, CreatedAt
+    Colores:
+      - Amarillo (FFFEF3C7) si AvisarBajoStock=1
+      - Rojo suave (FFF8CBAD) si cantidad <= MinStockAviso y AvisarBajoStock=1 y MinStockAviso válido
+    """
+    try:
+        rows = db_query("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,avisar_bajo_stock,min_stock_aviso,observaciones,dueno,created_at FROM stock ORDER BY id ASC", fetch=True) or []
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Stock"
+        headers = ['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','AvisarBajoStock','MinStockAviso','Observaciones','Dueno','CreatedAt']
+        ws.append(headers)
+        for r in rows:
+            ws.append([
+                r.get('fecha_compra') or '',
+                r.get('codigo') or '',
+                r.get('nombre') or '',
+                r.get('proveedor') or '',
+                r.get('precio') if r.get('precio') is not None else 0,
+                r.get('cantidad') if r.get('cantidad') is not None else 0,
+                r.get('avisar_bajo_stock', 0) or 0,
+                r.get('min_stock_aviso') if r.get('min_stock_aviso') is not None else '',
+                (r.get('observaciones') or '').replace('\n',' ').replace('\r',' '),
+                r.get('dueno') or '',
+                r.get('created_at') or ''
+            ])
+        # Aplicar colores: Verde OK, Amarillo bajo (avisar y cant >0 y cant <= min), Rojo sin stock (cant <=0) o cant<=min con avisar y cant==0
+        from openpyxl.styles import PatternFill
+        fill_verde = PatternFill(start_color='FFD5F5E3', end_color='FFD5F5E3', fill_type='solid')  # verde suave
+        fill_amarillo = PatternFill(start_color='FFFEF3C7', end_color='FFFEF3C7', fill_type='solid')
+        fill_rojo = PatternFill(start_color='FFF8CBAD', end_color='FFF8CBAD', fill_type='solid')
+        # Índices de columnas (1-based): Cantidad=6, Avisar=7, MinStock=8
+        for row in ws.iter_rows(min_row=2, min_col=1, max_col=len(headers)):
+            try:
+                cant_raw = row[5].value
+                avisar = row[6].value
+                minimo_raw = row[7].value
+                cant_v = None
+                min_v = None
+                try:
+                    cant_v = float(cant_raw) if cant_raw not in (None, '') else None
+                except Exception:
+                    cant_v = None
+                try:
+                    min_v = float(minimo_raw) if minimo_raw not in (None, '', 0, '0') else None
+                except Exception:
+                    min_v = None
+                # Decidir color
+                use_fill = None
+                if cant_v is None:
+                    # sin dato cantidad -> no colorear
+                    use_fill = None
+                else:
+                    if cant_v <= 0:
+                        use_fill = fill_rojo
+                    elif avisar in (1,'1',True) and min_v is not None and cant_v <= min_v:
+                        use_fill = fill_amarillo
+                    else:
+                        use_fill = fill_verde
+                if use_fill:
+                    for c in row:
+                        c.fill = use_fill
+            except Exception:
+                continue
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return send_file(output, as_attachment=True, download_name='stock_export.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/export_stock_history_xlsx')
+@login_required
+def export_stock_history_xlsx():
+    """Exportar historial completo (tabla stock_history) en XLSX.
+    Hoja: Historial
+    Columnas: ID, StockID, Codigo, Nombre, Precio, Cantidad, FechaCompra, Proveedor, Observaciones, PrecioTexto, Dueno, CreatedAt, FechaEvento, TipoCambio, Fuente, Usuario
+    """
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Sin conexión BD'}), 500
+        cur = conn.cursor()
+        # Traemos el historial junto con flags/umbral actuales (si existen) para colorear estado.
+        try:
+            cur.execute("""
+                SELECT h.id, h.stock_id, h.codigo, h.nombre, h.precio, h.cantidad, h.fecha_compra,
+                       h.proveedor, h.observaciones, h.precio_texto, h.dueno, h.created_at,
+                       h.fecha_evento, h.tipo_cambio, h.fuente, h.usuario,
+                       s.avisar_bajo_stock, s.min_stock_aviso
+                FROM stock_history h
+                LEFT JOIN stock s ON s.id = h.stock_id
+                ORDER BY h.id ASC
+            """)
+            rows = cur.fetchall()
+            has_flags = True
+        except Exception:
+            # Fallback si no existen columnas/ join falla
+            cur.execute("SELECT id, stock_id, codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno, created_at, fecha_evento, tipo_cambio, fuente, usuario FROM stock_history ORDER BY id ASC")
+            rows = cur.fetchall()
+            has_flags = False
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Historial"
+        headers = ["ID","StockID","Codigo","Nombre","Precio","Cantidad","FechaCompra","Proveedor","Observaciones","PrecioTexto","Dueno","CreatedAt","FechaEvento","TipoCambio","Fuente","Usuario"]
+        ws.append(headers)
+        from openpyxl.styles import PatternFill
+        fill_verde = PatternFill(start_color='FFD5F5E3', end_color='FFD5F5E3', fill_type='solid')
+        fill_amarillo = PatternFill(start_color='FFFEF3C7', end_color='FFFEF3C7', fill_type='solid')
+        fill_rojo = PatternFill(start_color='FFF8CBAD', end_color='FFF8CBAD', fill_type='solid')
+
+        for r in rows:
+            ws.append([
+                r[0],
+                r[1] or '',
+                r[2] or '',
+                r[3] or '',
+                r[4] if r[4] is not None else '',
+                r[5] if r[5] is not None else '',
+                r[6] or '',
+                r[7] or '',
+                (r[8] or '').replace('\n',' ').replace('\r',' '),
+                r[9] or '',
+                r[10] or '',
+                r[11] or '',
+                r[12] or '',
+                r[13] or '',
+                r[14] or '',
+                r[15] or ''
+            ])
+            # Colorear la fila recién añadida usando la cantidad histórica y umbral actual (si existe)
+            try:
+                cant_hist = r[5]
+                avisar_flag = r[16] if has_flags and len(r) > 16 else None
+                min_flag = r[17] if has_flags and len(r) > 17 else None
+                cant_v = float(cant_hist) if cant_hist not in (None, '') else None
+                min_v = float(min_flag) if (min_flag not in (None, '', 0, '0') and avisar_flag in (1,'1',True)) else None
+                use_fill = None
+                if cant_v is not None:
+                    if cant_v <= 0:
+                        use_fill = fill_rojo
+                    elif avisar_flag in (1,'1',True) and min_v is not None and cant_v <= min_v:
+                        use_fill = fill_amarillo
+                    else:
+                        use_fill = fill_verde
+                if use_fill:
+                    for c in ws[ws.max_row]:
+                        c.fill = use_fill
+            except Exception:
+                pass
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        try:
+            cur.close()
+            conn.close()
+        except Exception:
+            pass
+        return send_file(output, as_attachment=True, download_name='stock_history_export.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 @app.route('/import_stock_csv', methods=['POST'])
 @login_required
 def import_stock_csv():
@@ -1241,13 +1556,23 @@ def import_stock_csv():
         content = f.read().decode('utf-8', errors='replace')
         reader = csv.reader(io.StringIO(content))
         header = next(reader, None)
-        expected = ['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','Observaciones','Dueno','CreatedAt']
         if not header:
             return jsonify({'success': False, 'error': 'CSV vacío'}), 400
-        # Normalizar header (casos, espacios)
-        norm = [h.strip() for h in header]
-        if norm != expected:
-            return jsonify({'success': False, 'error': f'Encabezados inválidos. Se esperaba {expected} y llegó {norm}'}), 400
+        # Columnas posibles (backup completo con avisos) y requeridas mínimas para un backup viejo.
+        full_cols = ['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','AvisarBajoStock','MinStockAviso','Observaciones','Dueno','CreatedAt']
+        minimal_required = ['Codigo']  # lo único estrictamente necesario para intentar importar
+        col_index = {}
+        for i, raw in enumerate(header):
+            clean = (raw or '').strip()
+            col_index[clean.lower()] = i
+        missing_min = [c for c in minimal_required if c.lower() not in col_index]
+        if missing_min:
+            return jsonify({'success': False, 'error': f'Faltan columnas esenciales: {missing_min}'}), 400
+        has_dueno_col = 'dueno' in col_index
+        has_avisar_col = 'avisarbajostock' in col_index
+        has_min_col = 'minstockaviso' in col_index
+        has_created_col = 'createdat' in col_index
+        default_dueno = (request.form.get('default_dueno') or '').strip().lower() or 'general'
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'error': 'Sin conexión BD'}), 500
@@ -1261,18 +1586,14 @@ def import_stock_csv():
                 os.makedirs('backups', exist_ok=True)
                 ts = _dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
                 backup_filename = f'backups/stock_pre_import_{ts}.csv'
-                # Export rápido del stock actual
                 bcur = conn.cursor()
-                if use_postgres:
-                    bcur.execute("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,observaciones,dueno,created_at FROM stock")
-                else:
-                    bcur.execute("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,observaciones,dueno,created_at FROM stock")
+                bcur.execute("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,avisar_bajo_stock,min_stock_aviso,observaciones,dueno,created_at FROM stock")
                 rows_b = bcur.fetchall()
                 with open(backup_filename,'w',encoding='utf-8',newline='') as bf:
                     bw = csv.writer(bf)
-                    bw.writerow(expected)
+                    bw.writerow(full_cols)
                     for rb in rows_b:
-                        bw.writerow([rb[0],rb[1],rb[2],rb[3],rb[4],rb[5],rb[6],rb[7],rb[8]])
+                        bw.writerow([rb[0], rb[1], rb[2], rb[3], rb[4], rb[5], rb[6], rb[7], rb[8], rb[9], rb[10]])
             except Exception as e_bk:
                 print(f"[WARN] Backup previo falló: {e_bk}")
         inserted = 0
@@ -1280,11 +1601,30 @@ def import_stock_csv():
         skipped = 0
         skipped_exist = 0
         errores = []
+        history_batch = []  # acumularemos tuplas para inserción masiva en stock_history
+        from flask_login import current_user as _cu
+        usuario_actual = None
+        try:
+            usuario_actual = getattr(_cu, 'username', None) or getattr(_cu, 'id', None) or 'import'
+        except Exception:
+            usuario_actual = 'import'
         for line_no, row in enumerate(reader, start=2):
-            if len(row) != len(expected):
-                errores.append(f'L{line_no}: columnas {len(row)}')
-                continue
-            fecha_compra, codigo, nombre, proveedor, precio_raw, cantidad_raw, observ, dueno, created_at = [c.strip() for c in row]
+            def take(col):
+                idx = col_index.get(col.lower())
+                if idx is None or idx >= len(row):
+                    return ''
+                return (row[idx] or '').strip()
+            fecha_compra = take('FechaCompra')
+            codigo = take('Codigo')
+            nombre = take('Nombre') or ''
+            proveedor = take('Proveedor')
+            precio_raw = take('Precio')
+            cantidad_raw = take('Cantidad')
+            avisar_raw = take('AvisarBajoStock') if has_avisar_col else ''
+            min_raw = take('MinStockAviso') if has_min_col else ''
+            observ = take('Observaciones')
+            dueno = take('Dueno') if has_dueno_col else default_dueno
+            created_at = take('CreatedAt') if has_created_col else ''
             if not codigo and not nombre:
                 skipped += 1
                 continue
@@ -1301,6 +1641,25 @@ def import_stock_csv():
                         cantidad_val = int(float(cantidad_raw))
                     except Exception:
                         cantidad_val = 0
+                # Flags avisos
+                avisar_flag = 0
+                try:
+                    if avisar_raw not in (None, '', '0'):
+                        avisar_flag = 1 if str(avisar_raw).strip() in ('1','true','True','YES','yes') else int(float(avisar_raw))
+                except Exception:
+                    avisar_flag = 0
+                min_val_flag = None
+                if min_raw not in (None, '', '0'):
+                    try:
+                        mv = int(float(min_raw))
+                        if mv > 0:
+                            min_val_flag = mv
+                    except Exception:
+                        min_val_flag = None
+                # Coherencia: si no hay umbral válido, desactivar flag
+                if not min_val_flag or min_val_flag <= 0:
+                    avisar_flag = 0
+                    min_val_flag = None
                 # Claves normalizadas
                 codigo_l = (codigo or '').lower()
                 proveedor_l = (proveedor or '').lower()
@@ -1319,48 +1678,253 @@ def import_stock_csv():
                     else:
                         if not dry_run:
                             if use_postgres:
-                                upd_sql = ("UPDATE stock SET nombre=%s, precio=%s, cantidad=%s, fecha_compra=%s, proveedor=%s, observaciones=%s, precio_texto=%s, dueno=%s WHERE id=%s")
-                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, row_exist[0]))
+                                upd_sql = ("UPDATE stock SET nombre=%s, precio=%s, cantidad=%s, fecha_compra=%s, proveedor=%s, observaciones=%s, precio_texto=%s, dueno=%s, avisar_bajo_stock=%s, min_stock_aviso=%s WHERE id=%s")
+                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, avisar_flag, min_val_flag, row_exist[0]))
                             else:
-                                upd_sql = ("UPDATE stock SET nombre=?, precio=?, cantidad=?, fecha_compra=?, proveedor=?, observaciones=?, precio_texto=?, dueno=? WHERE id=?")
-                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, row_exist[0]))
+                                upd_sql = ("UPDATE stock SET nombre=?, precio=?, cantidad=?, fecha_compra=?, proveedor=?, observaciones=?, precio_texto=?, dueno=?, avisar_bajo_stock=?, min_stock_aviso=? WHERE id=?")
+                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, avisar_flag, min_val_flag, row_exist[0]))
                         updated += 1
-                        try:
-                            stock_row = {
-                                'id': row_exist[0], 'codigo': codigo, 'nombre': nombre, 'precio': precio_val, 'cantidad': cantidad_val,
-                                'fecha_compra': fecha_compra, 'proveedor': proveedor, 'observaciones': observ, 'precio_texto': str(precio_val), 'dueno': dueno_l, 'created_at': created_at
-                            }
-                            if not dry_run:
-                                log_stock_history('import_update', fuente='import_stock_csv', stock_row=stock_row)
-                        except Exception as e_logu:
-                            print(f"[WARN] log update import: {e_logu}")
+                        if not dry_run:
+                            # Preparar registro histórico en batch
+                            fecha_evento = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                            history_batch.append((
+                                row_exist[0], codigo, nombre, precio_val, cantidad_val, fecha_compra or '', proveedor or '', observ, str(precio_val), dueno_l or '', created_at or '',
+                                fecha_evento, 'import_update', 'import_stock_csv', usuario_actual
+                            ))
                 else:
                     if not dry_run:
                         if use_postgres:
-                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id")
-                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat()))
+                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,avisar_bajo_stock,min_stock_aviso) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id")
+                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat(), avisar_flag, min_val_flag))
                             new_id = cur.fetchone()[0]
                         else:
-                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
-                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat()))
+                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,avisar_bajo_stock,min_stock_aviso) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat(), avisar_flag, min_val_flag))
                             new_id = cur.lastrowid
                     else:
                         new_id = -1  # marcador
                     inserted += 1
-                    try:
-                        stock_row = {
-                            'id': new_id, 'codigo': codigo, 'nombre': nombre, 'precio': precio_val, 'cantidad': cantidad_val,
-                            'fecha_compra': fecha_compra, 'proveedor': proveedor, 'observaciones': observ, 'precio_texto': str(precio_val), 'dueno': dueno_l, 'created_at': created_at
-                        }
-                        if not dry_run:
-                            log_stock_history('import', fuente='import_stock_csv', stock_row=stock_row)
-                    except Exception as e_logi:
-                        print(f"[WARN] log insert import: {e_logi}")
+                    if not dry_run:
+                        fecha_evento = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                        history_batch.append((
+                            new_id, codigo, nombre, precio_val, cantidad_val, fecha_compra or '', proveedor or '', observ, str(precio_val), dueno_l or '', created_at or '',
+                            fecha_evento, 'import', 'import_stock_csv', usuario_actual
+                        ))
             except Exception as ex_row:
                 errores.append(f'L{line_no}: {ex_row}')
         if dry_run:
             conn.rollback()
         else:
+            # Insert batch histórico antes del commit
+            if history_batch:
+                if use_postgres:
+                    cur.executemany("INSERT INTO stock_history (stock_id,codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,fecha_evento,tipo_cambio,fuente,usuario) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", history_batch)
+                else:
+                    cur.executemany("INSERT INTO stock_history (stock_id,codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,fecha_evento,tipo_cambio,fuente,usuario) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", history_batch)
+            conn.commit()
+        return jsonify({'success': True, 'inserted': inserted, 'updated': updated, 'skipped': skipped, 'skipped_existentes': skipped_exist, 'dry_run': dry_run, 'existing_mode': existing_mode, 'backup': backup_filename, 'errores': errores[:15], 'errores_total': len(errores)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/import_stock_xlsx', methods=['POST'])
+@login_required
+def import_stock_xlsx():
+    """Importar un XLSX previamente exportado (stock_export.xlsx) con mismas reglas que CSV.
+    Parámetros (form-data):
+      - file: archivo XLSX.
+      - dry_run=1 opcional.
+      - existing_mode in [update, skip].
+        Columnas esperadas (headers hoja activa, primera fila):
+            FechaCompra, Codigo, Nombre, Proveedor, Precio, Cantidad, AvisarBajoStock, MinStockAviso, Observaciones, Dueno, CreatedAt
+    Tolerancia: si faltan Dueno/CreatedAt se aplican defaults como en CSV.
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No se envió archivo'}), 400
+        f = request.files['file']
+        if not f.filename.lower().endswith('.xlsx'):
+            return jsonify({'success': False, 'error': 'Debe ser .xlsx'}), 400
+        dry_run = request.form.get('dry_run') == '1'
+        existing_mode = request.form.get('existing_mode', 'update')
+        if existing_mode not in ('update','skip'):
+            return jsonify({'success': False, 'error': 'existing_mode inválido'}), 400
+        from openpyxl import load_workbook
+        from io import BytesIO
+        data_bytes = f.read()
+        try:
+            wb = load_workbook(BytesIO(data_bytes), read_only=True, data_only=True)
+        except Exception as ex:
+            return jsonify({'success': False, 'error': f'No se pudo leer XLSX: {ex}'}), 400
+        ws = wb.active
+        header = []
+        for cell in ws[1]:
+            header.append((cell.value or '').strip() if isinstance(cell.value,str) else (cell.value if cell.value is not None else ''))
+        if not header:
+            return jsonify({'success': False, 'error': 'XLSX sin encabezado'}), 400
+        full_cols = ['FechaCompra','Codigo','Nombre','Proveedor','Precio','Cantidad','AvisarBajoStock','MinStockAviso','Observaciones','Dueno','CreatedAt']
+        minimal_required = ['Codigo']
+        col_index = {}  # map lower->pos
+        for i, raw in enumerate(header):
+            clean = (str(raw) if raw is not None else '').strip()
+            col_index[clean.lower()] = i
+        missing_min = [c for c in minimal_required if c.lower() not in col_index]
+        if missing_min:
+            return jsonify({'success': False, 'error': f'Faltan columnas esenciales: {missing_min}'}), 400
+        has_dueno_col = 'dueno' in col_index
+        has_avisar_col = 'avisarbajostock' in col_index
+        has_min_col = 'minstockaviso' in col_index
+        has_created_col = 'createdat' in col_index
+        default_dueno = (request.form.get('default_dueno') or '').strip().lower() or 'general'
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Sin conexión BD'}), 500
+        cur = conn.cursor()
+        use_postgres = _is_postgres_configured()
+        backup_filename = None
+        if not dry_run:
+            try:
+                import os, datetime as _dt, csv
+                os.makedirs('backups', exist_ok=True)
+                ts = _dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+                backup_filename = f'backups/stock_pre_import_{ts}.csv'
+                bcur = conn.cursor()
+                bcur.execute("SELECT fecha_compra,codigo,nombre,proveedor,precio,cantidad,avisar_bajo_stock,min_stock_aviso,observaciones,dueno,created_at FROM stock")
+                rows_b = bcur.fetchall()
+                with open(backup_filename,'w',encoding='utf-8',newline='') as bf:
+                    bw = csv.writer(bf)
+                    bw.writerow(full_cols)
+                    for rb in rows_b:
+                        bw.writerow([rb[0], rb[1], rb[2], rb[3], rb[4], rb[5], rb[6], rb[7], rb[8], rb[9], rb[10]])
+            except Exception as e_bk:
+                print(f"[WARN] Backup previo XLSX falló: {e_bk}")
+        inserted = 0
+        updated = 0
+        skipped = 0
+        skipped_exist = 0
+        errores = []
+        history_batch = []
+        usuario_actual = 'import'
+        try:
+            from flask_login import current_user as _cu
+            usuario_actual = getattr(_cu, 'username', None) or getattr(_cu, 'id', None) or 'import'
+        except Exception:
+            pass
+        # Iterar filas (read_only: usar ws.iter_rows)
+        for line_no, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            if row is None:
+                continue
+            def take(col_name):
+                idx = col_index.get(col_name.lower())
+                if idx is None:
+                    return ''
+                try:
+                    val = row[idx]
+                    return str(val).strip() if val is not None else ''
+                except Exception:
+                    return ''
+            fecha_compra = take('FechaCompra')
+            codigo = take('Codigo')
+            nombre = take('Nombre') or ''
+            proveedor = take('Proveedor')
+            precio_raw = take('Precio')
+            cantidad_raw = take('Cantidad')
+            avisar_raw = take('AvisarBajoStock') if has_avisar_col else ''
+            min_raw = take('MinStockAviso') if has_min_col else ''
+            observ = take('Observaciones')
+            dueno = take('Dueno') if has_dueno_col else default_dueno
+            created_at = take('CreatedAt') if has_created_col else ''
+            if not codigo and not nombre:
+                skipped += 1
+                continue
+            try:
+                # Precio
+                precio_val = 0.0
+                if precio_raw:
+                    try:
+                        precio_val = float(str(precio_raw).replace(',', '.'))
+                    except Exception:
+                        precio_val = 0.0
+                cantidad_val = 0
+                if cantidad_raw:
+                    try:
+                        cantidad_val = int(float(cantidad_raw))
+                    except Exception:
+                        cantidad_val = 0
+                # Flags avisos
+                avisar_flag = 0
+                try:
+                    if avisar_raw not in (None, '', '0'):
+                        avisar_flag = 1 if str(avisar_raw).strip() in ('1','true','True','YES','yes') else int(float(avisar_raw))
+                except Exception:
+                    avisar_flag = 0
+                min_val_flag = None
+                if min_raw not in (None, '', '0'):
+                    try:
+                        mv = int(float(min_raw))
+                        if mv > 0:
+                            min_val_flag = mv
+                    except Exception:
+                        min_val_flag = None
+                if not min_val_flag or min_val_flag <= 0:
+                    avisar_flag = 0
+                    min_val_flag = None
+                codigo_l = (codigo or '').lower()
+                proveedor_l = (proveedor or '').lower()
+                dueno_l = (dueno or '').lower() if dueno else ''
+                if use_postgres:
+                    sel_sql = "SELECT * FROM stock WHERE LOWER(codigo)=%s AND COALESCE(LOWER(proveedor),'')=%s AND COALESCE(LOWER(dueno),'')=%s ORDER BY id DESC LIMIT 1"
+                    cur.execute(sel_sql, (codigo_l, proveedor_l, dueno_l))
+                else:
+                    sel_sql = "SELECT * FROM stock WHERE LOWER(codigo)=? AND COALESCE(LOWER(proveedor),'')=? AND COALESCE(LOWER(dueno),'')=? ORDER BY id DESC LIMIT 1"
+                    cur.execute(sel_sql, (codigo_l, proveedor_l, dueno_l))
+                row_exist = cur.fetchone()
+                if row_exist:
+                    if existing_mode == 'skip':
+                        skipped_exist += 1
+                    else:
+                        if not dry_run:
+                            if use_postgres:
+                                upd_sql = ("UPDATE stock SET nombre=%s, precio=%s, cantidad=%s, fecha_compra=%s, proveedor=%s, observaciones=%s, precio_texto=%s, dueno=%s, avisar_bajo_stock=%s, min_stock_aviso=%s WHERE id=%s")
+                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, avisar_flag, min_val_flag, row_exist[0]))
+                            else:
+                                upd_sql = ("UPDATE stock SET nombre=?, precio=?, cantidad=?, fecha_compra=?, proveedor=?, observaciones=?, precio_texto=?, dueno=?, avisar_bajo_stock=?, min_stock_aviso=? WHERE id=?")
+                                cur.execute(upd_sql, (nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, avisar_flag, min_val_flag, row_exist[0]))
+                        updated += 1
+                        if not dry_run:
+                            fecha_evento = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                            history_batch.append((
+                                row_exist[0], codigo, nombre, precio_val, cantidad_val, fecha_compra or '', proveedor or '', observ, str(precio_val), dueno_l or '', created_at or '',
+                                fecha_evento, 'import_update', 'import_stock_xlsx', usuario_actual
+                            ))
+                else:
+                    if not dry_run:
+                        if use_postgres:
+                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,avisar_bajo_stock,min_stock_aviso) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id")
+                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat(), avisar_flag, min_val_flag))
+                            new_id = cur.fetchone()[0]
+                        else:
+                            ins_sql = ("INSERT INTO stock (codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,avisar_bajo_stock,min_stock_aviso) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+                            cur.execute(ins_sql, (codigo, nombre, precio_val, cantidad_val, fecha_compra or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), proveedor or None, observ, str(precio_val), dueno_l or None, created_at or datetime.utcnow().isoformat(), avisar_flag, min_val_flag))
+                            new_id = cur.lastrowid
+                    else:
+                        new_id = -1
+                    inserted += 1
+                    if not dry_run:
+                        fecha_evento = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                        history_batch.append((
+                            new_id, codigo, nombre, precio_val, cantidad_val, fecha_compra or '', proveedor or '', observ, str(precio_val), dueno_l or '', created_at or '',
+                            fecha_evento, 'import', 'import_stock_xlsx', usuario_actual
+                        ))
+            except Exception as ex_row:
+                errores.append(f'L{line_no}: {ex_row}')
+        if dry_run:
+            conn.rollback()
+        else:
+            if history_batch:
+                if use_postgres:
+                    cur.executemany("INSERT INTO stock_history (stock_id,codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,fecha_evento,tipo_cambio,fuente,usuario) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", history_batch)
+                else:
+                    cur.executemany("INSERT INTO stock_history (stock_id,codigo,nombre,precio,cantidad,fecha_compra,proveedor,observaciones,precio_texto,dueno,created_at,fecha_evento,tipo_cambio,fuente,usuario) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", history_batch)
             conn.commit()
         return jsonify({'success': True, 'inserted': inserted, 'updated': updated, 'skipped': skipped, 'skipped_existentes': skipped_exist, 'dry_run': dry_run, 'existing_mode': existing_mode, 'backup': backup_filename, 'errores': errores[:15], 'errores_total': len(errores)})
     except Exception as e:
@@ -1511,50 +2075,94 @@ def stock():
 @app.context_processor
 def inject_notificacion_emergente():
     """Proveer flags para mostrar avisos una sola vez por nueva notificación."""
-    try:
-        tiene_no_leidas = bool(session.get('notificaciones')) and not bool(session.get('notificaciones_leidas'))
-    except Exception:
-        tiene_no_leidas = False
     mostrar_aviso = False
     try:
-        if tiene_no_leidas and not session.get('notificacion_aviso_mostrado'):
-            mostrar_aviso = True
-            session['notificacion_aviso_mostrado'] = True
-    except Exception:
-        mostrar_aviso = False
-    # 'notificacion_emergente' ya no se usa (evitamos duplicados visuales)
+        user_id = session.get('user_id')
+        if user_id:
+            filas = db_query("SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=?) AND leida=0", (user_id,), fetch=True)
+            count_no_leidas = filas[0]['c'] if filas else 0
+            if count_no_leidas > 0 and not session.get('notificacion_aviso_mostrado'):
+                mostrar_aviso = True
+                session['notificacion_aviso_mostrado'] = True
+    except Exception as e:
+        print(f"[WARN] inject_notificacion_emergente fallo: {e}")
     return dict(notificacion_emergente=None, mostrar_aviso_notificaciones=mostrar_aviso)
 
 @app.route('/notificaciones')
 @login_required
 def notificaciones():
-    notificaciones = session.get('notificaciones', [])
-    leidas = session.get('notificaciones_leidas', False)
-    return render_template('notificaciones.html', notificaciones=notificaciones, leidas=leidas)
+    user_id = session.get('user_id')
+    # Migrar temporalmente notificaciones que aún estén en sesión (legacy) a la BD
+    legacy = session.get('notificaciones') or []
+    if legacy:
+        for n in legacy:
+            try:
+                db_query(
+                    "INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id) VALUES (?,?,?,?,?,?,?)",
+                    (
+                        n.get('codigo',''),
+                        n.get('nombre',''),
+                        n.get('proveedor',''),
+                        n.get('mensaje',''),
+                        n.get('ts') or datetime.now().isoformat(timespec='seconds'),
+                        0,
+                        user_id
+                    )
+                )
+            except Exception as _e:
+                pass
+        session['notificaciones'] = []
+        session['notificaciones_leidas'] = True
+    filas = db_query("SELECT id,codigo,nombre,proveedor,mensaje,ts,leida FROM notificaciones WHERE user_id IS NULL OR user_id=? ORDER BY ts DESC", (user_id,), fetch=True) or []
+    # Debug: imprimir primeras filas y detectar si alguna no tiene id
+    try:
+        print(f"[DEBUG] notificaciones: total={len(filas)} sample={filas[:3]}")
+    except Exception:
+        pass
+    # Filtrar cualquier entrada anómala sin 'id'
+    filas_filtradas = [f for f in filas if 'id' in f and f['id'] is not None]
+    if len(filas_filtradas) != len(filas):
+        print(f"[WARN] Filtrando {len(filas) - len(filas_filtradas)} notificaciones sin id antes de render")
+    filas = filas_filtradas
+    # Marcar en memoria si hay todas leídas
+    leidas = all(f.get('leida') for f in filas)
+    return render_template('notificaciones.html', notificaciones=filas, leidas=leidas)
 
 @app.route('/borrar_notificacion/<int:idx>', methods=['POST'])
 @login_required
 def borrar_notificacion(idx):
     try:
-        notificaciones = session.get('notificaciones', [])
-        if 0 <= idx < len(notificaciones):
-            notificaciones.pop(idx)
-            session['notificaciones'] = notificaciones
-    except Exception:
-        pass
+        # idx ahora es id real de la tabla, mantenemos compat previa si viene el index
+        # Intentar borrar por id directo
+        db_query("DELETE FROM notificaciones WHERE id = ?", (idx,))
+    except Exception as e:
+        print(f"[WARN] borrar_notificacion: {e}")
     return redirect(url_for('notificaciones'))
 
 @app.route('/borrar_todas_notificaciones', methods=['POST'])
 @login_required
 def borrar_todas_notificaciones():
-    session['notificaciones'] = []
-    session['notificaciones_leidas'] = False
+    try:
+        user_id = session.get('user_id')
+        if user_id:
+            db_query("DELETE FROM notificaciones WHERE user_id=?", (user_id,))
+        else:
+            db_query("DELETE FROM notificaciones WHERE user_id IS NULL")
+    except Exception as e:
+        print(f"[WARN] borrar_todas_notificaciones: {e}")
     return redirect(url_for('notificaciones'))
 
 @app.route('/marcar_notificaciones_leidas', methods=['POST'])
 @login_required
 def marcar_notificaciones_leidas():
-    session['notificaciones_leidas'] = True
+    try:
+        user_id = session.get('user_id')
+        if user_id:
+            db_query("UPDATE notificaciones SET leida=1 WHERE user_id=?", (user_id,))
+        else:
+            db_query("UPDATE notificaciones SET leida=1 WHERE user_id IS NULL")
+    except Exception as e:
+        print(f"[WARN] marcar_notificaciones_leidas: {e}")
     return redirect(url_for('notificaciones'))
 
 # --- Rutas principales de la aplicación ---
@@ -3068,16 +3676,47 @@ def actualizar_stock(id):
                         session['notificaciones_leidas'] = False
                         # Permitir que el aviso inferior se muestre una vez por nueva notificación
                         session['notificacion_aviso_mostrado'] = False
+                        # Persistir en BD
+                        try:
+                            user_id = session.get('user_id')
+                            db_query(
+                                "INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id) VALUES (?,?,?,?,?,?,?)",
+                                (
+                                    producto.get('codigo',''),
+                                    producto.get('nombre',''),
+                                    producto.get('proveedor',''),
+                                    mensaje,
+                                    datetime.now().isoformat(timespec='seconds'),
+                                    0,
+                                    user_id
+                                )
+                            )
+                        except Exception as _e:
+                            print(f"[WARN] No se pudo persistir notificación: {_e}")
                         mostrar_toast = True
             except Exception as _:
                 mostrar_toast = False
             # No mostrar toast si no está habilitado el aviso de bajo stock
             if request.is_json:
+                avisar_flag = int(producto.get('avisar_bajo_stock') or 0)
+                min_aviso = producto.get('min_stock_aviso')
+                try:
+                    min_aviso_int = int(min_aviso) if min_aviso not in (None, '', '0') else None
+                except Exception:
+                    min_aviso_int = None
+                # Determinar estado
+                if nueva_cantidad <= 0:
+                    estado = 'sin'
+                elif avisar_flag == 1 and min_aviso_int is not None and nueva_cantidad <= min_aviso_int:
+                    estado = 'bajo'
+                else:
+                    estado = 'ok'
                 return jsonify({
                     'success': True,
                     'nueva_cantidad': nueva_cantidad,
-                    'avisar_bajo_stock': int(producto.get('avisar_bajo_stock') or 0),
-                    'min_stock_aviso': producto.get('min_stock_aviso'),
+                    'avisar_bajo_stock': avisar_flag,
+                    'min_stock_aviso': min_aviso_int,
+                    'estado': estado,
                     'mostrar_toast': mostrar_toast
                 })
         else:
@@ -3091,6 +3730,25 @@ def actualizar_stock(id):
         flash(f'Error: {str(e)}', 'danger')
     
     return redirect(url_for('historial'))
+
+@app.route('/stock_row/<int:id>')
+@login_required
+def stock_row(id):
+    """Devuelve el HTML <tr> de un producto del stock para reemplazo dinámico.
+    Útil tras operaciones (venta, edición futura) sin recargar toda la tabla.
+    """
+    try:
+        filas = db_query("SELECT * FROM stock WHERE id = ?", (id,), fetch=True)
+        if not filas:
+            return jsonify({'success': False, 'error': 'No encontrado'}), 404
+        p = filas[0]
+        # Normalizar tipos/valores esperados por el macro
+        from flask import render_template
+        html = render_template('fragmentos/fila_historial.html', p=p)
+        return jsonify({'success': True, 'html': html, 'id': id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/agregar_proveedor_manual_ajax', methods=['POST'])
 @login_required
@@ -3401,79 +4059,34 @@ def manual_eliminar_seleccionados_ajax():
         dueno = (data.get('dueno') or '').strip().lower()
         proveedor_id = data.get('proveedor_id')
         if not codigos:
-            return jsonify({'success': False, 'msg': 'No hay productos seleccionados.'})
-        # Operar sobre Excel productos_manual.xlsx
-        if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            return jsonify({'success': False, 'msg': 'No existe productos_manual.xlsx'})
-        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-        if proveedor_id:
-            prov = db_query('SELECT nombre FROM proveedores_manual WHERE id=?', (proveedor_id,), fetch=True)
-            nombre_prov = prov[0]['nombre'] if prov else None
-        else:
-            nombre_prov = None
-        mask_keep = ~df['Codigo'].astype(str).isin([str(c) for c in codigos])
-        if nombre_prov:
-            # Solo eliminar coincidiendo proveedor
-            mask_target = df['Codigo'].astype(str).isin([str(c) for c in codigos])
-            if dueno:
-                mask_target &= df['Dueno'].astype(str).str.lower().eq(dueno)
-            mask_target &= df['Proveedor'].astype(str).str.contains(nombre_prov, case=False, na=False)
-            mask_keep = ~mask_target | (~df['Codigo'].astype(str).isin([str(c) for c in codigos]))
-        df_new = df[mask_keep]
-        with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
-            df_new.to_excel(writer, index=False)
-        return jsonify({'success': True, 'msg': f'{len(codigos)} producto(s) eliminado(s).'})
+            return jsonify({'success': False, 'msg': 'No se enviaron códigos para eliminar.'})
+        # Eliminar de la tabla productos_manual (si existe)
+        eliminados = 0
+        for c in codigos:
+            c2 = str(c).strip()
+            if not c2:
+                continue
+            try:
+                res = db_query("DELETE FROM productos_manual WHERE codigo = ?", (c2,))
+                if res:
+                    eliminados += 1
+            except Exception as e_del:
+                print(f"[manual_eliminar_seleccionados_ajax] Error eliminando {c2}: {e_del}")
+        # Actualizar Excel productos_manual.xlsx
+        if os.path.exists(MANUAL_PRODUCTS_FILE):
+            try:
+                dfm = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                dfm.rename(columns={'Código': 'Codigo'}, inplace=True)
+                before = len(dfm)
+                dfm = dfm[~dfm['Codigo'].astype(str).isin([str(c).strip() for c in codigos])]  # filtrar
+                if len(dfm) != before:
+                    with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
+                        dfm.to_excel(writer, index=False)
+            except Exception as e_x:
+                print(f"[manual_eliminar_seleccionados_ajax] Error actualizando Excel: {e_x}")
+        return jsonify({'success': True, 'msg': f'Eliminados {eliminados} código(s).', 'eliminados': eliminados})
     except Exception as e:
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
-
-@app.route('/manual_eliminar_por_proveedor_ajax', methods=['POST'])
-@login_required
-def manual_eliminar_por_proveedor_ajax():
-    try:
-        data = request.get_json() or {}
-        proveedor_id = data.get('proveedor_id')
-        dueno = (data.get('dueno') or '').strip().lower()
-        if not proveedor_id:
-            return jsonify({'success': False, 'msg': 'Proveedor inválido.'})
-        if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            return jsonify({'success': False, 'msg': 'No existe productos_manual.xlsx'})
-        prov = db_query('SELECT nombre FROM proveedores_manual WHERE id=?', (proveedor_id,), fetch=True)
-        if not prov:
-            return jsonify({'success': False, 'msg': 'Proveedor no encontrado.'})
-        nombre_prov = prov[0]['nombre']
-        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-        mask = df['Proveedor'].astype(str).str.contains(nombre_prov, case=False, na=False)
-        if dueno:
-            mask &= df['Dueno'].astype(str).str.lower().eq(dueno)
-        df_new = df[~mask]
-        with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
-            df_new.to_excel(writer, index=False)
-        return jsonify({'success': True, 'msg': 'Productos del proveedor eliminados.'})
-    except Exception as e:
-        return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
-
-@app.route('/manual_actualizar_ajax', methods=['POST'])
-@login_required
-def manual_actualizar_ajax():
-    try:
-        data = request.get_json() or {}
-        codigo_original = (data.get('codigo_original') or '').strip()
-        nombre = (data.get('nombre') or '').strip()
-        codigo = (data.get('codigo') or '').strip()
-        precio_str = (data.get('precio') or '').strip()
-        proveedor_id = data.get('proveedor_id')
-        proveedor_nombre = (data.get('proveedor_nombre') or '').strip()
-        dueno_sel = (data.get('dueno') or '').strip().lower()
-        if not codigo_original:
-            return jsonify({'success': False, 'msg': 'Código original requerido.'})
-        precio, _ = parse_price(precio_str)
-        # Resolver proveedor_id desde nombre+dueño si no vino id
-        if not proveedor_id and proveedor_nombre and dueno_sel:
-            prov_res = db_query('SELECT pm.id FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) WHERE LOWER(pm.nombre)=LOWER(?) AND m.dueno=? LIMIT 1', (proveedor_nombre, dueno_sel), fetch=True)
-            if prov_res:
-                proveedor_id = prov_res[0]['id']
         # Validar proveedor ANTES de actualizar Excel
         nombre_prov_para_validar = None
         dueno_para_validar = None
@@ -4453,6 +5066,609 @@ def encontrar_columna(columnas, aliases):
                 return col
     return None
 
+# ===================== VERIFICACIÓN DE CÓDIGOS POR PROVEEDOR (PDF Review Helper) =====================
+@app.route('/verificar_codigos_proveedor', methods=['POST'])
+@login_required
+def verificar_codigos_proveedor():
+    """Verifica códigos contra el Excel del proveedor y (opcional) productos manuales.
+    Request JSON: { proveedor: str, codigos: [..], incluir_manual: bool }
+    Respuesta:
+      success, detalles (por código ORIGINAL), meta (info extra), debug (diagnóstico)
+    Normalización aplicada: quita espacios, NBSP, .0 finales y ceros a la izquierda; genera variantes.
+    """
+    try:
+        import re as _re  # asegurar disponibilidad aun si import global cambia
+        data = request.get_json(silent=True) or {}
+        proveedor = (data.get('proveedor') or '').strip()
+        codigos_input = data.get('codigos') or []
+        incluir_manual = bool(data.get('incluir_manual', True))
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no informado'}), 400
+        if not isinstance(codigos_input, list) or not codigos_input:
+            return jsonify({'success': False, 'error': 'Lista de códigos vacía'}), 400
+        if proveedor not in PROVEEDOR_CONFIG:
+            return jsonify({'success': False, 'error': f'Proveedor "{proveedor}" no configurado'}), 404
+
+        def _norm_code_base(c):
+            s = str(c).strip()
+            if not s:
+                return ''
+            s = s.replace('\u00A0', '').replace(' ', '')
+            if _re.fullmatch(r"\d+\.0+", s):
+                s = s.split('.')[0]
+            m = _re.fullmatch(r"(\d+)\.(\d+)", s)
+            if m and set(m.group(2)) == {'0'}:
+                s = m.group(1)
+            return s
+
+        def _norm_variants(c):
+            base = _norm_code_base(c)
+            variants = {base.lower()}
+            if base.endswith('.0'):
+                variants.add(base[:-2].lower())
+            if _re.fullmatch(r"0+\d+", base):
+                variants.add(base.lstrip('0').lower() or '0')
+            if _re.fullmatch(r"\d+", base):
+                variants.add(str(int(base)).lower())
+            return variants
+
+        codigos_originales = []
+        codigos_norm = []
+        codigos_norm_variants = []
+        for c in codigos_input:
+            orig = str(c).strip()
+            if not orig:
+                continue
+            base = _norm_code_base(orig)
+            if not base:
+                continue
+            codigos_originales.append(orig)
+            codigos_norm.append(base)
+            codigos_norm_variants.append(_norm_variants(base))
+
+        config = PROVEEDOR_CONFIG[proveedor]
+        dueno_proveedor = None
+        for d, cfg in DUENOS_CONFIG.items():
+            if proveedor in cfg.get('proveedores_excel', []):
+                dueno_proveedor = d
+                break
+        if not dueno_proveedor:
+            dueno_proveedor = 'ricky'
+
+        carpeta_dueno = get_excel_folder_for_dueno(dueno_proveedor)
+        if not os.path.isdir(carpeta_dueno):
+            return jsonify({'success': False, 'error': f'Carpeta Excel para dueño {dueno_proveedor} no existe'}), 500
+
+        archivo_candidates = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(proveedor.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
+        if not archivo_candidates:
+            archivo_candidates = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(f"{proveedor.lower()}-") and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
+        if not archivo_candidates:
+            return jsonify({'success': False, 'error': 'Archivo Excel del proveedor no encontrado'}), 404
+        excel_path = os.path.join(carpeta_dueno, archivo_candidates[0])
+
+        header_candidates = [config.get('fila_encabezado', 0)] + [i for i in range(0, 12) if i != config.get('fila_encabezado', 0)]
+        df = None
+        header_usado = None
+        for h in header_candidates:
+            try:
+                tmp = pd.read_excel(excel_path, header=h)
+                if tmp is not None and not tmp.empty:
+                    df = tmp
+                    header_usado = h
+                    break
+            except Exception:
+                continue
+        if df is None or df.empty:
+            return jsonify({'success': False, 'error': 'No se pudo leer el Excel o está vacío'}), 500
+
+        col_codigo = encontrar_columna(df.columns, config.get('codigo', [])) if 'codigo' in config else None
+        if not col_codigo:
+            for c in df.columns:
+                if 'codi' in _normalize_text(c):
+                    col_codigo = c
+                    break
+        if not col_codigo:
+            return jsonify({'success': False, 'error': 'Columna de código no encontrada en el Excel'}), 500
+
+        serie_codigos = df[col_codigo].fillna('')
+        indice_excel = {}
+        sample_excel_norm = []
+        for val in serie_codigos:
+            raw = str(val)
+            base = _norm_code_base(raw)
+            if not base:
+                continue
+            variants = _norm_variants(base)
+            for v in variants:
+                indice_excel.setdefault(v, set()).add(raw)
+            if len(sample_excel_norm) < 120:
+                sample_excel_norm.append(base)
+
+        encontrados = {}
+        meta = {}
+        mapping_norm = {}
+        for i, base in enumerate(codigos_norm):
+            original = codigos_originales[i]
+            variants = codigos_norm_variants[i]
+            match_raw = None
+            match_variant = None
+            for v in variants:
+                if v in indice_excel:
+                    match_variant = v
+                    match_raw = sorted(list(indice_excel[v]))[0]
+                    break
+            if match_variant:
+                encontrados[original] = True
+                meta[original] = {'variant_usada': match_variant, 'excel_raw': match_raw, 'origen': 'excel'}
+            else:
+                encontrados[original] = False
+                meta[original] = {'motivo': 'no_en_excel', 'variants_generadas': list(variants)}
+            mapping_norm[base] = original
+
+        if incluir_manual and os.path.exists(MANUAL_PRODUCTS_FILE):
+            try:
+                dfm = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                dfm.rename(columns={'Código': 'Codigo'}, inplace=True)
+                if 'Codigo' in dfm.columns:
+                    for val in dfm['Codigo'].fillna(''):
+                        raw = str(val)
+                        base_m = _norm_code_base(raw)
+                        if not base_m:
+                            continue
+                        variants_m = _norm_variants(base_m)
+                        for i, base_user in enumerate(codigos_norm):
+                            original_user = codigos_originales[i]
+                            if encontrados.get(original_user):
+                                continue
+                            variants_user = codigos_norm_variants[i]
+                            if variants_user & variants_m:
+                                encontrados[original_user] = True
+                                meta[original_user] = {
+                                    'variant_usada': list(variants_user & variants_m)[0],
+                                    'excel_raw': raw,
+                                    'origen': 'manual'
+                                }
+            except Exception as e_manu:
+                meta['manual_error'] = str(e_manu)
+
+        for original in codigos_originales:
+            if not encontrados.get(original):
+                motivo = meta.get(original, {}).get('motivo') or 'no_en_excel_ni_manual'
+                meta[original]['motivo'] = motivo
+
+        total_ok = sum(1 for v in encontrados.values() if v)
+        return jsonify({
+            'success': True,
+            'proveedor': proveedor,
+            'total': len(codigos_originales),
+            'encontrados': total_ok,
+            'detalles': encontrados,
+            'meta': meta,
+            'debug': {
+                'header_usado': header_usado,
+                'col_codigo': col_codigo,
+                'archivo_excel': os.path.basename(excel_path),
+                'muestra_codigos_excel_normalizados': sample_excel_norm[:50],
+                'mapping_norm_to_original': mapping_norm
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ===================== FACTURAS PDF =====================
+import re
+
+PDF_ITEM_REGEXES = [
+    # Formato: cant codigo descripcion precio_unit subtotal  (miles con . y decimales con , o .)
+    re.compile(r"^(?P<cant>\d+(?:[.,]\d+)?)\s+(?P<codigo>[A-Za-z0-9\-]{3,})\s+(?P<desc>.+?)\s+(?P<unit>\d[\d\.,]*\d)\s+(?P<subtotal>\d[\d\.,]*\d)$"),
+    # Formato sin subtotal (cant codigo desc precio)
+    re.compile(r"^(?P<cant>\d+(?:[.,]\d+)?)\s+(?P<codigo>[A-Za-z0-9\-]{3,})\s+(?P<desc>.+?)\s+(?P<unit>\d[\d\.,]*\d)$"),
+    # Formato donde precio y subtotal pueden ir con signo $ opcional
+    re.compile(r"^(?P<cant>\d+(?:[.,]\d+)?)\s+(?P<codigo>[A-Za-z0-9\-]{3,})\s+(?P<desc>.+?)\s+\$?(?P<unit>\d[\d\.,]*\d)\s+\$?(?P<subtotal>\d[\d\.,]*\d)$"),
+]
+
+def _parse_decimal(num_str: str) -> float:
+    if not num_str:
+        return 0.0
+    s = num_str.strip()
+    # Normalizar distintos formatos de miles/decimales.
+    # Casos:
+    #  - Español: 1.234,56
+    #  - US: 24,267.03
+    #  - Simple: 1234.56 / 1234,56
+    # Estrategia: identificar qué separador aparece a la derecha.
+    if ',' in s and '.' in s:
+        last_comma = s.rfind(',')
+        last_dot = s.rfind('.')
+        if last_dot > last_comma:
+            # Punto es decimal (formato US) -> quitar comas
+            s = s.replace(',', '')
+        else:
+            # Coma es decimal (formato ES) -> quitar puntos y cambiar coma por punto
+            s = s.replace('.', '').replace(',', '.')
+    elif ',' in s and '.' not in s:
+        # Asumir coma decimal
+        s = s.replace(',', '.')
+    elif '.' in s and s.count('.') > 1:
+        # Múltiples puntos: probablemente puntos de miles + decimal final
+        parts = s.split('.')
+        # Unir todos menos el último como miles
+        decimal_part = parts[-1]
+        s = ''.join(parts[:-1]) + '.' + decimal_part
+    try:
+        return float(s)
+    except Exception:
+        return 0.0
+
+def extraer_items_factura_pdf(file_stream, debug=False):
+    """Extrae items (codigo, descripcion, cantidad, precio_unitario) desde un PDF de factura.
+    1. Intenta parse línea a línea con regex flexibles.
+    2. Fallback heurístico: identifica patrones cant / codigo / precio final.
+    3. Devuelve (items, lines) si debug=True, sino solo items.
+    """
+    if not _HAS_PDF:
+        raise RuntimeError("Librería pdfplumber no instalada")
+    try:
+        with pdfplumber.open(file_stream) as pdf:
+            texto_paginas = []
+            for page in pdf.pages:
+                try:
+                    t = page.extract_text() or ''
+                    texto_paginas.append(t)
+                except Exception:
+                    continue
+            contenido = '\n'.join(texto_paginas)
+    except Exception as e:
+        raise RuntimeError(f"Error leyendo PDF: {e}")
+
+    raw_lines = [l.rstrip() for l in contenido.splitlines()]
+    # Normalizar espacios múltiples para facilitar regex
+    norm_lines = []
+    for l in raw_lines:
+        l2 = re.sub(r"\s+", " ", l.strip())
+        norm_lines.append(l2)
+
+    items = []
+    vistos = set()
+
+    def add_item(codigo, desc, cant, unit):
+        if not codigo:
+            codigo = 'SIN-COD'
+        key = (codigo, desc)
+        if key in vistos:
+            # sumar cantidades
+            for it in items:
+                if it['codigo'] == codigo and it['nombre'] == desc:
+                    it['cantidad'] += cant
+                    return
+        else:
+            vistos.add(key)
+            items.append({
+                'codigo': codigo[:40],
+                'nombre': desc[:120].title(),
+                'cantidad': int(round(cant)),
+                'precio': unit,
+                'precio_texto': str(unit) if unit else '0',
+            })
+
+    # Preprocesamiento especial: unir patrones de dígitos/letras separados por espacios simples en líneas largas.
+    # Ejemplo: "8 0 4 2 3 . 0 0" -> "80423.00" y "P U M P K I N" -> "PUMPKIN"
+    def _compact_fragment(fr):
+        # Compactar secuencias de letras o dígitos separadas por un espacio: "P U M P K I N" -> "PUMPKIN", "p i n z a" -> "pinza"
+        fr2 = re.sub(r'(?:(?:[A-Za-zÁÉÍÓÚÜÑ0-9]\s){2,}[A-Za-zÁÉÍÓÚÜÑ0-9])', lambda m: m.group(0).replace(' ', ''), fr)
+        # Compactar números con puntos/comas dispersos: "7 1 5 8 2 . 0 0" -> "71582.00"
+        fr2 = re.sub(r'(?:(?:\d\s){2,}\d)(?:\s[.,]\s(?:\d\s){1,}\d)?', lambda m: m.group(0).replace(' ', ''), fr2)
+        return fr2
+    norm_lines = [_compact_fragment(l) for l in norm_lines]
+
+    # Paso 1: Regex directos
+    for line in norm_lines:
+        if not line:
+            continue
+        low = line.lower()
+        if any(h in low for h in ['cliente', 'iva', 'total ', 'total:', 'factura', 'fecha', 'subtotal']):
+            continue
+        matched = False
+        for rgx in PDF_ITEM_REGEXES:
+            m = rgx.match(line)
+            if m:
+                cant = _parse_decimal(m.group('cant'))
+                if cant <= 0:
+                    matched = True
+                    break
+                desc = m.group('desc').strip()
+                unit = _parse_decimal(m.group('unit')) if m.groupdict().get('unit') else 0.0
+                codigo = m.group('codigo').strip()
+                if len(desc) >= 2:
+                    add_item(codigo, desc, cant, unit)
+                matched = True
+                break
+        if matched:
+            continue
+
+    # Paso 2: Heurística especializada para layout COD Cantidad Descripción ... PRELISTA %Bon1 %Bon2 %Bon3 Importe
+    if len(items) < 1:
+        money_pattern = r"\d[\d\.,]*\d"
+        for line in norm_lines:
+            if not line or len(line) < 20:
+                continue
+            low = line.lower()
+            if 'descripcion' in low and '%bon1' in low:
+                continue
+            tokens = line.split()
+            if len(tokens) < 5:
+                continue
+            # Hallar cluster monetario final consecutivo
+            i = len(tokens) - 1
+            cluster_indices = []
+            while i >= 0 and re.fullmatch(money_pattern, tokens[i]):
+                cluster_indices.append(i)
+                i -= 1
+            cluster_indices.reverse()
+            if len(cluster_indices) < 2:
+                continue  # necesita al menos prelista + importe
+            cluster_start = cluster_indices[0]
+            importe_pos = cluster_indices[-1]
+            codigo_token = tokens[0]
+            # Determinar si segundo token es cantidad
+            cantidad_val = 1.0
+            desc_start = 1
+            if len(tokens) > 1 and re.fullmatch(r"\d+(?:[.,]\d+)?", tokens[1]):
+                # Tratar segundo token como cantidad SOLO si resto tiene sentido (suficientes tokens antes del cluster)
+                posible_cant = _parse_decimal(tokens[1])
+                if posible_cant > 0 and cluster_start > 2:
+                    cantidad_val = posible_cant
+                    desc_start = 2
+            # Validar código (permitir numérico/alfanumérico con punto)
+            if not re.fullmatch(r"[A-Za-z0-9\-\.]{3,}", codigo_token):
+                continue
+            if cluster_start - desc_start < 1:
+                continue
+            desc_tokens = tokens[desc_start:cluster_start]
+            desc = ' '.join(desc_tokens)
+            prelista_val = _parse_decimal(tokens[cluster_start])
+            descuentos_vals = []
+            # Tokens de descuento: los intermedios entre prelista y importe (excluyendo ambos extremos)
+            if len(cluster_indices) > 2:
+                for mid_idx in cluster_indices[1:-1]:
+                    val = _parse_decimal(tokens[mid_idx])
+                    descuentos_vals.append(val)
+            unit = prelista_val
+            for dval in descuentos_vals:
+                if 0 < dval < 100:
+                    unit *= (1 - dval/100.0)
+            importe_val = _parse_decimal(tokens[importe_pos])
+            if cantidad_val > 0 and importe_val > 0:
+                deriv_unit = importe_val / cantidad_val
+                if unit == 0 or abs(deriv_unit - unit)/max(unit,1e-6) > 0.05:
+                    unit = deriv_unit
+            add_item(codigo_token, desc, cantidad_val, unit)
+        # Si se llenó, saltar la heurística genérica
+    # Paso 3: Heurística genérica básica si aún no hay items
+    if len(items) < 1:
+        for line in norm_lines:
+            if not line or len(line) < 10:
+                continue
+            tokens = line.split(' ')
+            if len(tokens) < 5:
+                continue
+            # Intentar detectar patrón: COD  CANT  ...  PRELISTA  BON1  BON2  BON3  IMPORTE
+            # Buscamos al menos 4 números (prelista + 3 bonos) y un importe final.
+            money_pattern = r"\d[\d\.,]*\d"
+            numeric_indices = [i for i,t in enumerate(tokens) if re.fullmatch(money_pattern, t)]
+            if len(numeric_indices) >= 4:
+                # Considerar últimos 4 como (prelista, bon1, bon2, bon3) o (bonos + importe)
+                # Mejor: tomar desde el final: importe -> último token con dinero
+                importe_idx = numeric_indices[-1]
+                if importe_idx <= 4:
+                    continue
+                # Buscar descuentos y prelista hacia la izquierda (típicamente 4 tokens antes del importe)
+                # Layout esperado: ... PRELISTA %Bon1 %Bon2 %Bon3 IMPORTE
+                bon3_idx = importe_idx - 1
+                bon2_idx = importe_idx - 2
+                bon1_idx = importe_idx - 3
+                prelista_idx = importe_idx - 4
+                if prelista_idx < 2:
+                    continue
+                # Primer token código, segundo cantidad
+                cod_token = tokens[0]
+                cant_token = tokens[1]
+                if not re.fullmatch(r"\d{2,}", cod_token):
+                    continue
+                if not re.fullmatch(r"\d+(?:[.,]\d+)?", cant_token):
+                    continue
+                try:
+                    cantidad_val = _parse_decimal(cant_token)
+                except Exception:
+                    continue
+                if cantidad_val <= 0:
+                    continue
+                # Descripción = desde tokens[2] hasta token antes de prelista_idx
+                desc_tokens = tokens[2:prelista_idx]
+                if len(desc_tokens) < 1:
+                    continue
+                desc = ' '.join(desc_tokens)
+                prelista_val = _parse_decimal(tokens[prelista_idx])
+                bon1_val = _parse_decimal(tokens[bon1_idx]) if bon1_idx > prelista_idx else 0.0
+                bon2_val = _parse_decimal(tokens[bon2_idx]) if bon2_idx > bon1_idx else 0.0
+                bon3_val = _parse_decimal(tokens[bon3_idx]) if bon3_idx > bon2_idx else 0.0
+                # Calcular precio unitario neto aplicando bonificaciones sucesivas
+                unit = prelista_val
+                for b in (bon1_val, bon2_val, bon3_val):
+                    if 0 < b < 100:
+                        unit = unit * (1 - b/100.0)
+                # Salvaguarda: si importe / cantidad es razonable y difiere mucho, ajustar
+                importe_val = _parse_decimal(tokens[importe_idx])
+                if cantidad_val > 0 and importe_val > 0:
+                    deriv_unit = importe_val / cantidad_val
+                    # Si difiere más de 5% usar derivado
+                    if unit == 0 or abs(deriv_unit - unit)/max(unit, 1e-6) > 0.05:
+                        unit = deriv_unit
+                add_item(cod_token, desc, cantidad_val, unit)
+                continue
+            # Heurística mínima alternativa: primer token cant, segundo código
+            first = tokens[0]
+            second = tokens[1]
+            if re.fullmatch(r"\d+(?:[.,]\d+)?", first) and re.fullmatch(r"[A-Za-z0-9\-]{3,}", second):
+                cantidad_val = _parse_decimal(first)
+                if cantidad_val <= 0:
+                    continue
+                # Precio asumido = último token dinero
+                money_tokens = [t for t in tokens[2:] if re.fullmatch(money_pattern, t)]
+                unit = 0.0
+                if money_tokens:
+                    unit = _parse_decimal(money_tokens[-1])
+                desc = ' '.join(tokens[2:-1]) if len(tokens) > 3 else second
+                add_item(second, desc, cantidad_val, unit)
+
+    if debug:
+        return items, norm_lines
+    return items
+
+@app.route('/importar_factura_pdf', methods=['GET','POST'])
+@login_required
+def importar_factura_pdf():
+    if request.method == 'GET':
+        try:
+            proveedores_keys = sorted(list(PROVEEDOR_CONFIG.keys())) if isinstance(PROVEEDOR_CONFIG, dict) else []
+        except Exception:
+            proveedores_keys = []
+        return render_template('importar_factura_pdf.html', soporte_pdf=_HAS_PDF, proveedores=proveedores_keys)
+    # POST
+    if not _HAS_PDF:
+        return jsonify({'success': False, 'error': 'Dependencia pdfplumber no instalada en el servidor'}), 500
+
+    # Log de Content-Type, args y form para depurar por qué debug no llega
+    try:
+        ct = request.headers.get('Content-Type')
+        args_snapshot = {k: request.args.get(k) for k in request.args.keys()}
+        form_snapshot = {k: request.form.get(k) for k in request.form.keys()}
+        print(f"[PDF_IMPORT] CT={ct} args={args_snapshot} form={form_snapshot}")
+    except Exception as e_log:
+        print(f"[PDF_IMPORT] WARN logging request: {e_log}")
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No se envió archivo (campo file faltante)'}), 400
+    f = request.files['file']
+    if not f.filename.lower().endswith('.pdf'):
+        return jsonify({'success': False, 'error': 'Debe subir un archivo .pdf'}), 400
+
+    # Función helper para interpretar flags
+    def _as_bool(val):
+        if val is None:
+            return False
+        if isinstance(val, bool):
+            return val
+        s = str(val).strip().lower()
+        return s in ('1','true','yes','on','y','si','sí')
+    json_body = request.get_json(silent=True) if request.is_json else {}
+    debug_mode = _as_bool(request.args.get('debug')) or _as_bool(request.form.get('debug')) or _as_bool(json_body.get('debug') if isinstance(json_body, dict) else None)
+    print(f"[PDF_IMPORT] debug_mode={debug_mode} filename={f.filename}")
+
+    items = []
+    norm_lines = []
+    try:
+        # Reposicionar stream
+        try:
+            f.stream.seek(0)
+        except Exception:
+            pass
+        # Siempre ejecutar en modo debug interno para capturar norm_lines
+        try:
+            result = extraer_items_factura_pdf(f, debug=True)
+            if isinstance(result, tuple) and len(result) == 2:
+                items, norm_lines = result
+                print(f"[PDF_IMPORT] Extraction (forced debug) -> items={len(items)} lines={len(norm_lines)}")
+            else:
+                items = result or []
+                norm_lines = []
+                print(f"[PDF_IMPORT] Extraction (forced debug no tuple) -> items={len(items)}")
+        except Exception as e_ext:
+            return jsonify({'success': False, 'error': f'Error extrayendo items: {e_ext}'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Excepción leyendo PDF: {e}'}), 500
+
+    if not items:
+        resp = {'success': False, 'error': 'No se detectaron productos en la factura'}
+        sample = [l for l in norm_lines if l.strip()][:200]
+        candidatos = [l for l in sample if len(re.findall(r"\d[\d\.,]*", l)) >= 4 and len(l.split()) >= 5][:40]
+        resp['debug'] = {
+            'requested_debug': debug_mode,
+            'auto_debug': True if not debug_mode else False,
+            'total_lines': len(norm_lines),
+            'lines_sample': sample[:120],
+            'candidatos_items': candidatos,
+            'line_length_stats': None
+        }
+        if sample:
+            largos = [len(l) for l in sample]
+            resp['debug']['line_length_stats'] = {
+                'min': min(largos),
+                'max': max(largos),
+                'avg': round(sum(largos)/len(largos),2)
+            }
+        print(f"[PDF_IMPORT] Sin items. total_lines={len(norm_lines)} candidatos={len(candidatos)} (auto_debug={'yes' if not debug_mode else 'requested'})")
+        return jsonify(resp), 200
+
+    out = {'success': True, 'items_detectados': len(items), 'items': items}
+    if debug_mode:
+        out['debug_total_lines'] = len(norm_lines)
+    return jsonify(out)
+
+@app.route('/importar_factura_pdf_confirm', methods=['POST'])
+@login_required
+def importar_factura_pdf_confirm():
+    """Recibe lista de items (JSON) editados por el usuario y los agrega al carrito."""
+    try:
+        data = request.get_json(silent=True) or {}
+        items = data.get('items') or []
+        proveedor = data.get('proveedor','')
+        if not isinstance(items, list) or not items:
+            return jsonify({'success': False, 'error': 'Sin items para agregar'})
+        carrito = session.get('carrito', [])
+        fecha_compra = datetime.now().strftime('%Y-%m-%d')
+        agregados = 0
+        for it in items:
+            try:
+                nombre = (it.get('nombre') or '').strip()
+                if not nombre:
+                    continue
+                codigo = (it.get('codigo') or '').strip()
+                try:
+                    cantidad = int(it.get('cantidad') or 0)
+                except Exception:
+                    cantidad = 0
+                if cantidad <= 0:
+                    cantidad = 1
+                try:
+                    precio_val = float(str(it.get('precio') or 0).replace(',','.'))
+                except Exception:
+                    precio_val = 0.0
+                carrito.append({
+                    'id': f'pdf_{len(carrito)}_{datetime.now().timestamp()}',
+                    'nombre': nombre,
+                    'codigo': codigo,
+                    'precio': precio_val,
+                    'cantidad': cantidad,
+                    'fecha_compra': fecha_compra,
+                    'proveedor': it.get('proveedor') or proveedor,
+                    'observaciones': (it.get('observaciones') or 'Importado PDF').strip(),
+                    'precio_texto': str(precio_val) if precio_val else '0',
+                    'avisar_bajo_stock': 1 if (str(it.get('avisar_bajo_stock')).strip() in ('1','true','True')) else 0,
+                    'min_stock_aviso': (int(it.get('min_stock_aviso')) if str(it.get('min_stock_aviso')).strip().isdigit() else None)
+                })
+                agregados += 1
+            except Exception:
+                continue
+        session['carrito'] = carrito
+        try:
+            html = render_template('carrito_fragment_simple.html', carrito=carrito)
+        except Exception:
+            html = None
+        return jsonify({'success': True, 'items_agregados': agregados, 'html': html})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")
     print("📁 Directorio base:", BASE_DIR)
@@ -4461,6 +5677,13 @@ if __name__ == '__main__':
     
     try:
         print("🔧 Inicializando base de datos...")
+        if os.environ.get('AUTO_INIT_DB') == '1':
+            try:
+                from init_db import main as _auto_init_main
+                print('[AUTO_INIT_DB] Variable activa -> ejecutando init_db.main()')
+                _auto_init_main()
+            except Exception as _e_ai:
+                print(f'[AUTO_INIT_DB] Advertencia: fallo en auto init: {_e_ai}')
         init_db()
         print("✅ Base de datos inicializada correctamente")
         
