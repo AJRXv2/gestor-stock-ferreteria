@@ -130,13 +130,20 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <input type="text" name="nombre" class="form-control" placeholder="Nombre del producto" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="text" name="codigo" class="form-control" placeholder="Código (opcional)">
+                <div class="col-md-3">
+                    <select name="dueno_nuevo_proveedor" class="form-select" required>
+                        <option value="">Dueño</option>
+                        <option value="ferreteria_general">Ferretería General</option>
+                        <option value="ricky">Ricky</option>
+                    </select>
                 </div>
                 <div class="col-md-3">
+                    <input type="text" name="nombre" class="form-control" placeholder="Nombre del producto" required>
+                </div>
+                <div class="col-md-1">
+                    <input type="text" name="codigo" class="form-control" placeholder="Código (opcional)">
+                </div>
+                <div class="col-md-2">
                     <input type="text" name="precio" class="form-control" placeholder="Precio (ej: 1.000,50)" required>
                 </div>
             </div>
@@ -250,10 +257,15 @@ document.addEventListener('DOMContentLoaded', function() {
     btnAgregar.onclick = function() {
         const nombre = proveedorInput.value.trim();
         if(!nombre) return;
+        
+        // Obtener el dueño del formulario
+        const duenoSelect = document.querySelector('select[name="dueno_nuevo_proveedor"]');
+        const dueno = duenoSelect ? duenoSelect.value : 'ferreteria_general';
+        
         fetch("{{ url_for('agregar_proveedor_manual_ajax') }}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({nombre: nombre})
+            body: JSON.stringify({nombre: nombre, dueno: dueno})
         })
         .then(response => response.json())
         .then(res => {

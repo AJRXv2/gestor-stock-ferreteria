@@ -110,16 +110,57 @@
     setTimeout(() => { if (toastElement && toastElement.parentNode) toastElement.remove(); }, 5000);
   }
 
+  // Función para cargar proveedores según el dueño
+  async function cargarProveedores(selectElement, dueno, proveedorActual = '') {
+    console.log('🔍 cargarProveedores llamado:', { dueno, proveedorActual });
+    try {
+      const response = await fetch('/obtener_proveedores_por_dueno', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ dueno: dueno })
+      });
+      
+      console.log('📡 Respuesta recibida:', response.status);
+      const data = await response.json();
+      console.log('📊 Datos recibidos:', data);
+      
+      if (data.success) {
+        selectElement.innerHTML = '<option value="">Seleccionar proveedor</option>';
+        data.proveedores.forEach(proveedor => {
+          const option = document.createElement('option');
+          option.value = proveedor;
+          option.textContent = proveedor;
+          if (proveedor === proveedorActual) {
+            option.selected = true;
+          }
+          selectElement.appendChild(option);
+        });
+        console.log('✅ Proveedores cargados exitosamente');
+      } else {
+        selectElement.innerHTML = '<option value="">Error al cargar</option>';
+        console.log('❌ Error en respuesta:', data.msg);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando proveedores:', error);
+      selectElement.innerHTML = '<option value="">Error al cargar</option>';
+    }
+  }
+
   function renderRows(rows){
+    console.log('🎨 renderRows llamado con', rows.length, 'productos');
     tbody.innerHTML = '';
-    rows.forEach(r=>{
+    rows.forEach((r, index)=>{
+      console.log(`📝 Procesando producto ${index + 1}:`, r);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><input type=\"checkbox\" class=\"gm_ck\" data-cod=\"${r.codigo}\"></td>
         <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_codigo\" value=\"${r.codigo||''}\"></td>
         <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_nombre\" value=\"${r.nombre||''}\"></td>
         <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_precio\" value=\"${r.precio||''}\"></td>
-        <td><input type=\"text\" class=\"form-control form-control-sm gm_ed_proveedor\" value=\"${r.proveedor||''}\"></td>
+        <td><select class=\"form-select form-select-sm gm_ed_proveedor\"><option value=\"\">Cargando...</option></select></td>
         <td>
           <select class=\"form-select form-select-sm gm_ed_dueno\">
             <option value=\"ricky\" ${ (r.dueno||'').toLowerCase()==='ricky'?'selected':'' }>Ricky</option>
@@ -127,9 +168,26 @@
           </select>
         </td>
         <td><button class=\"btn btn-outline-primary btn-sm gm_btn_guardar\">Guardar</button></td>`;
+      
       tbody.appendChild(tr);
+      
+      // Cargar proveedores para esta fila
+      const proveedorSelect = tr.querySelector('.gm_ed_proveedor');
+      const duenoSelect = tr.querySelector('.gm_ed_dueno');
+      const duenoActual = (r.dueno || '').toLowerCase();
+      const proveedorActual = r.proveedor || '';
+      
+      console.log(`🔄 Cargando proveedores para fila ${index + 1}:`, { duenoActual, proveedorActual });
+      cargarProveedores(proveedorSelect, duenoActual, proveedorActual);
+      
+      // Agregar evento para cambiar proveedores cuando cambie el dueño
+      duenoSelect.addEventListener('change', () => {
+        console.log(`🔄 Cambio de dueño en fila ${index + 1} a:`, duenoSelect.value);
+        cargarProveedores(proveedorSelect, duenoSelect.value, '');
+      });
     });
     resumen.textContent = rows.length + ' producto(s)';
+    console.log('✅ renderRows completado');
   }
 
   function buscar(){
@@ -177,7 +235,8 @@
     const codigo = tr.querySelector('.gm_ed_codigo').value.trim();
     const nombre = tr.querySelector('.gm_ed_nombre').value;
     const precio = tr.querySelector('.gm_ed_precio').value;
-    const proveedor_txt = tr.querySelector('.gm_ed_proveedor').value.trim();
+    const proveedor_select = tr.querySelector('.gm_ed_proveedor');
+    const proveedor_txt = proveedor_select.value.trim();
     const dueno_sel = tr.querySelector('.gm_ed_dueno').value;
 
     fetch('{{ url_for("manual_actualizar_ajax") }}',{

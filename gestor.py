@@ -228,50 +228,66 @@ PROVEEDOR_CONFIG = {
         'fila_encabezado': 5,
         'codigo': ['codigo', 'Código', 'CODIGO'],
         'producto': ['producto', 'Producto', 'PRODUCTO'],
-        'precio': ['precio', 'Precio', 'PRECIO']
+        'precio': ['precio', 'Precio', 'PRECIO'],
+        'dueno': 'ricky',
+        'folder': 'ricky'
     },
     'crossmaster': {
         'fila_encabezado': 11,
         'codigo': ['codigo', 'Codigo', 'CODIGO'],
         'producto': ['descripcion', 'Descripcion', 'DESCRIPCION'],
-        'precio': ['precio', 'Precio', 'PRECIO']
+        'precio': ['precio', 'Precio', 'PRECIO'],
+        'dueno': 'ricky',
+        'folder': 'ricky'
     },
     'berger': {
         'fila_encabezado': 0,
         'codigo': ['cod', 'COD', 'codigo', 'Codigo'],
         'producto': ['detalle', 'DETALLE', 'producto', 'Producto'],
-        'precio': ['P.VENTA', 'precio', 'Precio', 'PRECIO']
+        'precio': ['P.VENTA', 'precio', 'Precio', 'PRECIO'],
+        'dueno': 'ricky',
+        'folder': 'ricky'
     },
     'chiesa': {
         'fila_encabezado': 1,
         'codigo': ['codigo', 'Codigo', 'CODIGO'],
         'producto': ['descripción', 'Descripción', 'descripcion', 'Descripcion'],
-        'precio': ['precio', 'Precio', 'PRECIO', 'Pr.Unit', 'pr.unit', 'PR.UNIT']
+        'precio': ['precio', 'Precio', 'PRECIO', 'Pr.Unit', 'pr.unit', 'PR.UNIT'],
+        'dueno': 'ricky',
+        'folder': 'ricky'
     },
     'cachan': {
         'fila_encabezado': 0,
         'codigo': ['codigo', 'Codigo', 'CODIGO'],
         'producto': ['nombre', 'Nombre', 'NOMBRE'],
-        'precio': ['precio', 'Precio', 'PRECIO']
+        'precio': ['precio', 'Precio', 'PRECIO'],
+        'dueno': 'ricky',
+        'folder': 'ricky'
     },
     # Proveedores de Ferretería General (renombrados)
     'dewalt': {
         'fila_encabezado': 0,
         'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
         'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
-        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA']
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'],
+        'dueno': 'ferreteria_general',
+        'folder': 'ferreteria_general'
     },
     'sica': {
         'fila_encabezado': 0,
         'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
         'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
-        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA']
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'],
+        'dueno': 'ferreteria_general',
+        'folder': 'ferreteria_general'
     },
     'sorbalok': {
         'fila_encabezado': 0,
         'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
         'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
-        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA']
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'],
+        'dueno': 'ferreteria_general',
+        'folder': 'ferreteria_general'
     },
     'nortedist': {
         'fila_encabezado': 0,
@@ -281,7 +297,9 @@ PROVEEDOR_CONFIG = {
         'marca': ['marca', 'Marca', 'MARCA'],
         'usar_colores': True,
         'color_precio': 'FFFF00',  # Amarillo en formato RGB
-        'columnas_precio': ['NORTE SIN IVA', 'NORTE']
+        'columnas_precio': ['NORTE SIN IVA', 'NORTE'],
+        'dueno': 'ferreteria_general',
+        'folder': 'ferreteria_general'
     }
 }
 
@@ -584,6 +602,153 @@ def init_excel_manual():
                 wb.save(MANUAL_PRODUCTS_FILE)
         except Exception as e:
             print(f"Advertencia al normalizar/migrar encabezados del Excel manual: {e}")
+
+def ensure_productos_manual_columns():
+    """Auto-reparar tabla productos_manual agregando columnas faltantes (proveedor, observaciones, dueno, created_at).
+    Evita fallos en instalaciones antiguas que no corrieron baseline completa.
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Detectar motor para sintaxis created_at default
+        use_pg = os.environ.get('USE_POSTGRES', '0') == '1'
+        # Obtener info de columnas
+        columnas = {}
+        try:
+            if use_pg:
+                cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='productos_manual'")
+                for r in cur.fetchall():
+                    columnas[r[0]] = True
+            else:
+                cur.execute("PRAGMA table_info(productos_manual)")
+                for r in cur.fetchall():
+                    # PRAGMA: (cid, name, type, notnull, dflt_value, pk)
+                    columnas[r[1]] = True
+        except Exception as e_cols:
+            print(f"[ensure_productos_manual_columns] No se pudo leer columnas: {e_cols}")
+            return
+        alter_stmts = []
+        if 'proveedor' not in columnas:
+            alter_stmts.append("ALTER TABLE productos_manual ADD COLUMN proveedor TEXT")
+        if 'observaciones' not in columnas:
+            alter_stmts.append("ALTER TABLE productos_manual ADD COLUMN observaciones TEXT")
+        if 'dueno' not in columnas:
+            alter_stmts.append("ALTER TABLE productos_manual ADD COLUMN dueno TEXT")
+        if 'created_at' not in columnas:
+            if use_pg:
+                alter_stmts.append("ALTER TABLE productos_manual ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            else:
+                # SQLite: evitar default no constante en ALTER
+                alter_stmts.append("ALTER TABLE productos_manual ADD COLUMN created_at TEXT")
+        for sql in alter_stmts:
+            try:
+                cur.execute(sql)
+                print(f"[ensure_productos_manual_columns] Ejecutado: {sql}")
+            except Exception as e_alter:
+                print(f"[ensure_productos_manual_columns] Falló: {sql} -> {e_alter}")
+        if alter_stmts:
+            conn.commit()
+    except Exception as e:
+        print(f"[ensure_productos_manual_columns] Error general: {e}")
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def ensure_proveedores_manual_columns():
+    """Auto-reparar tabla proveedores_manual agregando columnas faltantes (dueno, created_at)."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        use_pg = os.environ.get('USE_POSTGRES', '0') == '1'
+        columnas = {}
+        try:
+            if use_pg:
+                cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='proveedores_manual'")
+                for r in cur.fetchall():
+                    columnas[r[0]] = True
+            else:
+                cur.execute("PRAGMA table_info(proveedores_manual)")
+                for r in cur.fetchall():
+                    columnas[r[1]] = True
+        except Exception as e_cols:
+            print(f"[ensure_proveedores_manual_columns] No se pudo leer columnas: {e_cols}")
+            return
+        alters = []
+        if 'dueno' not in columnas:
+            alters.append("ALTER TABLE proveedores_manual ADD COLUMN dueno TEXT")
+        if 'created_at' not in columnas:
+            # Evitar default no constante en SQLite: agregar sin default
+            if use_pg:
+                alters.append("ALTER TABLE proveedores_manual ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            else:
+                alters.append("ALTER TABLE proveedores_manual ADD COLUMN created_at TEXT")
+        for sql in alters:
+            try:
+                cur.execute(sql)
+                print(f"[ensure_proveedores_manual_columns] Ejecutado: {sql}")
+            except Exception as e_alter:
+                print(f"[ensure_proveedores_manual_columns] Falló: {sql} -> {e_alter}")
+        if alters:
+            conn.commit()
+    except Exception as e:
+        print(f"[ensure_proveedores_manual_columns] Error general: {e}")
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def inferir_dueno_proveedor_si_unico(nombre_proveedor: str):
+    """Si el proveedor tiene dueno vacío y todos los productos manuales que lo usan son de un único dueno, asignarle ese dueno.
+    Retorna el dueno asignado o None.
+    """
+    try:
+        if not nombre_proveedor:
+            return None
+        rows = db_query("SELECT id, dueno FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?)", (nombre_proveedor,), fetch=True)
+        if not rows:
+            return None
+        # Filtrar los que no tienen dueno
+        vacios = [r for r in rows if not (r.get('dueno') or '').strip()]
+        if not vacios:
+            return None
+        # Buscar duenos distintos en productos_manual que referencien este proveedor por texto
+        productos = db_query("SELECT DISTINCT LOWER(dueno) as du FROM productos_manual WHERE LOWER(proveedor)=LOWER(?)", (nombre_proveedor,), fetch=True)
+        if not productos:
+            return None
+        duenos = { (r.get('du') or '').lower() for r in productos if (r.get('du') or '').strip() }
+        if len(duenos) == 1:
+            unico = list(duenos)[0]
+            # Actualizar filas vacías
+            db_query("UPDATE proveedores_manual SET dueno = ? WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR TRIM(dueno)='')", (unico, nombre_proveedor))
+            print(f"[inferir_dueno_proveedor] Asignado dueno='{unico}' a proveedor='{nombre_proveedor}'")
+            return unico
+    except Exception as e:
+        print(f"[inferir_dueno_proveedor] Error: {e}")
+    return None
+
+def canonicalize_proveedor_name(nombre: str) -> str:
+    """Normaliza nombre de proveedor: quita espacios extremos, colapsa espacios internos,
+    normaliza unicode (NFKC) y mayúsculas/minúsculas (tal cual, sin forzar upper/lower para no romper matching exacto, solo trim y collapse).
+    """
+    import unicodedata, re
+    if not nombre:
+        return ''
+    n = unicodedata.normalize('NFKC', nombre)
+    n = n.replace('\u00A0', ' ')  # NBSP
+    n = n.strip()
+    n = re.sub(r'\s+', ' ', n)
+    return n
 
 def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observaciones, dueno):
     """Agregar producto al Excel de productos manuales"""
@@ -968,7 +1133,7 @@ def init_db():
         except Exception as e:
             print(f"[WARN] Creación proveedores_eliminados falló: {e}")
         
-        # Crear tabla productos_manual
+        # Crear tabla productos_manual (forma mínima legacy) y luego asegurar columnas adicionales con ALTER dinámico
         cursor.execute(_adapt_sql_for_postgres(''' 
             CREATE TABLE IF NOT EXISTS productos_manual ( 
                 id SERIAL PRIMARY KEY, 
@@ -2092,25 +2257,9 @@ def inject_notificacion_emergente():
 @login_required
 def notificaciones():
     user_id = session.get('user_id')
-    # Migrar temporalmente notificaciones que aún estén en sesión (legacy) a la BD
-    legacy = session.get('notificaciones') or []
-    if legacy:
-        for n in legacy:
-            try:
-                db_query(
-                    "INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id) VALUES (?,?,?,?,?,?,?)",
-                    (
-                        n.get('codigo',''),
-                        n.get('nombre',''),
-                        n.get('proveedor',''),
-                        n.get('mensaje',''),
-                        n.get('ts') or datetime.now().isoformat(timespec='seconds'),
-                        0,
-                        user_id
-                    )
-                )
-            except Exception as _e:
-                pass
+    # Limpiamos las notificaciones de la sesión ya que ahora usamos solo la BD
+    # Esto evita duplicación de notificaciones
+    if session.get('notificaciones'):
         session['notificaciones'] = []
         session['notificaciones_leidas'] = True
     filas = db_query("SELECT id,codigo,nombre,proveedor,mensaje,ts,leida FROM notificaciones WHERE user_id IS NULL OR user_id=? ORDER BY ts DESC", (user_id,), fetch=True) or []
@@ -2473,21 +2622,41 @@ def proveedores():
     if busqueda_proveedor:
         like_pattern = f'%{busqueda_proveedor}%'
         proveedores_encontrados = db_query(
-            "SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) WHERE pm.nombre LIKE ? ORDER BY pm.nombre",
+            """
+            SELECT DISTINCT pm.id, pm.nombre, pd.dueno 
+            FROM proveedores_manual pm 
+            JOIN proveedores_duenos pd ON pd.proveedor_id = pm.id 
+            WHERE pm.nombre LIKE ? 
+            ORDER BY pm.nombre
+            """,
             (like_pattern,),
             fetch=True
         ) or []
     
-    # Construir listas por dueño a partir de mappings
-    mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre", fetch=True) or []
+    # Construir listas por dueño a partir de la tabla de relaciones
+    # Obtener todos los proveedores con sus dueños
+    mappings = db_query(
+        """
+        SELECT DISTINCT pm.id, pm.nombre, pd.dueno 
+        FROM proveedores_manual pm 
+        JOIN proveedores_duenos pd ON pd.proveedor_id = pm.id 
+        ORDER BY pm.nombre, pd.dueno
+        """, 
+        fetch=True
+    ) or []
+    
     lista_fg, lista_ricky, todos = [], [], []
     for row in mappings:
         entry = { 'id': row['id'], 'nombre': row['nombre'], 'dueno': row['dueno'] }
         todos.append(entry)
         if row['dueno'] == 'ricky':
-            lista_ricky.append({'id': row['id'], 'nombre': row['nombre']})
-        else:
-            lista_fg.append({'id': row['id'], 'nombre': row['nombre']})
+            # Verificar si ya existe en la lista para evitar duplicados
+            if not any(p['id'] == row['id'] for p in lista_ricky):
+                lista_ricky.append({'id': row['id'], 'nombre': row['nombre']})
+        elif row['dueno'] == 'ferreteria_general':
+            # Verificar si ya existe en la lista para evitar duplicados
+            if not any(p['id'] == row['id'] for p in lista_fg):
+                lista_fg.append({'id': row['id'], 'nombre': row['nombre']})
     todos_proveedores = todos
     return render_template('proveedores.html', 
                          proveedores=proveedores,
@@ -2531,6 +2700,7 @@ def agregar_proveedor():
         if nombre_lower in correcciones:
             nombre = correcciones[nombre_lower]
         dueno = request.form.get('dueno', '').strip()  # valores: '', 'ricky', 'ferreteria_general', 'ambos'
+        print(f"[DEBUG agregar_proveedor] nombre='{nombre}', dueno='{dueno}'")
 
         if not nombre:
             flash('El nombre del proveedor no puede estar vacío.', 'danger')
@@ -2541,24 +2711,52 @@ def agregar_proveedor():
             else:
                 duenos_destino = ['ricky'] if dueno == 'ricky' else ['ferreteria_general']
 
-            existente = db_query("SELECT nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+            existente = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
             if not existente:
-                # Insertar proveedor base una sola vez
+                # Insertar proveedor base sin dueño (el dueño ahora va en proveedores_duenos)
+                if not dueno:
+                    flash('Se requiere especificar un dueño para el proveedor.', 'danger')
+                    return redirect(url_for('proveedores'))
+                    
+                # Insertar el proveedor sin especificar dueño
                 db_query("INSERT INTO proveedores_manual (nombre) VALUES (?)", (nombre,))
-                nombre_guardado = nombre
+                
+                # Obtener el ID del proveedor recién insertado
+                nuevo_proveedor = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+                if not nuevo_proveedor:
+                    flash('Error al crear el proveedor.', 'danger')
+                    return redirect(url_for('proveedores'))
+                    
+                proveedor_id = nuevo_proveedor[0]['id']
+                nombre_guardado = nuevo_proveedor[0]['nombre']
                 nuevo_flag = True
             else:
+                proveedor_id = existente[0]['id']
                 nombre_guardado = existente[0]['nombre']
                 nuevo_flag = False
 
-            # Asegurar mappings para cada dueño solicitado
+            # Asegurar relaciones para cada dueño solicitado en proveedores_duenos
             agregados = []
+            print(f"[DEBUG] Agregando proveedor '{nombre_guardado}' (ID: {proveedor_id}) para dueños: {duenos_destino}")
+            
             for d in duenos_destino:
-                ok = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
-                # Borrar ocultamientos previos de ese dueño
-                db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", (nombre_guardado, d))
+                # Insertar en la tabla de relación
+                ok = db_query("INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)", 
+                             (proveedor_id, d))
                 if ok:
                     agregados.append(d)
+                    print(f"[DEBUG] Proveedor '{nombre_guardado}' asociado a dueño '{d}' en proveedores_duenos")
+                else:
+                    print(f"[DEBUG] Proveedor '{nombre_guardado}' ya estaba asociado a dueño '{d}' en proveedores_duenos")
+                
+                # Mantener compatibilidad con proveedores_meta (legacy)
+                db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", 
+                       (nombre_guardado, d))
+                print(f"[DEBUG] Proveedor '{nombre_guardado}' asociado a dueño '{d}' en proveedores_meta (legacy)")
+                
+                # Borrar ocultamientos previos de ese dueño
+                db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", 
+                       (nombre_guardado, d))
 
             if nuevo_flag:
                 if dueno == 'ambos':
@@ -2665,15 +2863,32 @@ def eliminar_proveedor_manual():
             return redirect(url_for('proveedores'))
         
         nombre_proveedor = proveedor[0]['nombre']
+        
         # Determinar dueño a ocultar
-        meta_dueno = dueno_form
-        if not meta_dueno:
-            meta = db_query("SELECT dueno FROM proveedores_meta WHERE nombre = ? LIMIT 1", (nombre_proveedor,), fetch=True)
-            meta_dueno = meta[0]['dueno'] if meta else 'ferreteria_general'
+        if not dueno_form:
+            # Si no se especificó dueño, intentar obtenerlo de la tabla de relaciones
+            relacion = db_query(
+                """
+                SELECT dueno 
+                FROM proveedores_duenos 
+                WHERE proveedor_id = ? 
+                LIMIT 1
+                """, 
+                (proveedor_id,), fetch=True
+            )
+            meta_dueno = relacion[0]['dueno'] if relacion else 'ferreteria_general'
+        else:
+            meta_dueno = dueno_form
+            
         # Registrar ocultamiento lógico solo para ese dueño
         db_query("INSERT OR IGNORE INTO proveedores_ocultos (nombre, dueno) VALUES (?, ?)", (nombre_proveedor, meta_dueno))
-        # Quitar mapping (nombre, dueño) para ocultarlo de la lista
-        ok = db_query("DELETE FROM proveedores_meta WHERE nombre = ? AND dueno = ?", (nombre_proveedor, meta_dueno))
+        
+        # Eliminar la relación en la tabla proveedores_duenos
+        ok = db_query("DELETE FROM proveedores_duenos WHERE proveedor_id = ? AND dueno = ?", (proveedor_id, meta_dueno))
+        
+        # También eliminar de la tabla legacy para mantener compatibilidad
+        db_query("DELETE FROM proveedores_meta WHERE nombre = ? AND dueno = ?", (nombre_proveedor, meta_dueno))
+        
         if ok:
             flash(f'Proveedor "{nombre_proveedor}" ocultado para {"Ricky" if meta_dueno=="ricky" else "Ferretería General"}.', 'success')
         else:
@@ -2836,22 +3051,38 @@ def eliminar_proveedor_definitivo():
             msg = 'Nombre requerido.'
             return (jsonify({'success': False, 'error': msg}), 400) if request.is_json else (flash(msg,'danger'), redirect(url_for('proveedores')))
 
-        # Eliminar mapping explícito (si todavía existiera por alguna inconsistencia)
+        # Obtener el ID del proveedor
+        proveedor_row = db_query("SELECT id FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?)", (nombre,), fetch=True)
+        
+        if not proveedor_row:
+            msg = f'Proveedor "{nombre}" no encontrado.'
+            return (jsonify({'success': False, 'error': msg}), 404) if request.is_json else (flash(msg,'danger'), redirect(url_for('proveedores')))
+        
+        proveedor_id = proveedor_row[0]['id']
+        
+        # Eliminar la relación en la tabla proveedores_duenos
+        db_query("DELETE FROM proveedores_duenos WHERE proveedor_id = ? AND dueno = ?", (proveedor_id, dueno))
+        
+        # Eliminar mapping explícito legacy (si todavía existiera por alguna inconsistencia)
         db_query("DELETE FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) AND dueno=?", (nombre, dueno))
+        
         # Eliminar registro de ocultos
         db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND dueno=?", (nombre, dueno))
+        
         # Registrar eliminación definitiva para excluir del historial
         try:
             db_query("INSERT OR IGNORE INTO proveedores_eliminados (nombre, dueno, fecha_eliminacion) VALUES (?, ?, ?)", (nombre, dueno, datetime.utcnow().isoformat()))
         except Exception as e:
             print(f"[WARN] No se pudo registrar proveedor eliminado: {e}")
-        # Ver si queda algún mapping para otros dueños
-        otros = db_query("SELECT 1 FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+        
+        # Ver si queda alguna relación para otros dueños
+        otros = db_query("SELECT 1 FROM proveedores_duenos WHERE proveedor_id = ? LIMIT 1", (proveedor_id,), fetch=True)
+        
         if not otros:
             # No queda asociado a ningún dueño: opcionalmente podríamos dejar el proveedor base, pero si quieres limpieza total podríamos borrar solo si no hay productos manuales.
             productos = db_query("SELECT 1 FROM productos_manual WHERE LOWER(proveedor)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
             if not productos:
-                db_query("DELETE FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?)", (nombre,))
+                db_query("DELETE FROM proveedores_manual WHERE id = ?", (proveedor_id,))
         msg_ok = f'Proveedor "{nombre}" eliminado definitivamente para {"Ricky" if dueno=="ricky" else "Ferretería General"}.'
         if request.is_json:
             return jsonify({'success': True, 'message': msg_ok})
@@ -2875,15 +3106,34 @@ def debug_proveedor_status():
         nombre = request.args.get('nombre','').strip()
         if not nombre:
             return jsonify({'success': False, 'error': 'nombre requerido'}), 400
+            
+        # Obtener información básica del proveedor
         rows_manual = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?)", (nombre,), fetch=True) or []
+        
+        # Obtener relaciones de la nueva tabla proveedores_duenos
+        rows_duenos = []
+        if rows_manual:
+            proveedor_id = rows_manual[0]['id']
+            rows_duenos = db_query(
+                """
+                SELECT pd.proveedor_id, pd.dueno 
+                FROM proveedores_duenos pd
+                WHERE pd.proveedor_id = ?
+                """, 
+                (proveedor_id,), fetch=True
+            ) or []
+            
+        # Obtener información de tablas legacy para diagnóstico
         rows_meta = db_query("SELECT nombre, dueno FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?)", (nombre,), fetch=True) or []
         rows_ocultos = db_query("SELECT id, nombre, dueno FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?)", (nombre,), fetch=True) or []
         rows_eliminados = db_query("SELECT id, nombre, dueno, fecha_eliminacion FROM proveedores_eliminados WHERE LOWER(nombre)=LOWER(?)", (nombre,), fetch=True) or []
+        
         return jsonify({
             'success': True,
             'input': nombre,
             'manual': rows_manual,
-            'meta': rows_meta,
+            'relaciones': rows_duenos,  # Nueva información de la tabla de relaciones
+            'meta_legacy': rows_meta,   # Renombrado para claridad
             'ocultos': rows_ocultos,
             'eliminados': rows_eliminados
         })
@@ -3458,20 +3708,23 @@ def agregar_producto_manual():
                 prov_parts = proveedor_id.split('|')
                 prov_id_int = int(prov_parts[0])
                 dueno_sel = prov_parts[1] if len(prov_parts) > 1 else None
+                proveedor_data = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (prov_id_int,), fetch=True)
+                if proveedor_data:
+                    proveedor_nombre = proveedor_data[0]['nombre']
+                    dueno = dueno_sel or 'ferreteria_general'
+                else:
+                    flash('Proveedor no encontrado.', 'danger')
+                    return redirect(url_for('agregar_producto'))
             except Exception:
-                prov_id_int = None
-                dueno_sel = None
-            proveedor_data = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (prov_id_int,), fetch=True)
-            if proveedor_data:
-                proveedor_nombre = proveedor_data[0]['nombre']
-                dueno = dueno_sel or 'ferreteria_general'
+                flash('ID de proveedor inválido.', 'danger')
+                return redirect(url_for('agregar_producto'))
         elif nuevo_proveedor and dueno_nuevo_proveedor:
             # Nuevo proveedor
             proveedor_nombre = nuevo_proveedor
             dueno = dueno_nuevo_proveedor
             
-            # Agregar el nuevo proveedor a la base de datos
-            db_query("INSERT OR IGNORE INTO proveedores_manual (nombre) VALUES (?)", (proveedor_nombre,))
+            # Agregar el nuevo proveedor a la base de datos con dueño específico
+            db_query("INSERT OR IGNORE INTO proveedores_manual (nombre, dueno) VALUES (?, ?)", (proveedor_nombre, dueno))
         else:
             flash('Debe seleccionar un proveedor existente o crear uno nuevo con dueño.', 'danger')
             return redirect(url_for('agregar_producto'))
@@ -3757,6 +4010,8 @@ def agregar_proveedor_manual_ajax():
         data = request.get_json()
         nombre_raw = data.get('nombre', '').strip()
         nombre = ' '.join(nombre_raw.split())
+        dueno = data.get('dueno', '').strip()  # Obtener el dueño del JSON
+        
         correcciones = {
             'brementools': 'BremenTools', 'brementool': 'BremenTools', 'bremetools': 'BremenTools', 'bremetool': 'BremenTools', 'bremen tools': 'BremenTools', 'bremen-tools': 'BremenTools',
             'crossmaster': 'Crossmaster', 'cross master': 'Crossmaster', 'cross-master': 'Crossmaster', 'cross master.': 'Crossmaster', 'crossmaster.': 'Crossmaster', 'crossmaster,': 'Crossmaster', 'crossmaster tools': 'Crossmaster', 'cross master tools': 'Crossmaster', 'crossmastertools': 'Crossmaster'
@@ -3768,21 +4023,66 @@ def agregar_proveedor_manual_ajax():
         if not nombre:
             return jsonify({'success': False, 'msg': 'El nombre del proveedor no puede estar vacío'})
         
+        # Validar dueño
+        if dueno not in ('ricky', 'ferreteria_general', 'ambos'):
+            dueno = 'ferreteria_general'  # Default
+        
+        # Determinar dueños a asignar
+        duenos_a_asignar = ['ricky', 'ferreteria_general'] if dueno == 'ambos' else [dueno]
+        
         # Verificar existencia case-insensitive antes de insertar
         existente = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+        
         if existente:
-            proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
-            return jsonify({'success': True, 'msg': f'El proveedor "{existente[0]["nombre"]}" ya existía.', 'proveedores': [{'id': p['id'], 'nombre': p['nombre']} for p in proveedores]})
-        if db_query("INSERT INTO proveedores_manual (nombre) VALUES (?)", (nombre,)):
+            # El proveedor ya existe, añadir relaciones en proveedores_duenos
+            proveedor_id = existente[0]['id']
+            proveedor_nombre = existente[0]['nombre']
+            
+            # Añadir relaciones a proveedores_duenos
+            for d in duenos_a_asignar:
+                db_query("INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)", (proveedor_id, d))
+            
             # Obtener lista actualizada de proveedores
             proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
+            
+            if dueno == 'ambos':
+                msg = f'El proveedor "{proveedor_nombre}" ahora está disponible para ambos dueños.'
+            else:
+                msg = f'El proveedor "{proveedor_nombre}" ahora está disponible para {dueno}.'
+            
             return jsonify({
                 'success': True, 
-                'msg': f'Proveedor "{nombre}" agregado exitosamente',
+                'msg': msg,
                 'proveedores': [{'id': p['id'], 'nombre': p['nombre']} for p in proveedores]
             })
         else:
-            return jsonify({'success': False, 'msg': 'Error al agregar el proveedor (posiblemente ya existe)'})
+            # Insertar nuevo proveedor
+            db_query("INSERT INTO proveedores_manual (nombre) VALUES (?)", (nombre,))
+            
+            # Obtener el ID del proveedor recién insertado
+            nuevo_proveedor = db_query("SELECT id FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+            if not nuevo_proveedor:
+                return jsonify({'success': False, 'msg': 'Error al crear el proveedor'})
+            
+            proveedor_id = nuevo_proveedor[0]['id']
+            
+            # Añadir relaciones a proveedores_duenos
+            for d in duenos_a_asignar:
+                db_query("INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)", (proveedor_id, d))
+            
+            # Obtener lista actualizada de proveedores
+            proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
+            
+            if dueno == 'ambos':
+                msg = f'Proveedor "{nombre}" agregado exitosamente para ambos dueños'
+            else:
+                msg = f'Proveedor "{nombre}" agregado exitosamente para {dueno}'
+            
+            return jsonify({
+                'success': True, 
+                'msg': msg,
+                'proveedores': [{'id': p['id'], 'nombre': p['nombre']} for p in proveedores]
+            })
     except Exception as e:
         print(f"Error al agregar proveedor AJAX: {e}")
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
@@ -3927,6 +4227,78 @@ def gestionar_manual_buscar_ajax():
         return jsonify({'html': f'<div class="alert alert-danger">Error: {str(e)}</div>'})
 
 # --- Nueva gestión de productos manuales por proveedor/dueño ---
+@app.route('/obtener_proveedores_por_dueno', methods=['POST'])
+@login_required
+def obtener_proveedores_por_dueno():
+    try:
+        data = request.get_json()
+        dueno = data.get('dueno', '').strip()
+        
+        if not dueno:
+            return jsonify({'success': False, 'msg': 'Dueño no especificado'})
+        
+        print(f"[DEBUG] obtener_proveedores_por_dueno llamado con dueño: '{dueno}'")
+        
+        # Usar la nueva tabla proveedores_duenos para obtener proveedores
+        proveedores = db_query(
+            """
+            SELECT DISTINCT p.nombre 
+            FROM proveedores_manual p
+            JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+            WHERE pd.dueno = ?
+            ORDER BY p.nombre
+            """, 
+            (dueno,), fetch=True
+        )
+        
+        resultado = [p['nombre'] for p in proveedores]
+        print(f"[DEBUG] obtener_proveedores_por_dueno - proveedores encontrados: {resultado}")
+        
+        return jsonify({
+            'success': True, 
+            'proveedores': resultado
+        })
+        
+    except Exception as e:
+        print(f"Error en obtener_proveedores_por_dueno: {e}")
+        return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
+
+@app.route('/obtener_proveedores_por_dueno_test', methods=['POST'])
+@csrf.exempt  # Eximir este endpoint de protección CSRF para pruebas
+def obtener_proveedores_por_dueno_test():
+    """Endpoint de prueba sin requerir login o CSRF para probar la API"""
+    try:
+        data = request.get_json()
+        dueno = data.get('dueno', '').strip()
+        
+        if not dueno:
+            return jsonify({'success': False, 'msg': 'Dueño no especificado'})
+        
+        print(f"[DEBUG] obtener_proveedores_por_dueno_test llamado con dueño: '{dueno}'")
+        
+        # Usar la nueva tabla proveedores_duenos para obtener proveedores
+        proveedores = db_query(
+            """
+            SELECT DISTINCT p.nombre 
+            FROM proveedores_manual p
+            JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+            WHERE pd.dueno = ?
+            ORDER BY p.nombre
+            """, 
+            (dueno,), fetch=True
+        )
+        
+        resultado = [p['nombre'] for p in proveedores]
+        print(f"[DEBUG] obtener_proveedores_por_dueno_test - proveedores encontrados: {resultado}")
+        
+        return jsonify({
+            'success': True,
+            'proveedores': resultado
+        })
+    except Exception as e:
+        print(f"Error en obtener_proveedores_por_dueno_test: {e}")
+        return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
+
 @app.route('/manual_listar_ajax', methods=['POST'])
 @login_required
 def manual_listar_ajax():
@@ -4152,203 +4524,6 @@ def manual_eliminar_por_proveedor_ajax():
         return jsonify({'success': True, 'msg': f'Eliminados {deleted_count} producto(s) (Excel removió {excel_deleted}).', 'eliminados': deleted_count, 'excel_eliminados': excel_deleted})
     except Exception as e:
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
-        nombre_prov_para_validar = None
-        dueno_para_validar = None
-        
-        # Caso 1: Se cambió proveedor Y dueño
-        if proveedor_nombre and dueno_sel:
-            nombre_prov_para_validar = proveedor_nombre
-            dueno_para_validar = dueno_sel
-        
-        # Caso 2: Solo se cambió proveedor (sin cambiar dueño)
-        elif proveedor_nombre and not dueno_sel:
-            # Obtener el dueño actual del producto desde Excel
-            if os.path.exists(MANUAL_PRODUCTS_FILE):
-                df_temp = pd.read_excel(MANUAL_PRODUCTS_FILE)
-                df_temp.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-                mask_temp = df_temp['Codigo'].astype(str).eq(codigo_original)
-                if len(df_temp[mask_temp]) > 0:
-                    dueno_actual = df_temp[mask_temp].iloc[0]['Dueno']
-                    if dueno_actual:
-                        nombre_prov_para_validar = proveedor_nombre
-                        dueno_para_validar = dueno_actual
-        
-        # Caso 3: Se cambió dueño pero no proveedor
-        elif not proveedor_nombre and dueno_sel:
-            # Obtener el proveedor actual del producto desde Excel
-            if os.path.exists(MANUAL_PRODUCTS_FILE):
-                df_temp = pd.read_excel(MANUAL_PRODUCTS_FILE)
-                df_temp.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-                mask_temp = df_temp['Codigo'].astype(str).eq(codigo_original)
-                if len(df_temp[mask_temp]) > 0:
-                    proveedor_actual = df_temp[mask_temp].iloc[0]['Proveedor']
-                    if proveedor_actual:
-                        nombre_prov_para_validar = proveedor_actual
-                        dueno_para_validar = dueno_sel
-        
-        # Ejecutar validación si hay algo que validar
-        if nombre_prov_para_validar and dueno_para_validar:
-            meta = db_query('SELECT 1 FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) AND dueno=?', (nombre_prov_para_validar, dueno_para_validar), fetch=True)
-            if not meta:
-                dueno_nombre = DUENOS_CONFIG.get(dueno_para_validar, {}).get('nombre', dueno_para_validar)
-                return jsonify({'success': False, 'msg': f'❌ No se pudo cambiar el producto. El proveedor "{nombre_prov_para_validar}" no está cargado para {dueno_nombre}. Cárgalo manualmente en "Gestionar Proveedores" primero.'})
-        
-        # Si llegamos aquí, la validación pasó - ahora actualizar Excel productos_manual.xlsx
-        if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            return jsonify({'success': False, 'msg': 'No existe productos_manual.xlsx'})
-        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-        # Encontrar fila por código original (no filtramos por proveedor/dueno porque podrían cambiarse)
-        mask = df['Codigo'].astype(str).eq(codigo_original)
-        idx = df[mask].index
-        if len(idx) == 0:
-            return jsonify({'success': False, 'msg': 'No se encontró el producto para actualizar.'})
-        # Aplicar cambios
-        if nombre:
-            df.loc[idx, 'Nombre'] = nombre
-        if codigo:
-            df.loc[idx, 'Codigo'] = codigo
-        # Si el usuario dejó precio vacío, parse_price ya devolvió 0.0; aseguramos guardar 0.
-        df.loc[idx, 'Precio'] = precio
-        if proveedor_nombre:
-            df.loc[idx, 'Proveedor'] = proveedor_nombre
-        if dueno_sel:
-            df.loc[idx, 'Dueno'] = 'ricky' if dueno_sel == 'ricky' else 'ferreteria_general'
-        with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
-            df.to_excel(writer, index=False)
-        
-        # Sincronizar con la base de datos para mantener consistencia
-        try:
-            # Obtener los datos actualizados del Excel
-            if len(idx) > 0:
-                proveedor_actualizado = df.loc[idx, 'Proveedor'].iloc[0]
-                codigo_actualizado = df.loc[idx, 'Codigo'].iloc[0]
-                nombre_actualizado = df.loc[idx, 'Nombre'].iloc[0]
-                precio_actualizado = df.loc[idx, 'Precio'].iloc[0]
-                dueno_actualizado = df.loc[idx, 'Dueno'].iloc[0]
-                
-                # Obtener el proveedor_id del proveedor actualizado
-                prov_res = db_query('SELECT id FROM proveedores_manual WHERE nombre = ?', (proveedor_actualizado,), fetch=True)
-                if prov_res:
-                    proveedor_id_actualizado = prov_res[0]['id']
-                    
-                    # Primero, eliminar cualquier registro existente con el código original (por si cambió el código)
-                    db_query('DELETE FROM productos_manual WHERE codigo = ?', (codigo_original,))
-                    
-                    # También eliminar si existe con el código nuevo (por si es diferente)
-                    if codigo_actualizado != codigo_original:
-                        db_query('DELETE FROM productos_manual WHERE codigo = ?', (codigo_actualizado,))
-                    
-                    # Insertar el registro actualizado
-                    db_query('INSERT INTO productos_manual (nombre, codigo, precio, proveedor_id) VALUES (?, ?, ?, ?)', 
-                            (nombre_actualizado, codigo_actualizado, precio_actualizado, proveedor_id_actualizado))
-                    
-                    print(f"Sincronizado: {nombre_actualizado} ({codigo_actualizado}) - {proveedor_actualizado} - {dueno_actualizado}")
-        except Exception as e:
-            print(f"Error sincronizando con BD: {e}")
-        
-        # Sincronizar con tabla stock (historial) igual que gestionar_manual_actualizar_ajax
-        try:
-            proveedor_sync = proveedor_nombre or (df.loc[idx, 'Proveedor'].iloc[0] if len(idx)>0 else '')
-            dueno_sync = (dueno_sel or (df.loc[idx, 'Dueno'].iloc[0] if len(idx)>0 else '')).lower()
-            nombre_sync = df.loc[idx, 'Nombre'].iloc[0]
-            codigo_sync = df.loc[idx, 'Codigo'].iloc[0]
-            precio_sync = df.loc[idx, 'Precio'].iloc[0]
-            # Intentar derivar dueño desde meta si no se tiene
-            if proveedor_sync and not dueno_sync:
-                meta_row = db_query('SELECT dueno FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) LIMIT 1', (proveedor_sync,), fetch=True)
-                if meta_row:
-                    dueno_sync = meta_row[0]['dueno']
-            # UPDATE primero
-            # Normalizar precio vacío => 0
-            if precio_sync is None:
-                precio_sync = 0.0
-            precio_texto = '0' if float(precio_sync) == 0.0 else str(precio_sync)
-            params_upd = [nombre_sync, codigo_sync, precio_sync, precio_texto, codigo_original.lower()]
-            if proveedor_sync:
-                update_sql = ("UPDATE stock SET nombre = ?, codigo = ?, precio = ?, precio_texto = ? "
-                              "WHERE LOWER(codigo)=? AND LOWER(proveedor)=LOWER(?)")
-                params_upd.append(proveedor_sync)
-            else:
-                update_sql = ("UPDATE stock SET nombre = ?, codigo = ?, precio = ?, precio_texto = ? "
-                              "WHERE LOWER(codigo)=?")
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute(update_sql, tuple(params_upd))
-            afectados = cur.rowcount
-            conn.commit()
-            if afectados > 0:
-                try:
-                    # Recuperar fila actual para snapshot
-                    row_q = None
-                    if proveedor_sync:
-                        row_q = db_query("SELECT * FROM stock WHERE LOWER(codigo)=LOWER(?) AND LOWER(proveedor)=LOWER(?) ORDER BY id DESC LIMIT 1", (codigo_sync, proveedor_sync), fetch=True)
-                    else:
-                        row_q = db_query("SELECT * FROM stock WHERE LOWER(codigo)=LOWER(?) ORDER BY id DESC LIMIT 1", (codigo_sync,), fetch=True)
-                    if row_q:
-                        log_stock_history('manual_edit', fuente='manual_actualizar_ajax_update', stock_row=row_q[0])
-                except Exception as e_log_upd:
-                    print(f"[WARN] log history update manual_actualizar_ajax: {e_log_upd}")
-            if afectados == 0:
-                # Insertar nueva fila
-                ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                try:
-                    if dueno_sync:
-                        cur.execute("""
-                            INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (codigo_sync, nombre_sync, precio_sync, 0, ahora, proveedor_sync, 'Añadido por edición manual', precio_texto, dueno_sync, ahora))
-                    else:
-                        cur.execute("""
-                            INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (codigo_sync, nombre_sync, precio_sync, 0, ahora, proveedor_sync, 'Añadido por edición manual', precio_texto, ahora))
-                    conn.commit()
-                    afectados = 1
-                    try:
-                        row_new = db_query("SELECT * FROM stock WHERE id = (SELECT MAX(id) FROM stock)", fetch=True)
-                        if row_new:
-                            log_stock_history('insert', fuente='manual_actualizar_ajax_insert', stock_row=row_new[0])
-                    except Exception as e_log_ins:
-                        print(f"[WARN] log history insert manual_actualizar_ajax: {e_log_ins}")
-                except Exception as e_ins2:
-                    print(f"Error insertando en stock desde manual_actualizar_ajax: {e_ins2}")
-        except Exception as e_sync:
-            print(f"Error sincronizando stock en manual_actualizar_ajax: {e_sync}")
-
-        # Crear mensaje de éxito detallado
-        cambios = []
-        
-        # Obtener valores originales antes de los cambios
-        if len(idx) > 0:
-            nombre_original = df.loc[idx, 'Nombre'].iloc[0]
-            codigo_original_excel = df.loc[idx, 'Codigo'].iloc[0]
-            precio_original = df.loc[idx, 'Precio'].iloc[0]
-            proveedor_original = df.loc[idx, 'Proveedor'].iloc[0]
-            dueno_original = df.loc[idx, 'Dueno'].iloc[0]
-            
-            # Verificar qué cambió
-            if nombre and nombre != nombre_original:
-                cambios.append("nombre")
-            if codigo and codigo != codigo_original_excel:
-                cambios.append("código")
-            if precio_str and precio != precio_original:
-                cambios.append("precio")
-            if proveedor_nombre and proveedor_nombre != proveedor_original:
-                cambios.append("proveedor")
-            if dueno_sel:
-                dueno_nuevo = 'ricky' if dueno_sel == 'ricky' else 'ferreteria_general'
-                if dueno_nuevo != dueno_original:
-                    cambios.append("dueño")
-        
-        if cambios:
-            cambios_texto = ", ".join(cambios)
-            mensaje = f"✅ Producto actualizado exitosamente. Cambios realizados: {cambios_texto}."
-        else:
-            mensaje = "✅ Producto actualizado exitosamente."
-        
-        return jsonify({'success': True, 'msg': mensaje})
-        return jsonify({'success': False, 'msg': 'No se pudo actualizar.'})
     except Exception as e:
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
 
@@ -4431,12 +4606,23 @@ def agregar_productos_masivo_ajax():
 def gestionar_manual_actualizar_ajax():
     """Actualizar producto manual via AJAX"""
     try:
+        # Asegurar columnas necesarias (auto-reparación en instalaciones antiguas)
+        ensure_productos_manual_columns()
+        ensure_proveedores_manual_columns()
         data = request.get_json()
         codigo_original = data.get('codigo_original', '').strip()
         nombre = data.get('nombre', '').strip()
-        proveedor = data.get('proveedor', '').strip()
+        # Aceptar ambas claves desde distintos templates: proveedor / proveedor_nombre
+        proveedor_raw = (data.get('proveedor') or data.get('proveedor_nombre') or '')
+        proveedor = proveedor_raw.strip()
         codigo = data.get('codigo', '').strip()
         precio_str = data.get('precio', '').strip()
+        dueno_input = (data.get('dueno') or '').strip().lower()
+        print(f"[DEBUG editar_manual_early] codigo_original={codigo_original} codigo_nuevo={codigo} proveedor_input='{proveedor}' dueno_input='{dueno_input}' nombre='{nombre}'")
+        if dueno_input not in ('', 'ricky', 'ferreteria_general'):
+            return jsonify({'success': False, 'msg': 'Dueño inválido.'})
+
+        # (Validación de proveedor se hará más adelante, luego de determinar dueno_final, para respetar pertenencia)
         
         if not codigo_original or not nombre:
             return jsonify({'success': False, 'msg': 'Datos incompletos.'})
@@ -4444,12 +4630,188 @@ def gestionar_manual_actualizar_ajax():
         precio, error_precio = parse_price(precio_str)
         if error_precio:
             return jsonify({'success': False, 'msg': f'Error en el precio: {error_precio}'})
+
+        # Recuperar fila original (case-insensitive). Si no existe, intentaremos crearlo.
+        fila_original_rows = db_query("SELECT * FROM productos_manual WHERE LOWER(codigo)=LOWER(?) LIMIT 1", (codigo_original,), fetch=True)
+        creado_nuevo = False
+        if not fila_original_rows:
+            # Intentar inferir proveedor y dueno desde Excel si existe
+            infer_dueno = dueno_input or ''
+            infer_proveedor = proveedor or ''
+            print(f"[DEBUG crear] No se encontró fila original para '{codigo_original}'. Intentando inferir datos. dueno_input={dueno_input} proveedor_input={proveedor}")
+            if os.path.exists(MANUAL_PRODUCTS_FILE):
+                try:
+                    df_inf = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                    df_inf.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+                    if 'Codigo' in df_inf.columns:
+                        mask_inf = df_inf['Codigo'].astype(str).str.strip().str.lower() == codigo_original.lower()
+                        if mask_inf.any():
+                            row_inf = df_inf[mask_inf].iloc[0]
+                            infer_proveedor_excel = str(row_inf.get('Proveedor', '')).strip()
+                            infer_dueno_excel = str(row_inf.get('Dueno', '')).strip().lower()
+                            if not infer_proveedor:
+                                infer_proveedor = infer_proveedor_excel
+                            if not infer_dueno:
+                                infer_dueno = infer_dueno_excel
+                            print(f"[DEBUG crear] Inferido desde Excel -> proveedor={infer_proveedor} dueno={infer_dueno}")
+                        else:
+                            print("[DEBUG crear] Codigo no encontrado en Excel para inferir.")
+                except Exception as _e_inf:
+                    print(f"[WARN] No se pudo inferir datos desde Excel para creación: {_e_inf}")
+            # Insertar registro base
+            try:
+                print(f"[DEBUG crear] INSERT base productos_manual nombre={nombre} codigo={codigo_original} precio={precio} proveedor={infer_proveedor} dueno={infer_dueno}")
+                db_query(
+                    "INSERT INTO productos_manual (nombre, codigo, precio, proveedor, dueno) VALUES (?, ?, ?, ?, ?)",
+                    (nombre, codigo_original, precio, infer_proveedor, infer_dueno)
+                )
+                fila_original_rows = db_query("SELECT * FROM productos_manual WHERE LOWER(codigo)=LOWER(?) LIMIT 1", (codigo_original,), fetch=True)
+                print(f"[DEBUG crear] SELECT post-insert (por codigo_original) devolvió {len(fila_original_rows) if fila_original_rows else 0} filas")
+                creado_nuevo = True
+            except Exception as _e_crea:
+                print(f"[ERROR crear] Falló INSERT base: {_e_crea}")
+                return jsonify({'success': False, 'msg': f'No se pudo crear registro base: {_e_crea}'})
+        if not fila_original_rows:
+            # Fallback: si usuario ya envió un nuevo codigo distinto, intentar buscar por el nuevo
+            if codigo and codigo.lower() != codigo_original.lower():
+                print(f"[DEBUG crear] Fallback SELECT por nuevo codigo '{codigo}' tras fallar búsqueda por original '{codigo_original}'")
+                fila_original_rows = db_query("SELECT * FROM productos_manual WHERE LOWER(codigo)=LOWER(?) LIMIT 1", (codigo,), fetch=True)
+            if not fila_original_rows:
+                # Diagnóstico adicional: contar coincidencias parciales
+                try:
+                    proximos = db_query("SELECT codigo, dueno, proveedor FROM productos_manual WHERE codigo LIKE ? ORDER BY id DESC LIMIT 5", (f"%{codigo_original[:6]}%",), fetch=True)
+                except Exception:
+                    proximos = []
+                return jsonify({'success': False, 'msg': 'No se pudo recuperar el producto tras crearlo.', 'diagnostico': {
+                    'codigo_original': codigo_original,
+                    'codigo_nuevo': codigo,
+                    'fallback_busqueda': bool(codigo and codigo.lower() != codigo_original.lower()),
+                    'coincidencias_parciales': proximos
+                }})
+        fila_original = fila_original_rows[0]
+        dueno_original = (fila_original.get('dueno') if isinstance(fila_original, dict) else None) or ''
+        proveedor_original = (fila_original.get('proveedor') if isinstance(fila_original, dict) else None) or ''
+
+        # Si no se envía nuevo código, mantener el original
+        if not codigo:
+            codigo = codigo_original
+
+        # Determinar dueno final: si se envía dueno_input usarlo, sino conservar
+        dueno_final = dueno_input or dueno_original
+        if dueno_final and dueno_final not in ('ricky', 'ferreteria_general'):
+            dueno_final = dueno_original  # fallback silencioso
+        print(f"[DEBUG editar_manual_duenos] dueno_original='{dueno_original}' dueno_input='{dueno_input}' dueno_final='{dueno_final}' proveedor='{proveedor}'")
+
+        # Validar proveedor (si viene) y pertenencia al dueno_final.
+        proveedor_normalizado = canonicalize_proveedor_name(proveedor)
+        if proveedor_normalizado:
+            # Primero, verificar si el proveedor existe
+            prov_rows_all = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?)", (proveedor_normalizado.lower(),), fetch=True)
+            # Si no encuentra, intentar variantes trim / collapse manuales para diagnosticar
+            if not prov_rows_all:
+                variantes = db_query("SELECT id, nombre FROM proveedores_manual WHERE REPLACE(TRIM(LOWER(nombre)), '  ', ' ') = REPLACE(TRIM(LOWER(?)), '  ', ' ')", (proveedor_normalizado.lower(),), fetch=True)
+            else:
+                variantes = []
+            def _row_debug(r):
+                nm = r.get('nombre') if isinstance(r, dict) else r['nombre']
+                return {
+                    'id': r.get('id'),
+                    'nombre': nm,
+                    'len': len(nm or ''),
+                    'hex': (nm or '').encode('utf-8').hex()
+                }
+            dbg_rows = [_row_debug(r) for r in (prov_rows_all or [])]
+            dbg_var = [_row_debug(r) for r in (variantes or [])]
+            print(f"[DEBUG proveedor+] raw='{proveedor_raw}' canon='{proveedor_normalizado}' lower='{proveedor_normalizado.lower()}' filas={dbg_rows} variantes={dbg_var}")
+            
+            if not prov_rows_all:
+                return jsonify({'success': False, 'msg': f'Proveedor "{proveedor_normalizado}" no existe. Agregalo primero en la sección de gestionar proveedores para el dueño {dueno_final}.', 'diagnostico': {'canon': proveedor_normalizado, 'raw': proveedor_raw, 'variantes': dbg_var}})
+            
+            # Obtener el ID del proveedor
+            proveedor_id = prov_rows_all[0]['id']
+            
+            # Ahora usar la nueva tabla proveedores_duenos para verificar la relación con el dueño
+            relaciones = db_query(
+                """
+                SELECT pd.dueno 
+                FROM proveedores_duenos pd
+                WHERE pd.proveedor_id = ?
+                """, 
+                (proveedor_id,), fetch=True
+            ) or []
+            
+            duenos_relacionados = [r['dueno'] for r in relaciones]
+            print(f"[DEBUG validacion] Proveedor '{proveedor_normalizado}' (ID: {proveedor_id}) tiene dueños: {duenos_relacionados}, buscando: '{dueno_final}'")
+            
+            # VALIDACIÓN ESTRICTA: Solo permitir si el proveedor está explícitamente agregado para el dueño específico
+            if dueno_final in duenos_relacionados:
+                print(f"[DEBUG proveedor] Proveedor explícitamente agregado para dueño '{dueno_final}', permitiendo uso")
+                match = True
+            else:
+                match = False
+                print(f"[DEBUG proveedor] ERROR: Proveedor no agregado para '{dueno_final}', dueños disponibles: {duenos_relacionados}")
+                return jsonify({'success': False, 'msg': f'Proveedor "{proveedor_normalizado}" no está agregado para "{dueno_final}". Agregalo primero en la sección de gestionar proveedores. Dueños existentes: {", ".join(duenos_relacionados)}', 'dueños_existentes': duenos_relacionados, 'diagnostico': {'filas': dbg_rows}})
+            print("[DEBUG proveedor] Validación proveedor estricta OK.")
         
-        # Actualizar producto manual
+        # 1) Actualizar producto en tabla productos_manual (incluyendo proveedor y dueno)
         result = db_query(
-            "UPDATE productos_manual SET nombre = ?, codigo = ?, precio = ? WHERE codigo = ?",
-            (nombre, codigo, precio, codigo_original)
+            "UPDATE productos_manual SET nombre = ?, codigo = ?, precio = ?, proveedor = ?, dueno = ? WHERE LOWER(codigo) = LOWER(?)",
+            (nombre, codigo, precio, proveedor, dueno_final, codigo_original)
         )
+        # Verificación post-update: verificar que el proveedor esté explícitamente agregado para el dueño
+        if proveedor_normalizado and dueno_original.lower() != dueno_final.lower():
+            # Obtener ID del proveedor
+            proveedor_row = db_query("SELECT id FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?)", 
+                                   (proveedor_normalizado,), fetch=True)
+            
+            if proveedor_row:
+                proveedor_id = proveedor_row[0]['id']
+                
+                # Usar la tabla de relaciones para verificar
+                relaciones = db_query(
+                    """
+                    SELECT dueno 
+                    FROM proveedores_duenos
+                    WHERE proveedor_id = ?
+                    """, 
+                    (proveedor_id,), fetch=True
+                ) or []
+                
+                duenos_relacionados = [r['dueno'] for r in relaciones]
+                
+                # Solo revertir si no hay compatibilidad (validación estricta)
+                if dueno_final not in duenos_relacionados:
+                    # Revertir dueño en producto para evitar traslado inconsistente
+                    db_query("UPDATE productos_manual SET dueno = ? WHERE LOWER(codigo)=LOWER(?)", (dueno_original, codigo.lower()))
+                    print(f"[WARN traslado] Revertido cambio de dueño '{dueno_final}' -> '{dueno_original}' para codigo={codigo} por proveedor no agregado para este dueño")
+                    return jsonify({'success': False, 'msg': f'No se puede trasladar el producto porque el proveedor "{proveedor_normalizado}" no está agregado para {dueno_final}. Agregalo primero en la sección de gestionar proveedores. Se mantuvo en {dueno_original}.'})
+
+        # 2) Reflejar cambios en productos_manual.xlsx (si existe y contiene el código)
+        excel_actualizado = False
+        if os.path.exists(MANUAL_PRODUCTS_FILE):
+            try:
+                df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+                if not df.empty and 'Codigo' in df.columns:
+                    mask = df['Codigo'].astype(str).str.strip().str.lower() == codigo_original.lower()
+                    if mask.any():
+                        idx = df[mask].index
+                        # Actualizar columnas si existen
+                        if 'Nombre' in df.columns:
+                            df.loc[idx, 'Nombre'] = nombre
+                        df.loc[idx, 'Codigo'] = codigo
+                        if 'Precio' in df.columns:
+                            df.loc[idx, 'Precio'] = precio
+                        if 'Proveedor' in df.columns and proveedor:
+                            df.loc[idx, 'Proveedor'] = proveedor
+                        if 'Dueno' in df.columns and dueno_final:
+                            df.loc[idx, 'Dueno'] = dueno_final
+                        # Guardar Excel
+                        with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
+                            df.to_excel(writer, index=False)
+                        excel_actualizado = True
+            except Exception as e_excel_upd:
+                print(f"[WARN] No se pudo actualizar productos_manual.xlsx: {e_excel_upd}")
 
         # Propagar cambios al historial (tabla stock) para coherencia visual:
         # Criterio: actualizar filas cuyo codigo coincida con codigo_original y (opcional) proveedor si viene informado.
@@ -4459,10 +4821,12 @@ def gestionar_manual_actualizar_ajax():
                 if precio is None:
                     precio = 0.0
                 precio_texto = '0' if float(precio) == 0.0 else str(precio)
-                dueno_row = None
-                if proveedor:
+                # Priorizar dueno_final explícito; si no hay, intentar derivar por proveedor
+                dueno_val = dueno_final if dueno_final in ('ricky','ferreteria_general') else None
+                if not dueno_val and proveedor:
                     dueno_row = db_query("SELECT dueno FROM proveedores_meta WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (proveedor,), fetch=True)
-                dueno_val = dueno_row[0]['dueno'] if dueno_row else None
+                    if dueno_row:
+                        dueno_val = dueno_row[0]['dueno']
 
                 if proveedor and dueno_val:
                     update_sql = ("UPDATE stock SET nombre = ?, codigo = ?, precio = ?, precio_texto = ?, dueno = ? "
@@ -4529,15 +4893,99 @@ def gestionar_manual_actualizar_ajax():
                     'html': '<div class="alert alert-warning">Actualizado, pero no se pudo sincronizar completamente el historial.</div>'
                 })
 
+            # Construir detalle de cambios
+            cambios = []
+            if codigo_original.lower() != codigo.lower():
+                cambios.append('código')
+            if nombre != (fila_original.get('nombre') if isinstance(fila_original, dict) else ''):
+                cambios.append('nombre')
+            if proveedor and proveedor.lower() != proveedor_original.lower():
+                cambios.append('proveedor')
+            if dueno_final and dueno_final != dueno_original:
+                cambios.append('dueño')
+            if precio != (fila_original.get('precio') if isinstance(fila_original, dict) else None):
+                cambios.append('precio')
+            if creado_nuevo:
+                cambios.append('creado')
+            cambios_txt = (" Cambios: " + ", ".join(cambios) + ".") if cambios else ''
+            msg_extra = (' (Excel actualizado)' if excel_actualizado else ' (Excel sin cambios)') + cambios_txt
             return jsonify({
                 'success': True,
-                'msg': f'Producto "{nombre}" actualizado. Historial sincronizado en {afectados} fila(s).',
-                'html': '<div class="alert alert-success">Producto actualizado y sincronizado en historial.</div>'
+                'msg': f'Producto "{nombre}" actualizado. Historial sincronizado en {afectados} fila(s).'+msg_extra,
+                'html': '<div class="alert alert-success">Producto actualizado y sincronizado en historial.</div>',
+                'excel_actualizado': excel_actualizado
             })
         else:
             return jsonify({'success': False, 'msg': 'Error al actualizar el producto.'})
             
     except Exception as e:
+        return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
+
+# Alias legacy para compatibilidad con templates que aún llaman manual_actualizar_ajax
+@app.route('/manual_actualizar_ajax', methods=['POST'])
+@login_required
+def manual_actualizar_ajax():
+    """Alias que delega en gestionar_manual_actualizar_ajax (mantiene compatibilidad)."""
+    return gestionar_manual_actualizar_ajax()
+
+@app.route('/debug_proveedores')
+@login_required
+def debug_proveedores():
+    """Diagnóstico de proveedores: muestra las filas exactas y los productos_manual que los usan.
+    Uso: /debug_proveedores?nombre=DEWALT  (nombre opcional -> si falta lista primeros 50)
+    """
+    try:
+        nombre = (request.args.get('nombre') or '').strip()
+        params = []
+        where = ''
+        if nombre:
+            where = 'WHERE LOWER(nombre)=LOWER(?)'
+            params.append(nombre)
+        provs = db_query(f"SELECT id, nombre, dueno FROM proveedores_manual {where} ORDER BY nombre, dueno LIMIT 50", tuple(params), fetch=True) or []
+        productos = []
+        if nombre:
+            productos = db_query("SELECT codigo, nombre, dueno, proveedor FROM productos_manual WHERE LOWER(proveedor)=LOWER(?) ORDER BY id DESC LIMIT 50", (nombre,), fetch=True) or []
+        return jsonify({
+            'success': True,
+            'proveedores': provs,
+            'productos_manual': productos,
+            'filtro': nombre
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/debug_proveedores_ui')
+@login_required
+def debug_proveedores_ui():
+    return render_template('debug_proveedores.html')
+
+@app.route('/debug_obtener_proveedores_por_dueno/<string:dueno>')
+@login_required
+def debug_obtener_proveedores_por_dueno_endpoint(dueno):
+    try:
+        print(f"[DEBUG] debug_obtener_proveedores_por_dueno llamado con dueño: '{dueno}'")
+        
+        # Usar la nueva tabla proveedores_duenos para obtener proveedores
+        proveedores = db_query(
+            """
+            SELECT DISTINCT p.nombre 
+            FROM proveedores_manual p
+            JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+            WHERE pd.dueno = ?
+            ORDER BY p.nombre
+            """, 
+            (dueno,), fetch=True
+        )
+        
+        resultado = [p['nombre'] for p in proveedores]
+        print(f"[DEBUG] debug_obtener_proveedores_por_dueno - proveedores encontrados: {resultado}")
+        
+        return jsonify({
+            'success': True, 
+            'proveedores': resultado
+        })
+    except Exception as e:
+        print(f"Error en debug_obtener_proveedores_por_dueno: {e}")
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
 
 @app.route('/debug_stock_item')
@@ -4571,6 +5019,84 @@ def debug_stock_item():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# --- Funciones de Búsqueda en Excel ---
+def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
+    """Buscar productos en archivos Excel de proveedores y productos manuales"""
+    resultados = []
+    print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
+    
+    # 1. Buscar en productos manuales
+    if proveedor_filtro and proveedor_filtro.startswith('manual_'):
+        # Filtro específico de proveedor manual (incluye dueño)
+        try:
+            _, rest = proveedor_filtro.split('manual_', 1)
+            parts = rest.split('_', 1)
+            proveedor_id = int(parts[0])
+            dueno_sel = parts[1] if len(parts) > 1 else None
+            resultados_manuales = buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_sel)
+            resultados.extend(resultados_manuales)
+        except (ValueError, TypeError):
+            pass
+    elif proveedor_filtro and proveedor_filtro in PROVEEDOR_CONFIG:
+        # Nuevo: también incluir productos manuales que pertenezcan a ese proveedor Excel
+        # Determinar alcance de dueños según flags
+        if solo_ricky and not solo_fg:
+            duenos_manual = ['ricky']
+        elif solo_fg and not solo_ricky:
+            duenos_manual = ['ferreteria_general']
+        else:
+            duenos_manual = ['ricky', 'ferreteria_general']
+        for d in duenos_manual:
+            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_filtro, dueno_filtro=d)
+            if resultados_manuales:
+                resultados.extend(resultados_manuales)
+    elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
+        # Si no hay filtro específico de Excel, incluir todos los manuales
+        # Aplicar alcance por dueño si corresponde
+        if solo_ricky and not solo_fg:
+            resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
+        elif solo_fg and not solo_ricky:
+            resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ferreteria_general')
+        else:
+            resultados_manuales = buscar_en_excel_manual(termino_busqueda)
+        resultados.extend(resultados_manuales)
+        
+    # 2. Buscar en Excel de proveedores
+    if not proveedor_filtro or proveedor_filtro in PROVEEDOR_CONFIG:
+        # Verificar si necesitamos buscar en todos o un proveedor específico
+        if proveedor_filtro:
+            # Verificar si el proveedor está habilitado para el filtro de dueño
+            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_filtro, {})
+            proveedor_dueno = proveedor_config.get('dueno', None)
+            
+            # Saltar si no coincide con los filtros de dueño
+            if (solo_ricky and proveedor_dueno != 'ricky') or (solo_fg and proveedor_dueno != 'ferreteria_general'):
+                pass
+            else:
+                proveedores_a_buscar = [proveedor_filtro]
+        else:
+            # Determinar qué proveedores buscar según filtro de dueño
+            if solo_ricky and not solo_fg:
+                proveedores_a_buscar = [p for p, cfg in PROVEEDOR_CONFIG.items() if cfg.get('dueno') == 'ricky']
+            elif solo_fg and not solo_ricky:
+                proveedores_a_buscar = [p for p, cfg in PROVEEDOR_CONFIG.items() if cfg.get('dueno') == 'ferreteria_general']
+            else:
+                proveedores_a_buscar = list(PROVEEDOR_CONFIG.keys())
+                
+        # Realizar búsquedas en los proveedores seleccionados
+        for proveedor in proveedores_a_buscar:
+            resultados_proveedor = buscar_en_excel_proveedor(
+                termino_busqueda, 
+                proveedor,
+                filtro_adicional
+            )
+            resultados.extend(resultados_proveedor)
+    
+    # Log cantidad total de resultados
+    print(f"🔍 [BUSCAR_EXCEL] Total de resultados: {len(resultados)}")
+    
+    return resultados
 
 def agregar_producto_manual_excel():
     """Agregar producto manual al Excel (no directamente al stock)"""
@@ -4617,48 +5143,6 @@ def agregar_producto_manual_excel():
         flash(f'Error al procesar el producto: {str(e)}', 'danger')
     
     return redirect(url_for('agregar_producto'))
-
-# --- Funciones de Búsqueda en Excel ---
-def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
-    """Buscar productos en archivos Excel de proveedores y productos manuales"""
-    resultados = []
-    print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
-    
-    # 1. Buscar en productos manuales
-    if proveedor_filtro and proveedor_filtro.startswith('manual_'):
-        # Filtro específico de proveedor manual (incluye dueño)
-        try:
-            _, rest = proveedor_filtro.split('manual_', 1)
-            parts = rest.split('_', 1)
-            proveedor_id = int(parts[0])
-            dueno_sel = parts[1] if len(parts) > 1 else None
-            resultados_manuales = buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_sel)
-            resultados.extend(resultados_manuales)
-        except (ValueError, TypeError):
-            pass
-    elif proveedor_filtro and proveedor_filtro in PROVEEDOR_CONFIG:
-        # Nuevo: también incluir productos manuales que pertenezcan a ese proveedor Excel
-        # Determinar alcance de dueños según flags
-        if solo_ricky and not solo_fg:
-            duenos_manual = ['ricky']
-        elif solo_fg and not solo_ricky:
-            duenos_manual = ['ferreteria_general']
-        else:
-            duenos_manual = ['ricky', 'ferreteria_general']
-        for d in duenos_manual:
-            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_filtro, dueno_filtro=d)
-            if resultados_manuales:
-                resultados.extend(resultados_manuales)
-    elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
-        # Si no hay filtro específico de Excel, incluir todos los manuales
-        # Aplicar alcance por dueño si corresponde
-        if solo_ricky and not solo_fg:
-            resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
-        elif solo_fg and not solo_ricky:
-            resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ferreteria_general')
-        else:
-            resultados_manuales = buscar_en_excel_manual(termino_busqueda)
-        resultados.extend(resultados_manuales)
     
     # 2. Buscar en archivos Excel de proveedores por dueño
     if proveedor_filtro:
@@ -4924,6 +5408,132 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
             })
     except Exception as e:
         print(f"Error en buscar_en_excel_manual: {e}")
+    return resultados
+
+def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None):
+    """Buscar productos en archivos Excel del proveedor especificado"""
+    resultados = []
+    try:
+        print(f"[EXCEL DEBUG] Iniciando búsqueda para proveedor '{proveedor}'")
+        
+        # Verificar que exista la configuración del proveedor
+        if proveedor not in PROVEEDOR_CONFIG:
+            print(f"[EXCEL] Error: Proveedor '{proveedor}' no configurado")
+            return []
+        
+        # Obtener configuración del proveedor
+        config = PROVEEDOR_CONFIG[proveedor]
+        print(f"[EXCEL DEBUG] Configuración del proveedor: {config}")
+        
+        excel_folder = config.get('folder', proveedor)
+        dueno = config.get('dueno', 'ferreteria_general')
+        print(f"[EXCEL DEBUG] Carpeta Excel: {excel_folder}, Dueño: {dueno}")
+        
+        # Preparar ruta al directorio de archivos
+        directorio_base = os.path.join('listas_excel', excel_folder)
+        print(f"[EXCEL DEBUG] Directorio base completo: {directorio_base}")
+        directorio_abs = os.path.abspath(directorio_base)
+        print(f"[EXCEL DEBUG] Directorio absoluto: {directorio_abs}")
+        
+        # Si no existe el directorio, salir
+        if not os.path.exists(directorio_base):
+            print(f"[EXCEL] Error: Directorio no existe '{directorio_base}'")
+            # Listar directorios disponibles para ayudar en el diagnóstico
+            print(f"[EXCEL DEBUG] Contenido de 'listas_excel': {os.listdir('listas_excel') if os.path.exists('listas_excel') else 'No existe'}")
+            return []
+        
+        # Listar todos los archivos Excel en el directorio
+        archivos_excel = []
+        try:
+            for root, _, files in os.walk(directorio_base):
+                print(f"[EXCEL DEBUG] Explorando directorio: {root}")
+                for file in files:
+                    if file.endswith('.xlsx') or file.endswith('.xls'):
+                        ruta_completa = os.path.join(root, file)
+                        archivos_excel.append(ruta_completa)
+                        print(f"[EXCEL DEBUG] Archivo encontrado: {ruta_completa}")
+        except Exception as e:
+            print(f"[EXCEL DEBUG] Error al listar archivos: {str(e)}")
+            return []
+        
+        # Verificar si hay archivos
+        if not archivos_excel:
+            print(f"[EXCEL] No se encontraron archivos Excel en '{directorio_base}'")
+            return []
+            
+        print(f"[EXCEL] Buscando '{termino_busqueda}' en {len(archivos_excel)} archivos de '{proveedor}'")
+        
+        # Buscar en cada archivo
+        termino_busqueda = termino_busqueda.lower()
+        for archivo in archivos_excel:
+            nombre_archivo = os.path.basename(archivo)
+            print(f"[EXCEL DEBUG] Procesando archivo: {nombre_archivo}")
+            try:
+                # Cargar el libro Excel
+                print(f"[EXCEL DEBUG] Intentando cargar archivo: {archivo}")
+                try:
+                    from openpyxl import load_workbook
+                    wb = load_workbook(archivo, read_only=True)
+                    print(f"[EXCEL DEBUG] Archivo cargado exitosamente: {nombre_archivo}")
+                except Exception as excel_e:
+                    print(f"[EXCEL ERROR] Error al cargar archivo {nombre_archivo}: {str(excel_e)}")
+                    continue
+                
+                # Procesar cada hoja
+                for ws_name in wb.sheetnames:
+                    ws = wb[ws_name]
+                    
+                    # Determinar filas y columnas a procesar
+                    filas = list(ws.rows)
+                    if not filas:
+                        continue
+                    
+                    # Buscar en cada fila
+                    for row_idx, row in enumerate(filas, 1):
+                        row_values = [str(cell.value).lower() if cell.value is not None else '' for cell in row]
+                        row_text = ' '.join(row_values)
+                        
+                        # Verificar si el término está en esta fila
+                        if termino_busqueda in row_text:
+                            # Aplicar filtro adicional si existe
+                            if filtro_adicional and filtro_adicional.lower() not in row_text:
+                                continue
+                                
+                            # Extraer datos de la fila
+                            codigo = row_values[0] if len(row_values) > 0 else ''
+                            nombre = row_values[1] if len(row_values) > 1 else ''
+                            precio = 0.0
+                            
+                            # Intentar extraer precio
+                            if len(row_values) > 2:
+                                try:
+                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
+                                    precio = float(precio_text) if precio_text else 0.0
+                                except (ValueError, TypeError):
+                                    precio = 0.0
+                            
+                            # Crear resultado
+                            resultado = {
+                                'codigo': codigo,
+                                'nombre': nombre if nombre else f"Fila {row_idx}",
+                                'precio': precio,
+                                'proveedor': proveedor,
+                                'archivo': nombre_archivo,
+                                'hoja': ws_name,
+                                'fila': row_idx,
+                                'tipo': 'excel',
+                                'dueno': dueno,
+                                'row_text': row_text
+                            }
+                            resultados.append(resultado)
+                
+            except Exception as e:
+                print(f"[EXCEL] Error al procesar archivo '{archivo}': {e}")
+                continue
+                
+    except Exception as e:
+        print(f"[EXCEL] Error general en buscar_en_excel_proveedor: {e}")
+        
     return resultados
 
 def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key, dueno='ricky'):

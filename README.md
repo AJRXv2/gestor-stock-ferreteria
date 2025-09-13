@@ -113,6 +113,7 @@ para marcarla como aplicada y evitar que intente crear lo que ya existe.
 - ✅ Script de inicialización de esquema (`init_db.py`) y auto-init opcional (AUTO_INIT_DB=1)
 - ✅ Sistema de migraciones (001 baseline + 003 índices de rendimiento)
 - ✅ Control de stock bajo (columns avisar_bajo_stock / min_stock_aviso vía migración 004)
+- ✅ Validación de pertenencia de proveedor al cambiar productos manuales (no se puede asignar un proveedor de otro dueño)
 
 ## 🔧 Tecnologías
 

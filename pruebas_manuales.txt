@@ -1,0 +1,43 @@
+// Script de prueba para la selección de proveedores
+// Esta es una lista de pasos para probar manualmente la implementación
+
+Pasos para probar:
+
+1. PRUEBA: Creación de proveedores
+   a) Ir a "Gestionar Proveedores"
+   b) Intentar agregar un proveedor sin seleccionar dueño
+      RESULTADO ESPERADO: Error "Se requiere especificar un dueño para el proveedor."
+   c) Agregar un proveedor para Ricky
+      RESULTADO ESPERADO: Proveedor agregado correctamente con dueño: Ricky
+   d) Agregar un proveedor para Ferretería General
+      RESULTADO ESPERADO: Proveedor agregado correctamente con dueño: Ferretería General
+
+2. PRUEBA: Menú desplegable en Gestionar Productos Manuales
+   a) Ir a "Gestionar Productos Manuales"
+   b) Buscar productos por un proveedor de Ricky
+   c) Editar un producto
+   d) Verificar que el menú desplegable de proveedores muestre SOLO proveedores de Ricky
+      RESULTADO ESPERADO: Solo aparecen proveedores de Ricky, no de Ferretería General
+   e) Cambiar el dueño a Ferretería General
+   f) Verificar que el menú desplegable se actualice con proveedores de Ferretería General
+      RESULTADO ESPERADO: Solo aparecen proveedores de Ferretería General, no de Ricky
+   g) Intentar guardar seleccionando un proveedor de Ferretería General
+      RESULTADO ESPERADO: Cambio guardado correctamente
+
+3. PRUEBA: Menú desplegable en Agregar Productos
+   a) Ir a "Agregar Productos"
+   b) Comprobar que el menú desplegable de proveedores muestre proveedores del dueño seleccionado
+   c) Cambiar de dueño y verificar que la lista se actualice
+      RESULTADO ESPERADO: La lista de proveedores cambia según el dueño seleccionado
+   d) Verificar que el campo hidden dueno_nuevo_proveedor se actualice correctamente
+      RESULTADO ESPERADO: El campo oculto tiene el valor correcto del dueño
+
+4. PRUEBA: Validación al intentar transferir productos
+   a) Editar un producto de Ricky y cambiar su dueño a Ferretería General sin cambiar el proveedor
+      RESULTADO ESPERADO: Error indicando que el proveedor no está agregado para Ferretería General
+   b) Editar un producto y cambiar tanto el dueño como el proveedor a uno válido para el nuevo dueño
+      RESULTADO ESPERADO: Cambio guardado correctamente
+
+5. PRUEBA: Verificar que no se puedan crear proveedores sin dueño
+   a) Examinar la base de datos directamente (con una consulta SQL)
+      RESULTADO ESPERADO: No hay proveedores con dueno=NULL o dueno=''

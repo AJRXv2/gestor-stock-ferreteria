@@ -1,1 +1,1 @@
-web: python gestor.py
+web: gunicorn wsgi:application
