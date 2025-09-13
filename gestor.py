@@ -832,7 +832,10 @@ def init_db():
         # Crear usuario por defecto
         default_username = 'Pauluk'
         default_password = 'Jap2005'
-        cursor.execute("SELECT id FROM users WHERE username = ?", (default_username,))
+        if use_postgres:
+            cursor.execute("SELECT id FROM users WHERE username = %s", (default_username,))
+        else:
+            cursor.execute("SELECT id FROM users WHERE username = ?", (default_username,))
         if cursor.fetchone() is None:
             hashed_password = generate_password_hash(default_password)
             if use_postgres:
