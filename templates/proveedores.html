@@ -90,6 +90,9 @@
                         <button class="btn btn-outline-primary" type="submit">
                             <i class="bi bi-search"></i> Buscar
                         </button>
+                        <button class="btn btn-outline-secondary" type="button" id="btnVerOcultos">
+                            <i class="bi bi-eye-slash"></i> Ver ocultos
+                        </button>
                     </div>
                 </form>
                 
@@ -124,8 +127,7 @@
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="id" value="{{ proveedor.id }}">
                                         <input type="hidden" name="dueno" value="{{ proveedor.dueno }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" 
-                                                onclick="return confirm('¿Ocultar proveedor \'{{ proveedor.nombre }}\' para {{ proveedor.dueno == 'ricky' and 'Ricky' or 'Ferretería General' }}?\n\n(No se modifican archivos Excel).');">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Ocultar proveedor {{ proveedor.nombre|escape }}?');">
                                             <i class="bi bi-trash"></i> Eliminar
                                         </button>
                                     </form>
@@ -165,7 +167,7 @@
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="id" value="{{ proveedor.id }}">
                                         <input type="hidden" name="dueno" value="{{ proveedor.dueno }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Ocultar proveedor \"{{ proveedor.nombre }}\" para {{ proveedor.dueno == 'ricky' and 'Ricky' or 'Ferretería General' }}?\n(No se modifican archivos Excel).')">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Ocultar proveedor {{ proveedor.nombre|escape }}?');">
                                             <i class="bi bi-trash"></i> Eliminar
                                         </button>
                                     </form>
@@ -180,4 +182,175 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Proveedores Ocultos -->
+<div class="modal fade" id="modalOcultos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-eye-slash"></i> Proveedores Ocultos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 mb-3 align-items-center">
+            <select id="filtroDuenoOculto" class="form-select" style="max-width:220px">
+                <option value="todos">Todos los dueños</option>
+                <option value="ricky">Ricky</option>
+                <option value="ferreteria_general">Ferretería General</option>
+            </select>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="chkIncluirVisibles">
+              <label class="form-check-label small" for="chkIncluirVisibles">Incluir visibles</label>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" id="btnRefrescarOcultos">
+                <i class="bi bi-arrow-clockwise"></i> Refrescar
+            </button>
+        </div>
+        <div id="contenedorOcultos">
+            <div class="text-muted">Cargando...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btnVerOcultos = document.getElementById('btnVerOcultos');
+    const modalEl = document.getElementById('modalOcultos');
+    const filtroDueno = document.getElementById('filtroDuenoOculto');
+    const btnRefrescar = document.getElementById('btnRefrescarOcultos');
+    const contenedor = document.getElementById('contenedorOcultos');
+
+    let bsModal;
+    if (modalEl) {
+        bsModal = new bootstrap.Modal(modalEl);
+    }
+
+    function cargarOcultos() {
+        const d = filtroDueno.value;
+        const inc = document.getElementById('chkIncluirVisibles').checked ? '1' : '0';
+        contenedor.innerHTML = '<div class="text-muted">Cargando...</div>';
+        fetch(`/proveedores_ocultos?dueno=${encodeURIComponent(d)}&include_visible=${inc}`)
+          .then(r => r.json())
+          .then(data => {
+              if (!data.success) {
+                  contenedor.innerHTML = '<div class="alert alert-danger">Error al cargar.</div>';
+                  return;
+              }
+              if (!data.proveedores.length) {
+                  contenedor.innerHTML = '<div class="alert alert-info">No hay proveedores ocultos para el filtro seleccionado.</div>';
+                  return;
+              }
+          let html = '<div class="table-responsive"><table class="table table-sm table-striped">'+
+             '<thead><tr><th>Nombre</th><th>Dueño</th><th style="width:210px">Acciones</th></tr></thead><tbody>';
+              const inc = document.getElementById('chkIncluirVisibles').checked;
+              for (const p of data.proveedores) {
+                  if (inc && data.matrix) {
+                      // Formato matriz: una fila por nombre con columnas de estado
+                      let estadoR = '';
+                      if (p.oculto_ricky && !p.visible_ricky) estadoR = '<span class="badge bg-secondary">Oculto</span>';
+                      else if (p.oculto_ricky && p.visible_ricky) estadoR = '<span class="badge bg-warning text-dark">Oculto + Visible</span>';
+                      else if (p.visible_ricky) estadoR = '<span class="badge bg-success">Visible</span>';
+                      else estadoR = '<span class="badge bg-light text-dark">N/A</span>';
+                      let estadoF = '';
+                      if (p.oculto_ferreteria_general && !p.visible_ferreteria_general) estadoF = '<span class="badge bg-secondary">Oculto</span>';
+                      else if (p.oculto_ferreteria_general && p.visible_ferreteria_general) estadoF = '<span class="badge bg-warning text-dark">Oculto + Visible</span>';
+                      else if (p.visible_ferreteria_general) estadoF = '<span class="badge bg-success">Visible</span>';
+                      else estadoF = '<span class="badge bg-light text-dark">N/A</span>';
+                      html += `<tr>`+
+                              `<td><strong>${p.nombre}</strong></td>`+
+                              `<td>${estadoR}</td>`+
+                              `<td>${estadoF}</td>`+
+                              `<td class="d-flex flex-wrap gap-1">`+
+                              (p.oculto_ricky ? `<button class=\"btn btn-sm btn-outline-primary\" data-action=\"restaurar\" data-nombre=\"${p.nombre}\" data-dueno=\"ricky\">Ricky +</button>` : '')+
+                              (p.oculto_ferreteria_general ? `<button class=\"btn btn-sm btn-outline-primary\" data-action=\"restaurar\" data-nombre=\"${p.nombre}\" data-dueno=\"ferreteria_general\">FG +</button>` : '')+
+                              (p.oculto_ricky ? `<button class=\"btn btn-sm btn-outline-danger\" data-action=\"eliminar\" data-nombre=\"${p.nombre}\" data-dueno=\"ricky\">Del R</button>` : '')+
+                              (p.oculto_ferreteria_general ? `<button class=\"btn btn-sm btn-outline-danger\" data-action=\"eliminar\" data-nombre=\"${p.nombre}\" data-dueno=\"ferreteria_general\">Del FG</button>` : '')+
+                              `</td>`+
+                              `</tr>`;
+                  } else {
+                      // Modo lista (compat)
+                      const duenoLabel = p.dueno === 'ricky' ? 'Ricky' : 'Ferretería General';
+                      html += `<tr>`+
+                              `<td><strong>${p.nombre}</strong></td>`+
+                              `<td>${duenoLabel}</td>`+
+                              `<td class=\"d-flex gap-1\">`+
+                              `<button class=\"btn btn-sm btn-success\" data-action=\"restaurar\" data-nombre=\"${p.nombre}\" data-dueno=\"${p.dueno}\"><i class=\"bi bi-arrow-counterclockwise\"></i> Restaurar</button>`+
+                              `<button class=\"btn btn-sm btn-outline-danger\" data-action=\"eliminar\" data-nombre=\"${p.nombre}\" data-dueno=\"${p.dueno}\"><i class=\"bi bi-x-circle\"></i> Eliminar</button>`+
+                              `</td>`+
+                              `</tr>`;
+                  }
+              }
+              html += '</tbody></table></div>';
+              contenedor.innerHTML = html;
+          })
+          .catch(err => {
+              console.error('Error fetch ocultos', err);
+              contenedor.innerHTML = '<div class="alert alert-danger">Error de red.</div>';
+          });
+    }
+
+    btnVerOcultos?.addEventListener('click', () => {
+        bsModal?.show();
+        cargarOcultos();
+    });
+    filtroDueno?.addEventListener('change', cargarOcultos);
+    document.getElementById('chkIncluirVisibles')?.addEventListener('change', cargarOcultos);
+    btnRefrescar?.addEventListener('click', cargarOcultos);
+
+    contenedor?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-nombre]');
+        if (!btn) return;
+        const nombre = btn.getAttribute('data-nombre');
+        const dueno = btn.getAttribute('data-dueno');
+        const action = btn.getAttribute('data-action');
+        // Obtener token CSRF desde primer formulario presente
+        const csrfInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+        if (action === 'restaurar') {
+            if (!confirm(`Restaurar proveedor "${nombre}" para ${dueno === 'ricky' ? 'Ricky' : 'Ferretería General'}?`)) return;
+            fetch('/restaurar_proveedor_oculto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ nombre, dueno })
+            }).then(r => r.json())
+              .then(data => {
+                  if (data.success) {
+                      cargarOcultos();
+                      setTimeout(() => { window.location.reload(); }, 500);
+                  } else {
+                      alert(data.error || 'Error al restaurar');
+                  }
+              })
+              .catch(err => {
+                  console.error('Error restaurando', err);
+                  alert('Error de red al restaurar');
+              });
+        } else if (action === 'eliminar') {
+            if (!confirm(`Eliminar DEFINITIVAMENTE el proveedor "${nombre}" para ${dueno === 'ricky' ? 'Ricky' : 'Ferretería General'}?\n\nEsta acción no se puede deshacer.`)) return;
+            fetch('/eliminar_proveedor_definitivo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ nombre, dueno })
+            }).then(r => r.json())
+              .then(data => {
+                  if (data.success) {
+                      cargarOcultos();
+                      setTimeout(() => { window.location.reload(); }, 700);
+                  } else {
+                      alert(data.error || 'Error al eliminar');
+                  }
+              })
+              .catch(err => {
+                  console.error('Error eliminando', err);
+                  alert('Error de red al eliminar');
+              });
+        }
+    });
+});
+</script>
 {% endblock %}

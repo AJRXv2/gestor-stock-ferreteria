@@ -1,0 +1,64 @@
+{% macro fila(p) -%}
+<tr>
+  <td><input type="checkbox" name="seleccionados" value="{{ p.id }}" class="select-row-unified"></td>
+  <td>{{ p.id }}</td>
+  <td>{{ p.fecha_compra }}</td>
+  <td>{{ p.codigo }}</td>
+  <td>{{ p.nombre }}</td>
+  <td>{{ p.proveedor }}</td>
+  <td>
+    {% set precio_val = p.precio %}
+    {% if precio_val is number or precio_val|float(0) != 0 %}
+      ${{ '{:,.2f}'.format(precio_val|float).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+    {% else %}
+      {{ precio_val }}
+    {% endif %}
+  </td>
+  <td>{{ p.cantidad }}</td>
+  <td>{{ p.observaciones }}</td>
+  <td>
+    {% if (p.cantidad|int) <= 0 %}
+      <i class="bi bi-x-circle text-danger" title="Sin stock"></i>
+    {% elif (p.avisar_bajo_stock|int) == 1 and p.min_stock_aviso is not none and (p.cantidad|int) <= (p.min_stock_aviso|int) %}
+      <i class="bi bi-exclamation-triangle text-warning" title="Stock bajo ({{ p.cantidad }} / {{ p.min_stock_aviso }})"></i>
+    {% else %}
+      <i class="bi bi-check-circle text-success" title="Stock suficiente"></i>
+    {% endif %}
+  </td>
+  <td>
+    <form method="post" action="{{ url_for('actualizar_stock', id=p.id) }}" class="d-flex form-vender" data-id="{{ p.id }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="number" name="cantidad_vendida" min="1" max="{{ p.cantidad }}" value="1" class="form-control form-control-sm me-1" style="width:70px;">
+      <button type="submit" class="btn btn-warning btn-sm">Vender</button>
+    </form>
+  </td>
+  <td>-</td>
+</tr>
+{%- endmacro %}
+
+<table class="table table-bordered table-hover">
+  <thead class="table-light">
+    <tr>
+      <th><input type="checkbox" id="select_all_dynamic" onclick="for(let cb of document.querySelectorAll('.select-row-unified')){cb.checked=this.checked}"></th>
+      <th>ID</th>
+      <th>Fecha de compra</th>
+      <th>Código</th>
+      <th>Nombre</th>
+      <th>Proveedor</th>
+      <th>Precio</th>
+      <th>Cantidad</th>
+      <th>Observaciones</th>
+      <th>Stock Bajo</th>
+      <th>Vender</th>
+      <th>Eliminar</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in productos %}
+      {{ fila(p) }}
+    {% endfor %}
+    {% if productos|length == 0 %}
+    <tr><td colspan="12" class="text-center text-muted">Sin resultados</td></tr>
+    {% endif %}
+  </tbody>
+</table>

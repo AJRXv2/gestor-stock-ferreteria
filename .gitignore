@@ -1,0 +1,37 @@
+# --- Persistencia y bases de datos locales ---
+*.db
+*.sqlite3
+*.sqlite
+
+# Evitar subir respaldos accidentales
+backup*/
+old_version/
+
+# PyInstaller / build artefacts
+dist/
+build/
+*.spec
+
+# Bytecode / cache
+__pycache__/
+*.py[cod]
+
+# Entornos virtuales
+venv/
+.env
+
+# Logs
+*.log
+
+# Excel y datos manuales
+listas_excel/
+*.xlsx
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
