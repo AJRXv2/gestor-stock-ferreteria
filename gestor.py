@@ -678,6 +678,38 @@ def init_db():
                 if 'created_at' not in names: alter("ALTER TABLE stock ADD COLUMN created_at TEXT")
         except Exception as e:
             print(f"[WARN] ensure_stock_columns segunda fase: {e}")
+
+        # Crear tabla stock_history (modelo híbrido) si no existe
+        try:
+            cursor.execute(_adapt_sql_for_postgres('''
+                CREATE TABLE IF NOT EXISTS stock_history (
+                    id SERIAL PRIMARY KEY,
+                    stock_id INTEGER,                -- id de la fila en stock (si existía antes de update)
+                    codigo TEXT,
+                    nombre TEXT,
+                    precio REAL,
+                    cantidad INTEGER,
+                    fecha_compra TEXT,
+                    proveedor TEXT,
+                    observaciones TEXT,
+                    precio_texto TEXT,
+                    dueno TEXT,
+                    created_at TEXT,                 -- created_at original de la fila stock (si aplica)
+                    fecha_evento TEXT NOT NULL,      -- timestamp del momento del cambio
+                    tipo_cambio TEXT NOT NULL,       -- insert | update | manual_edit | import | sync | otro
+                    fuente TEXT,                     -- origen más específico (endpoint, script, etc.)
+                    usuario TEXT                     -- username si está logueado
+                )
+            '''))
+            # Índices útiles para consultas (ignoramos errores si ya existen)
+            try: cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_history_codigo ON stock_history(codigo)")
+            except Exception: pass
+            try: cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_history_fecha_evento ON stock_history(fecha_evento)")
+            except Exception: pass
+            try: cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_history_stock_id ON stock_history(stock_id)")
+            except Exception: pass
+        except Exception as e:
+            print(f"[WARN] No se pudo crear stock_history: {e}")
         
         # Crear tabla proveedores_manual
         cursor.execute(_adapt_sql_for_postgres(''' 
@@ -1132,6 +1164,35 @@ def export_stock_csv():
         buff.seek(0)
         from flask import Response
         return Response(buff.read(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=stock_export.csv'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/export_stock_history_csv')
+@login_required
+def export_stock_history_csv():
+    """Exportar historial completo (tabla stock_history)."""
+    import csv, io
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Sin conexión BD'}), 500
+        cur = conn.cursor()
+        cur.execute("SELECT id, stock_id, codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno, created_at, fecha_evento, tipo_cambio, fuente, usuario FROM stock_history ORDER BY id ASC")
+        rows = cur.fetchall()
+        buff = io.StringIO()
+        w = csv.writer(buff)
+        w.writerow(["ID","StockID","Codigo","Nombre","Precio","Cantidad","FechaCompra","Proveedor","Observaciones","PrecioTexto","Dueno","CreatedAt","FechaEvento","TipoCambio","Fuente","Usuario"])
+        for r in rows:
+            w.writerow([
+                r[0], r[1] or '', r[2] or '', r[3] or '',
+                r[4] if r[4] is not None else '',
+                r[5] if r[5] is not None else '',
+                r[6] or '', r[7] or '', (r[8] or '').replace('\n',' ').replace('\r',' '), r[9] or '',
+                r[10] or '', r[11] or '', r[12] or '', r[13] or '', r[14] or '', r[15] or ''
+            ])
+        buff.seek(0)
+        from flask import Response
+        return Response(buff.read(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=stock_history_export.csv'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -3369,6 +3430,18 @@ def manual_actualizar_ajax():
             cur.execute(update_sql, tuple(params_upd))
             afectados = cur.rowcount
             conn.commit()
+            if afectados > 0:
+                try:
+                    # Recuperar fila actual para snapshot
+                    row_q = None
+                    if proveedor_sync:
+                        row_q = db_query("SELECT * FROM stock WHERE LOWER(codigo)=LOWER(?) AND LOWER(proveedor)=LOWER(?) ORDER BY id DESC LIMIT 1", (codigo_sync, proveedor_sync), fetch=True)
+                    else:
+                        row_q = db_query("SELECT * FROM stock WHERE LOWER(codigo)=LOWER(?) ORDER BY id DESC LIMIT 1", (codigo_sync,), fetch=True)
+                    if row_q:
+                        log_stock_history('manual_edit', fuente='manual_actualizar_ajax_update', stock_row=row_q[0])
+                except Exception as e_log_upd:
+                    print(f"[WARN] log history update manual_actualizar_ajax: {e_log_upd}")
             if afectados == 0:
                 # Insertar nueva fila
                 ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -3385,6 +3458,12 @@ def manual_actualizar_ajax():
                         """, (codigo_sync, nombre_sync, precio_sync, 0, ahora, proveedor_sync, 'Añadido por edición manual', precio_texto, ahora))
                     conn.commit()
                     afectados = 1
+                    try:
+                        row_new = db_query("SELECT * FROM stock WHERE id = (SELECT MAX(id) FROM stock)", fetch=True)
+                        if row_new:
+                            log_stock_history('insert', fuente='manual_actualizar_ajax_insert', stock_row=row_new[0])
+                    except Exception as e_log_ins:
+                        print(f"[WARN] log history insert manual_actualizar_ajax: {e_log_ins}")
                 except Exception as e_ins2:
                     print(f"Error insertando en stock desde manual_actualizar_ajax: {e_ins2}")
         except Exception as e_sync:
@@ -3560,6 +3639,16 @@ def gestionar_manual_actualizar_ajax():
                 cur.execute(update_sql, tuple(params))
                 afectados = cur.rowcount
                 conn.commit()
+                if afectados > 0:
+                    try:
+                        if proveedor:
+                            row_q = db_query("SELECT * FROM stock WHERE LOWER(codigo)=LOWER(?) AND LOWER(proveedor)=LOWER(?) ORDER BY id DESC LIMIT 1", (codigo, proveedor), fetch=True)
+                        else:
+                            row_q = db_query("SELECT * FROM stock WHERE LOWER(codigo)=LOWER(?) ORDER BY id DESC LIMIT 1", (codigo,), fetch=True)
+                        if row_q:
+                            log_stock_history('manual_edit', fuente='gestionar_manual_actualizar_ajax_update', stock_row=row_q[0])
+                    except Exception as e_log_gest_upd:
+                        print(f"[WARN] log history update gestionar_manual_actualizar_ajax: {e_log_gest_upd}")
                 if afectados == 0:
                     # Insertar nueva fila para que aparezca
                     prov_ins = proveedor or ''
@@ -3577,6 +3666,12 @@ def gestionar_manual_actualizar_ajax():
                             """, (codigo, nombre, precio, 0, ahora, prov_ins, 'Añadido por edición manual', str(precio), ahora))
                         conn.commit()
                         afectados = 1
+                        try:
+                            row_new = db_query("SELECT * FROM stock WHERE id = (SELECT MAX(id) FROM stock)", fetch=True)
+                            if row_new:
+                                log_stock_history('insert', fuente='gestionar_manual_actualizar_ajax_insert', stock_row=row_new[0])
+                        except Exception as e_log_gest_ins:
+                            print(f"[WARN] log history insert gestionar_manual_actualizar_ajax: {e_log_gest_ins}")
                     except Exception as e_ins:
                         print(f"Error insertando fila stock tras edición manual: {e_ins}")
             except Exception as e_upd:
@@ -3791,6 +3886,49 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
         print(f"  {i+1}. {resultado.get('codigo', 'N/A')} - {resultado.get('nombre', 'N/A')} - ${resultado.get('precio', 0)}")
     
     return resultados
+
+# ------------------------------------------------------
+# Helper para registrar historial híbrido
+# ------------------------------------------------------
+def log_stock_history(tipo_cambio: str, fuente: str = None, stock_row: dict = None, extra: dict = None):
+    """Inserta una fila en stock_history.
+        tipo_cambio: 'insert' | 'update' | 'manual_edit' | 'import' | 'sync' | 'otro'
+        fuente: endpoint o script
+        stock_row: dict representando la fila actual (de stock) o futura
+        extra: campos adicionales (ignorados si col no existe)
+    """
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return
+        cur = conn.cursor()
+        fecha_evento = datetime.utcnow().isoformat()
+        data = {
+            'stock_id': stock_row.get('id') if stock_row else None,
+            'codigo': stock_row.get('codigo') if stock_row else None,
+            'nombre': stock_row.get('nombre') if stock_row else None,
+            'precio': stock_row.get('precio') if stock_row else None,
+            'cantidad': stock_row.get('cantidad') if stock_row else None,
+            'fecha_compra': stock_row.get('fecha_compra') if stock_row else None,
+            'proveedor': stock_row.get('proveedor') if stock_row else None,
+            'observaciones': stock_row.get('observaciones') if stock_row else None,
+            'precio_texto': stock_row.get('precio_texto') if stock_row else None,
+            'dueno': stock_row.get('dueno') if stock_row else None,
+            'created_at': stock_row.get('created_at') if stock_row else None,
+            'fecha_evento': fecha_evento,
+            'tipo_cambio': tipo_cambio,
+            'fuente': fuente,
+            'usuario': session.get('username') if 'username' in session else None
+        }
+        if extra:
+            data.update(extra)
+        cols = ",".join(data.keys())
+        placeholders = ",".join(['?'] * len(data)) if not _is_postgres_configured() else ",".join(['%s'] * len(data))
+        sql = f"INSERT INTO stock_history ({cols}) VALUES ({placeholders})"
+        cur.execute(sql, tuple(data.values()))
+        conn.commit()
+    except Exception as e:
+        print(f"[WARN] log_stock_history fallo: {e}")
 
 def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_filtro=None):
     """Buscar productos en el Excel de productos manuales por proveedor específico"""
