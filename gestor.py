@@ -4088,6 +4088,70 @@ def manual_eliminar_seleccionados_ajax():
     except Exception as e:
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
         # Validar proveedor ANTES de actualizar Excel
+
+@app.route('/manual_eliminar_por_proveedor_ajax', methods=['POST'])
+@login_required
+def manual_eliminar_por_proveedor_ajax():
+    """Eliminar TODOS los productos manuales de un proveedor específico (por proveedor_id + dueño).
+    Request JSON: { proveedor_id: int, dueno: 'ricky'|'ferreteria_general' }
+    - Borra de tabla productos_manual donde proveedor coincide (texto) y opcionalmente dueno.
+    - Actualiza productos_manual.xlsx filtrando esas filas.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        proveedor_id = data.get('proveedor_id')
+        dueno = (data.get('dueno') or '').strip().lower() or None
+        if not proveedor_id:
+            return jsonify({'success': False, 'msg': 'Falta proveedor_id.'})
+
+        # Obtener nombre del proveedor desde proveedores_manual
+        prov_rows = db_query("SELECT nombre, dueno FROM proveedores_manual WHERE id = ?", (proveedor_id,), fetch=True)
+        if not prov_rows:
+            return jsonify({'success': False, 'msg': 'Proveedor no encontrado.'})
+        proveedor_nombre = prov_rows[0]['nombre']
+        dueno_prov = (prov_rows[0].get('dueno') or '').lower() if isinstance(prov_rows[0], dict) else dueno
+
+        # Criterios de eliminación en BD
+        condiciones_sql = ["proveedor = ?"]
+        params = [proveedor_nombre]
+        if dueno and dueno_prov and dueno_prov == dueno:
+            condiciones_sql.append("(dueno IS NULL OR LOWER(dueno)=?)")
+            params.append(dueno)
+        deleted_count = 0
+        try:
+            # Obtener códigos para sincronizar Excel luego
+            cod_rows = db_query(f"SELECT codigo FROM productos_manual WHERE {' AND '.join(condiciones_sql)}", tuple(params), fetch=True) or []
+            codigos_eliminar = [r['codigo'] for r in cod_rows if r.get('codigo')]
+            res = db_query(f"DELETE FROM productos_manual WHERE {' AND '.join(condiciones_sql)}", tuple(params))
+            if res:
+                deleted_count = len(codigos_eliminar)
+        except Exception as e_del:
+            print(f"[manual_eliminar_por_proveedor_ajax] Error eliminando en BD: {e_del}")
+
+        # Actualizar Excel
+        excel_deleted = 0
+        if os.path.exists(MANUAL_PRODUCTS_FILE) and deleted_count:
+            try:
+                dfm = pd.read_excel(MANUAL_PRODUCTS_FILE)
+                dfm.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+                before = len(dfm)
+                # Filtrar filas cuyo Proveedor coincida (case-insensitive)
+                mask = dfm['Proveedor'].astype(str).str.lower() == str(proveedor_nombre).lower()
+                if dueno:
+                    # Si queremos restringir por dueño, solo quitar esas
+                    mask_dueno = dfm['Dueno'].astype(str).str.lower() == dueno
+                    mask = mask & mask_dueno
+                dfm = dfm[~mask]
+                excel_deleted = before - len(dfm)
+                if excel_deleted:
+                    with pd.ExcelWriter(MANUAL_PRODUCTS_FILE, engine='openpyxl', mode='w') as writer:
+                        dfm.to_excel(writer, index=False)
+            except Exception as e_x:
+                print(f"[manual_eliminar_por_proveedor_ajax] Error actualizando Excel: {e_x}")
+
+        return jsonify({'success': True, 'msg': f'Eliminados {deleted_count} producto(s) (Excel removió {excel_deleted}).', 'eliminados': deleted_count, 'excel_eliminados': excel_deleted})
+    except Exception as e:
+        return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
         nombre_prov_para_validar = None
         dueno_para_validar = None
         
