@@ -1792,13 +1792,15 @@ def agregar_proveedor_manual():
             if dueno == 'ambos':
                 flash(f'Proveedor "{nombre_guardado}" creado y asociado a ambos dueños.', 'success')
             else:
-                flash(f'Proveedor "{nombre_guardado}" creado para {"Ricky" if destinos==['ricky'] else "Ferretería General"}.', 'success')
+                destino_nombre = 'Ricky' if destinos == ['ricky'] else 'Ferretería General'
+                flash(f'Proveedor "{nombre_guardado}" creado para {destino_nombre}.', 'success')
         else:
             if agregados:
                 if dueno == 'ambos':
                     flash(f'Proveedor "{nombre_guardado}" ya existía. Se garantizó asociación a ambos dueños.', 'info')
                 else:
-                    flash(f'Proveedor "{nombre_guardado}" ya existía. Se asoció a {"Ricky" if destinos==['ricky'] else "Ferretería General"}.', 'info')
+                    destino_nombre = 'Ricky' if destinos == ['ricky'] else 'Ferretería General'
+                    flash(f'Proveedor "{nombre_guardado}" ya existía. Se asoció a {destino_nombre}.', 'info')
             else:
                 flash(f'El proveedor "{nombre_guardado}" ya estaba asociado al/los dueño(s) seleccionado(s).', 'warning')
     except Exception as e:
