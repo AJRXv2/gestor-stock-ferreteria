@@ -18,10 +18,14 @@ if not os.environ.get('SECRET_KEY'):
 print("Ejecutando migraciones de base de datos...")
 try:
     import migrate
-    migrate.apply_all_migrations()
-    print("Migraciones aplicadas con éxito")
+    success = migrate.apply_all_migrations()
+    if success:
+        print("Migraciones aplicadas con éxito")
+    else:
+        print("Advertencia: Algunas migraciones no se aplicaron correctamente")
 except Exception as e:
     print(f"Error al aplicar migraciones: {e}")
+    print("Continuando con la inicialización de la aplicación de todos modos...")
 
 # En Railway, DATABASE_URL se configura automáticamente cuando agregas una base de datos PostgreSQL
 

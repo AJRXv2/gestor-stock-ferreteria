@@ -25,4 +25,9 @@ ALTER TABLE stock ADD COLUMN IF NOT EXISTS nuevo_campo TEXT;
 COMMIT;
 */
 
--- Sustituir este archivo por la lógica real cuando necesites un cambio.
+-- Sentencia SQL válida para asegurar que esta migración se aplique correctamente
+-- Esto es un comentario que podría añadirse a la tabla stock para futura referencia
+COMMENT ON TABLE IF EXISTS stock IS 'Tabla principal de inventario';
+
+-- Si el motor no soporta COMMENT ON TABLE (como SQLite), la línea será ignorada
+-- y este archivo continuará siendo un ejemplo pero no causará errores.

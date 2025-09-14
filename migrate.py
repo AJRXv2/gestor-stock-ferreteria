@@ -56,20 +56,25 @@ def get_connection():
 
 
 def ensure_schema_migrations_table(cur):
-    if is_postgres():
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                version TEXT PRIMARY KEY,
-                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-    else:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                version TEXT PRIMARY KEY,
-                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    try:
+        if is_postgres():
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        else:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        print("[INFO] Tabla schema_migrations verificada o creada")
+    except Exception as e:
+        print(f"[ERROR] Error al crear tabla schema_migrations: {e}")
+        raise
 
 
 def list_migration_files():
@@ -94,35 +99,96 @@ def read_sql_file(path):
 
 
 def split_statements(sql):
-    # División naive por ';' que no esté dentro de comillas simples o dobles
+    # División por ';' que no esté dentro de comillas simples o dobles
+    # También ignora comentarios de línea (--) y bloques de comentarios (/* */)
     statements = []
     current = []
     in_single = False
     in_double = False
+    in_line_comment = False
+    in_block_comment = False
     prev = ''
-    for ch in sql:
-        if ch == "'" and not in_double and prev != '\\':
-            in_single = not in_single
-        elif ch == '"' and not in_single and prev != '\\':
-            in_double = not in_double
-        if ch == ';' and not in_single and not in_double:
-            stmt = ''.join(current).strip()
-            if stmt:
-                statements.append(stmt)
-            current = []
-        else:
-            current.append(ch)
-        prev = ch
+    
+    lines = sql.split('\n')
+    for line in lines:
+        line = line.strip()
+        # Ignorar líneas de comentario completas
+        if line.startswith('--'):
+            continue
+            
+        for i, ch in enumerate(line):
+            # Detectar inicio de comentario de línea
+            if ch == '-' and i+1 < len(line) and line[i+1] == '-' and not in_single and not in_double and not in_block_comment:
+                in_line_comment = True
+                continue
+                
+            # Ignorar todo dentro de un comentario de línea
+            if in_line_comment:
+                continue
+                
+            # Detectar inicio de bloque de comentario
+            if ch == '/' and i+1 < len(line) and line[i+1] == '*' and not in_single and not in_double:
+                in_block_comment = True
+                prev = ch
+                continue
+                
+            # Detectar fin de bloque de comentario
+            if ch == '/' and prev == '*' and in_block_comment:
+                in_block_comment = False
+                prev = ch
+                continue
+                
+            # Ignorar todo dentro de un bloque de comentario
+            if in_block_comment:
+                prev = ch
+                continue
+                
+            # Manejar comillas
+            if ch == "'" and not in_double and prev != '\\':
+                in_single = not in_single
+            elif ch == '"' and not in_single and prev != '\\':
+                in_double = not in_double
+                
+            # Detectar fin de sentencia
+            if ch == ';' and not in_single and not in_double:
+                stmt = ''.join(current).strip()
+                if stmt:  # Solo agregar si no está vacío
+                    statements.append(stmt)
+                current = []
+            else:
+                current.append(ch)
+            prev = ch
+        
+        # Reiniciar estado de comentario de línea al final de cada línea
+        in_line_comment = False
+        
+        # Agregar salto de línea si no estamos en un comentario
+        if not in_block_comment and current:
+            current.append('\n')
+    
+    # Agregar la última sentencia si existe
     tail = ''.join(current).strip()
     if tail:
         statements.append(tail)
-    return statements
+        
+    # Filtrar sentencias vacías o que solo contienen espacios en blanco
+    return [stmt for stmt in statements if stmt.strip()]
 
 
 def adapt_sql_for_postgres(sql):
     """Adaptar sintaxis SQLite a PostgreSQL."""
     # Reemplazar AUTOINCREMENT por SERIAL
     sql = sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+    
+    # Reemplazar IF NOT EXISTS para columnas (sintaxis específica de SQLite)
+    if "COMMENT ON TABLE IF EXISTS" in sql:
+        # PostgreSQL soporta COMMENT ON TABLE pero no el IF EXISTS
+        sql = sql.replace("COMMENT ON TABLE IF EXISTS", "COMMENT ON TABLE")
+    
+    # Ignorar PRAGMA (comandos específicos de SQLite)
+    if sql.strip().upper().startswith("PRAGMA"):
+        return ""
+    
     # Otros reemplazos que puedan ser necesarios
     return sql
 
@@ -131,20 +197,28 @@ def apply_migration(cur, version, path):
     sql = read_sql_file(path)
     statements = split_statements(sql)
     if not statements:
-        print(f"[WARN] {version}: archivo vacío")
+        print(f"[WARN] {version}: archivo vacío o solo contiene comentarios")
         return
+    
     print(f"[APPLY] {version}: ejecutando {len(statements)} sentencias...")
+    count = 0
     for stmt in statements:
-        if not stmt:
+        if not stmt or stmt.isspace():
             continue
+            
         try:
             # Adaptar SQL según el motor de base de datos
             if is_postgres():
                 stmt = adapt_sql_for_postgres(stmt)
             cur.execute(stmt)
+            count += 1
         except Exception as e:
-            print(f"[ERROR] Falló sentencia en {version}: {e}\nSQL: {stmt[:400]}")
+            print(f"[ERROR] Falló sentencia en {version}: {e}")
+            print(f"SQL: {stmt[:400]}")
             raise
+    
+    print(f"[INFO] {version}: {count} sentencias ejecutadas correctamente")
+    
     # Registrar versión
     cur.execute("INSERT INTO schema_migrations (version) VALUES (%s)" if is_postgres() else "INSERT INTO schema_migrations (version) VALUES (?)", (version,))
 
@@ -259,17 +333,45 @@ def apply_all_migrations():
         print(f"Migraciones pendientes: {', '.join(pendientes)}")
         
         # Aplicar cada migración pendiente en orden
+        exitosos = []
         for version in pendientes:
-            file_path = mapeo_archivo_ruta[version]
-            print(f"Aplicando migración {version} desde {file_path}...")
-            apply_migration(cur, version, file_path)
+            try:
+                file_path = mapeo_archivo_ruta[version]
+                print(f"Aplicando migración {version} desde {file_path}...")
+                apply_migration(cur, version, file_path)
+                exitosos.append(version)
+            except Exception as e:
+                # Si falla una migración, hacemos rollback y continuamos con la siguiente
+                conn.rollback()
+                print(f"[ERROR] Error al aplicar migración {version}: {e}")
+                print(f"Se continuará con las siguientes migraciones...")
+                continue
+        
+        if exitosos:
+            conn.commit()
+            print(f"Migraciones aplicadas con éxito: {', '.join(exitosos)}")
             
-        conn.commit()
-        print("Todas las migraciones pendientes aplicadas con éxito.")
-        return True
+        # Informar del estado final
+        if len(exitosos) == len(pendientes):
+            print("Todas las migraciones pendientes aplicadas con éxito.")
+            return True
+        else:
+            print(f"ADVERTENCIA: Solo se aplicaron {len(exitosos)} de {len(pendientes)} migraciones pendientes.")
+            return False
+            
     except Exception as e:
         print(f"[ERROR] Error al aplicar migraciones automáticamente: {e}")
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         return False
+    finally:
+        try:
+            if conn:
+                conn.close()
+        except Exception:
+            pass
 
 
 def main():
