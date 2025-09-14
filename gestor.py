@@ -2437,22 +2437,136 @@ def agregar_producto():
     
     # Obtener parámetros de búsqueda en Excel
     termino_excel = request.args.get('busqueda_excel', '')
-    proveedor_excel_filtro = request.args.get('proveedor_excel', '')
     proveedor_excel_ricky = request.args.get('proveedor_excel_ricky', '')
     proveedor_excel_fg = request.args.get('proveedor_excel_fg', '')
-    if not proveedor_excel_filtro:
-        proveedor_excel_filtro = proveedor_excel_ricky or proveedor_excel_fg or ''
+    
+    # Usar exclusivamente uno de los selectores como filtro de proveedor
+    if proveedor_excel_ricky:
+        proveedor_excel_filtro = proveedor_excel_ricky
+        solo_ricky = True
+        solo_fg = False
+    elif proveedor_excel_fg:
+        proveedor_excel_filtro = proveedor_excel_fg
+        solo_ricky = False
+        solo_fg = True
+    else:
+        proveedor_excel_filtro = ''
+        
+        # Si no se seleccionaron cajas de verificación, no aplicar filtros exclusivos
+        # Esto permite la búsqueda en todos los proveedores de ambos dueños
+        solo_ricky = True if request.args.get('solo_ricky') else False
+        solo_fg = True if request.args.get('solo_fg') else False
+        
+        # Si ambas cajas están desmarcadas, buscar en todos los proveedores
+        if not solo_ricky and not solo_fg:
+            solo_ricky = False
+            solo_fg = False
+            
     filtro_excel = request.args.get('filtro_excel', '')
-    solo_ricky = True if request.args.get('solo_ricky') else False
-    solo_fg = True if request.args.get('solo_fg') else False
     resultados_excel = []
     
     # Realizar búsqueda en Excel si hay término
     if termino_excel:
-        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' y filtro adicional: '{filtro_excel}'")
-        # Pasar flags de alcance (solo_ricky / solo_fg) a la búsqueda
-        resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-        print(f"📊 Resultados encontrados: {len(resultados_excel)}")
+        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' | solo_ricky: {solo_ricky} | solo_fg: {solo_fg}")
+        
+        # Si el término es un código numérico y tenemos proveedor específico, usar búsqueda precisa
+        if termino_excel.isdigit() and proveedor_excel_filtro:
+            print(f"🔢 Realizando búsqueda específica de código exacto: {termino_excel} en {proveedor_excel_filtro}")
+            # Buscar el código exacto en el proveedor específico
+            resultados_exactos = buscar_codigo_exacto_en_proveedor(
+                termino_excel, 
+                proveedor_excel_filtro, 
+                solo_ricky=solo_ricky, 
+                solo_fg=solo_fg
+            )
+            
+            if resultados_exactos:
+                print(f"📊 Encontrados {len(resultados_exactos)} resultados exactos")
+                resultados_excel = resultados_exactos
+            else:
+                # Hacer la búsqueda normal y luego filtrar estrictamente
+                print(f"🔍 No hay coincidencias exactas, buscando alternativas...")
+                resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+                
+                # Aplicar filtro extremadamente estricto - solo el código exacto y proveedor
+                resultados_filtrados = []
+                for r in resultados_excel:
+                    r_codigo = str(r.get('codigo', '')).strip()
+                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
+                    r_archivo = str(r.get('archivo', '')).lower()
+                    
+                    # Verificar código exacto
+                    if r_codigo != termino_excel:
+                        continue
+                        
+                    # Verificar que el proveedor coincida
+                    if r_proveedor != proveedor_excel_filtro.lower():
+                        continue
+                        
+                    # Verificar que el nombre del archivo comience con el proveedor
+                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
+                        continue
+                        
+                    resultados_filtrados.append(r)
+                    print(f"✅ Coincidencia estricta: Código {r_codigo} en proveedor {r_proveedor}, archivo {r_archivo}")
+                
+                if resultados_filtrados:
+                    resultados_excel = resultados_filtrados
+                    print(f"📊 Filtrado a {len(resultados_excel)} coincidencias exactas de código")
+        else:
+            # Búsqueda normal para términos de texto o sin proveedor específico
+            resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+            print(f"📊 Resultados encontrados: {len(resultados_excel)}")
+            
+            # Filtrar resultados para eliminar entradas inválidas
+            resultados_excel = [r for r in resultados_excel if r.get('nombre') and not r.get('nombre').startswith('Fila ')]
+            print(f"📊 Resultados después de filtrar entradas inválidas: {len(resultados_excel)}")
+            
+            # Si hay un proveedor seleccionado, aplicar filtro muy estricto
+            if proveedor_excel_filtro:
+                resultados_filtrados = []
+                for r in resultados_excel:
+                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
+                    r_archivo = str(r.get('archivo', '')).lower()
+                    
+                    # Asegurarse que coincida el proveedor 
+                    if r_proveedor != proveedor_excel_filtro.lower():
+                        continue
+                    
+                    # Verificar que el nombre del archivo comience con el proveedor
+                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
+                        print(f"⚠️ Omitiendo resultado de {r_archivo}, no coincide con proveedor {proveedor_excel_filtro.lower()}")
+                        continue
+                        
+                    resultados_filtrados.append(r)
+                
+                resultados_excel = resultados_filtrados
+                print(f"📊 Resultados estrictamente filtrados por proveedor: {len(resultados_excel)}")
+        
+        # Aplicar deduplicación para mostrar resultados únicos por producto Y proveedor
+        # Agrupar productos por nombre, código Y proveedor para mantener la variedad de proveedores
+        productos_unicos = {}
+        
+        # Criterio de deduplicación: considerar código, nombre del producto Y proveedor
+        # Mantener diferentes proveedores para el mismo producto
+        for r in resultados_excel:
+            codigo = str(r.get('codigo', '')).strip()
+            nombre = str(r.get('nombre', '')).lower().strip()
+            proveedor = str(r.get('proveedor', '')).lower().strip()
+            
+            # Clave única basada en código, nombre del producto y proveedor
+            clave_producto = f"{codigo}|{nombre}|{proveedor}"
+            
+            # Almacenar un resultado por cada combinación única de producto/proveedor
+            if clave_producto not in productos_unicos:
+                productos_unicos[clave_producto] = r
+        
+        # Convertir el diccionario en lista final de resultados
+        resultados_previos = len(resultados_excel)
+        resultados_excel = list(productos_unicos.values())
+        
+        # Log simple sin mostrar datos detallados
+        print(f"✅ Deduplicación completada: {len(resultados_excel)} productos únicos (de {resultados_previos} resultados originales)")
     
     # Obtener proveedores manuales para el selector
     proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
@@ -5098,10 +5212,27 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             )
             resultados.extend(resultados_proveedor)
     
-    # Log cantidad total de resultados
-    print(f"🔍 [BUSCAR_EXCEL] Total de resultados: {len(resultados)}")
+    # Primera deduplicación básica - eliminar duplicados exactos
+    # Esta deduplicación es más ligera y se hace a nivel de función
+    resultados_sin_duplicados = []
+    claves_vistas = set()
     
-    return resultados
+    for r in resultados:
+        codigo = str(r.get('codigo', '')).strip()
+        proveedor = str(r.get('proveedor', '')).lower().strip()
+        nombre = str(r.get('nombre', '')).lower().strip()
+        
+        # Crear una clave para eliminar duplicados exactos
+        clave = f"{codigo}|{proveedor}|{nombre}"
+        
+        if clave not in claves_vistas:
+            claves_vistas.add(clave)
+            resultados_sin_duplicados.append(r)
+    
+    # Log cantidad total de resultados
+    print(f"🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: {len(resultados_sin_duplicados)} de {len(resultados)} originales")
+    
+    return resultados_sin_duplicados
 
 def agregar_producto_manual_excel():
     """Agregar producto manual al Excel (no directamente al stock)"""
@@ -5414,10 +5545,12 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
     except Exception as e:
         print(f"Error en buscar_en_excel_manual: {e}")
     return resultados
-
+    
 def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None):
     """Buscar productos en archivos Excel del proveedor especificado"""
     resultados = []
+    claves_vistas = set()  # Conjunto para controlar duplicados
+    
     try:
         print(f"[EXCEL DEBUG] Iniciando búsqueda para proveedor '{proveedor}'")
         
@@ -5495,40 +5628,75 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                     
                     # Buscar en cada fila
                     for row_idx, row in enumerate(filas, 1):
-                        row_values = [str(cell.value).lower() if cell.value is not None else '' for cell in row]
-                        row_text = ' '.join(row_values)
+                        # Guardamos valores originales y convertimos a minúsculas solo para búsqueda
+                        row_values_orig = [str(cell.value) if cell.value is not None else '' for cell in row]
+                        row_values_lower = [val.lower() for val in row_values_orig]
+                        row_text_lower = ' '.join(row_values_lower)
                         
-                        # Verificar si el término está en esta fila
-                        if termino_busqueda in row_text:
-                            # Aplicar filtro adicional si existe
-                            if filtro_adicional and filtro_adicional.lower() not in row_text:
+                        # Verificar si el término está específicamente en código o nombre
+                        codigo_lower = row_values_lower[0] if len(row_values_lower) > 0 else ''
+                        nombre_lower = row_values_lower[1] if len(row_values_lower) > 1 else ''
+                        
+                        # Hacer un filtrado más estricto
+                        match_found = False
+                        # Si el término parece un código (solo números), buscar coincidencia exacta en código
+                        if termino_busqueda.isdigit():
+                            # Coincidencia exacta con el código
+                            if termino_busqueda == codigo_lower:
+                                match_found = True
+                                print(f"[EXCEL] ✅ Coincidencia exacta de código: {termino_busqueda} == {codigo_lower}")
+                            # Si no coincide exactamente, buscar como parte del código (solo si tiene espacios)
+                            elif codigo_lower and termino_busqueda in codigo_lower.split():
+                                match_found = True
+                                print(f"[EXCEL] ✅ Coincidencia en parte del código: {termino_busqueda} en {codigo_lower}")
+                        # Si no es un código, buscar en cualquier parte de la fila
+                        else:
+                            if termino_busqueda in row_text_lower:
+                                match_found = True
+                                print(f"[EXCEL] ✅ Coincidencia de texto: {termino_busqueda} en fila")
+                        
+                        if not match_found:
+                            continue
+                            
+                        # Aplicar filtro adicional si existe
+                        if filtro_adicional and filtro_adicional.lower() not in row_text_lower:
+                            continue
+                            
+                        # Extraer datos de la fila
+                        codigo = row_values_orig[0] if len(row_values_orig) > 0 else ''
+                        nombre = row_values_orig[1] if len(row_values_orig) > 1 else ''
+                        precio = 0.0
+                        
+                        # Intentar extraer precio
+                        if len(row_values_orig) > 2:
+                            try:
+                                precio_text = row_values_orig[2].replace('.', '').replace(',', '.')
+                                precio = float(precio_text) if precio_text else 0.0
+                            except (ValueError, TypeError):
+                                precio = 0.0
+                            
+                            # Crear clave única para evitar duplicados
+                            clave = f"{codigo}_{proveedor.lower()}_{nombre_archivo}_{ws_name}_{row_idx}"
+                            
+                            # Verificar si ya hemos procesado este resultado exacto
+                            if clave in claves_vistas:
+                                print(f"[EXCEL] ⚠️ Omitiendo duplicado para código {codigo} en {nombre_archivo}")
                                 continue
                                 
-                            # Extraer datos de la fila
-                            codigo = row_values[0] if len(row_values) > 0 else ''
-                            nombre = row_values[1] if len(row_values) > 1 else ''
-                            precio = 0.0
-                            
-                            # Intentar extraer precio
-                            if len(row_values) > 2:
-                                try:
-                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
-                                    precio = float(precio_text) if precio_text else 0.0
-                                except (ValueError, TypeError):
-                                    precio = 0.0
+                            claves_vistas.add(clave)
                             
                             # Crear resultado
                             resultado = {
                                 'codigo': codigo,
                                 'nombre': nombre if nombre else f"Fila {row_idx}",
                                 'precio': precio,
-                                'proveedor': proveedor,
+                                'proveedor': proveedor.title(),
                                 'archivo': nombre_archivo,
                                 'hoja': ws_name,
                                 'fila': row_idx,
                                 'tipo': 'excel',
                                 'dueno': dueno,
-                                'row_text': row_text
+                                'row_text': row_text_lower
                             }
                             resultados.append(resultado)
                 
@@ -5538,8 +5706,125 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                 
     except Exception as e:
         print(f"[EXCEL] Error general en buscar_en_excel_proveedor: {e}")
-        
+    
+    print(f"[EXCEL] Búsqueda en proveedor '{proveedor}' completada: {len(resultados)} resultados (de {len(claves_vistas)} coincidencias)")
     return resultados
+
+def buscar_codigo_exacto_en_proveedor(codigo, proveedor, solo_ricky=False, solo_fg=False):
+    """Busca un código específico en un proveedor específico con criterios muy estrictos"""
+    resultados = []
+    claves_vistas = set()  # Conjunto para controlar duplicados
+    
+    try:
+        print(f"🎯 [EXCEL] Iniciando búsqueda exacta de código '{codigo}' en proveedor '{proveedor}'")
+        if not codigo.isdigit() or not proveedor:
+            print(f"⚠️ [EXCEL] Código no numérico o proveedor vacío")
+            return []
+        
+        # Verificar que exista la configuración del proveedor
+        if proveedor not in PROVEEDOR_CONFIG:
+            print(f"⚠️ [EXCEL] Error: Proveedor '{proveedor}' no configurado")
+            return []
+            
+        # Obtener configuración del proveedor
+        config = PROVEEDOR_CONFIG[proveedor]
+        dueno = config.get('dueno', 'ferreteria_general')
+        print(f"🔍 [EXCEL] Dueño del proveedor: {dueno}")
+        
+        # Verificar si el proveedor está habilitado para el filtro de dueño
+        if (solo_ricky and dueno != 'ricky') or (solo_fg and dueno != 'ferreteria_general'):
+            print(f"⚠️ [EXCEL] Proveedor no coincide con filtro de dueño")
+            return []
+        
+        # Directorio base para archivos del proveedor
+        directorio_base = os.path.join('listas_excel', config.get('folder', proveedor))
+        print(f"📁 [EXCEL] Buscando en directorio: {directorio_base}")
+        
+        if not os.path.exists(directorio_base):
+            print(f"⚠️ [EXCEL] Directorio no existe: {directorio_base}")
+            return []
+            
+        # Buscar en todos los archivos Excel disponibles
+        archivos_excel = []
+        for root, _, files in os.walk(directorio_base):
+            for file in files:
+                if file.endswith('.xlsx') or file.endswith('.xls'):
+                    ruta_completa = os.path.join(root, file)
+                    archivos_excel.append(ruta_completa)
+                    
+        print(f"📊 [EXCEL] Encontrados {len(archivos_excel)} archivos para analizar")
+        
+        # Buscar el código exacto en cada archivo
+        for archivo in archivos_excel:
+            try:
+                from openpyxl import load_workbook
+                wb = load_workbook(archivo, read_only=True, data_only=True)
+                
+                for ws_name in wb.sheetnames:
+                    ws = wb[ws_name]
+                    filas = list(ws.rows)
+                    
+                    for row_idx, row in enumerate(filas, 1):
+                        # Obtener valores de celda
+                        row_values = [str(cell.value) if cell.value is not None else '' for cell in row]
+                        if len(row_values) == 0:
+                            continue
+                        
+                        # Obtener código y verificar coincidencia exacta
+                        fila_codigo = row_values[0].strip() if len(row_values) > 0 else ''
+                        if fila_codigo == codigo:
+                            print(f"✅ [EXCEL] Coincidencia exacta encontrada en {os.path.basename(archivo)}, hoja {ws_name}, fila {row_idx}")
+                            
+                            # Extraer datos
+                            nombre = row_values[1] if len(row_values) > 1 else f"Fila {row_idx}"
+                            precio = 0.0
+                            
+                            if len(row_values) > 2:
+                                try:
+                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
+                                    precio = float(precio_text) if precio_text else 0.0
+                                except (ValueError, TypeError):
+                                    precio = 0.0
+                                    
+                            # Verificar que el archivo corresponda realmente al proveedor buscado
+                            archivo_base = os.path.basename(archivo).lower()
+                            if not archivo_base.startswith(proveedor.lower()):
+                                print(f"⚠️ [EXCEL] Omitiendo resultado de {archivo_base}, no coincide con proveedor {proveedor.lower()}")
+                                continue
+                                
+                            # Crear clave única para evitar duplicados
+                            clave = f"{codigo}_{proveedor.lower()}_{archivo_base}_{ws_name}_{row_idx}"
+                            
+                            # Verificar si ya hemos procesado este resultado exacto
+                            if clave in claves_vistas:
+                                print(f"⚠️ [EXCEL] Omitiendo duplicado para código {codigo} en {archivo_base}")
+                                continue
+                                
+                            claves_vistas.add(clave)
+                            
+                            # Crear resultado
+                            resultado = {
+                                'codigo': codigo,
+                                'nombre': nombre,
+                                'precio': precio,
+                                'proveedor': proveedor.title(),
+                                'archivo': os.path.basename(archivo),
+                                'hoja': ws_name,
+                                'fila': row_idx,
+                                'tipo': 'excel',
+                                'dueno': dueno,
+                                'coincidencia_exacta': True
+                            }
+                            resultados.append(resultado)
+            except Exception as e:
+                print(f"⚠️ [EXCEL] Error al procesar archivo {archivo}: {e}")
+                
+        print(f"🎯 [EXCEL] Búsqueda exacta completada: {len(resultados)} resultados (de {len(claves_vistas)} coincidencias)")
+        return resultados
+        
+    except Exception as e:
+        print(f"❌ [EXCEL] Error en buscar_codigo_exacto_en_proveedor: {e}")
+        return []
 
 def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key, dueno='ricky'):
     """Procesar un archivo Excel específico"""
@@ -6347,6 +6632,116 @@ def importar_factura_pdf_confirm():
         return jsonify({'success': True, 'items_agregados': agregados, 'html': html})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# Rutas para el escáner de códigos de barras
+@app.route('/escanear', methods=['GET'])
+@login_required
+def escanear():
+    # Obtener el historial de escaneos recientes (últimos 10)
+    if _is_postgres_configured():
+        # PostgreSQL usa una sintaxis diferente para operaciones de fecha
+        historial = db_query("""
+            SELECT s.id, s.codigo, s.nombre, h.cantidad, h.fecha_compra, s.cantidad as stock_actual
+            FROM historial h
+            JOIN stock s ON h.codigo = s.codigo
+            WHERE h.fecha_compra >= NOW() - INTERVAL '1 day'
+            ORDER BY h.fecha_compra DESC
+            LIMIT 10
+        """, fetch=True) or []
+    else:
+        # Consulta para SQLite
+        historial = db_query("""
+            SELECT s.id, s.codigo, s.nombre, h.cantidad, h.fecha_compra, s.cantidad as stock_actual
+            FROM historial h
+            JOIN stock s ON h.codigo = s.codigo
+            WHERE h.fecha_compra >= datetime('now', '-1 day')
+            ORDER BY h.fecha_compra DESC
+            LIMIT 10
+        """, fetch=True) or []
+    
+    return render_template('escanear.html', historial=historial, resultado=session.pop('resultado_escaneo', None))
+
+@app.route('/procesar_escaneo', methods=['POST'])
+@login_required
+def procesar_escaneo():
+    codigo_barras = request.form.get('codigo_barras', '').strip()
+    cantidad = int(request.form.get('cantidad', 1))
+    
+    if not codigo_barras:
+        flash('Debe proporcionar un código de barras', 'danger')
+        return redirect(url_for('escanear'))
+    
+    # Buscar el producto por código de barras
+    producto = db_query("SELECT * FROM stock WHERE codigo = ?", (codigo_barras,), fetch=True)
+    
+    if not producto:
+        session['resultado_escaneo'] = {
+            'tipo': 'danger',
+            'titulo': 'Producto no encontrado',
+            'mensaje': f'No se encontró ningún producto con el código {codigo_barras}'
+        }
+        return redirect(url_for('escanear'))
+    
+    producto = producto[0]
+    
+    # Actualizar el stock
+    nueva_cantidad = max(0, producto['cantidad'] - cantidad)
+    result = db_query("UPDATE stock SET cantidad = ? WHERE id = ?", (nueva_cantidad, producto['id']))
+    
+    if result:
+        # Registrar en el historial
+        db_query(
+            "INSERT INTO historial (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                producto['codigo'],
+                producto['nombre'],
+                producto['precio'],
+                cantidad,
+                datetime.now().isoformat(timespec='seconds'),
+                producto['proveedor'],
+                f'Venta por escáner de código de barras',
+                str(producto['precio']),
+                producto['dueno']
+            )
+        )
+        
+        # Generar mensaje de resultado
+        session['resultado_escaneo'] = {
+            'tipo': 'success',
+            'titulo': 'Stock actualizado',
+            'mensaje': f'Se descontaron {cantidad} unidades de "{producto["nombre"]}". Stock actual: {nueva_cantidad}'
+        }
+        
+        # Verificar si el stock está bajo el umbral
+        if producto.get('avisar_bajo_stock') and producto.get('min_stock_aviso') is not None:
+            umbral = int(producto.get('min_stock_aviso'))
+            if nueva_cantidad <= umbral:
+                mensaje = f'Producto "{producto.get("nombre", "")}" bajo en stock (quedan {nueva_cantidad}, umbral {umbral}).'
+                # Persistir en BD
+                try:
+                    user_id = session.get('user_id')
+                    db_query(
+                        "INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id) VALUES (?,?,?,?,?,?,?)",
+                        (
+                            producto.get('codigo',''),
+                            producto.get('nombre',''),
+                            producto.get('proveedor',''),
+                            mensaje,
+                            datetime.now().isoformat(timespec='seconds'),
+                            0,
+                            user_id
+                        )
+                    )
+                except Exception as _e:
+                    print(f"[WARN] No se pudo persistir notificación: {_e}")
+    else:
+        session['resultado_escaneo'] = {
+            'tipo': 'danger',
+            'titulo': 'Error',
+            'mensaje': 'No se pudo actualizar el stock del producto'
+        }
+    
+    return redirect(url_for('escanear'))
 
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")
