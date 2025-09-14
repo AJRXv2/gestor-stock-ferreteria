@@ -5605,9 +5605,21 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                         df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
                     )
                     mask_all &= tok_mask
-                df = df[mask_all]
-                print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(df)} filas")
                 
+                filtered_by_term = df[mask_all]
+                print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(filtered_by_term)} filas")
+                
+                # Si no hay resultados después de filtrar por término, mostramos todos los productos disponibles
+                # y agregamos un mensaje de diagnóstico para saber qué hay en el Excel
+                if len(filtered_by_term) == 0:
+                    print(f"[EXCEL DEBUG] No se encontraron productos que coincidan con '{termino_busqueda}', mostrando primeras 5 filas disponibles para diagnóstico:")
+                    print(df.head().to_string())
+                    # Si estamos en un entorno de diagnóstico, continuamos con 0 resultados
+                    # En producción, podríamos decidir mostrar todos los productos disponibles
+                    df = filtered_by_term
+                else:
+                    df = filtered_by_term
+            
         print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
         
         for _, row in df.iterrows():
