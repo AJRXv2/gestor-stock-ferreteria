@@ -33,7 +33,7 @@ def fix_provider_duenos_relations(is_postgres):
             cursor.execute("""
                 SELECT pm.id, pm.nombre, pm.dueno 
                 FROM proveedores_manual pm
-                LEFT JOIN proveedores_duenos pd ON pm.id = pd.id_proveedor
+                LEFT JOIN proveedores_duenos pd ON pm.id = pd.proveedor_id
                 WHERE pd.id IS NULL AND pm.dueno IS NOT NULL
             """)
             
