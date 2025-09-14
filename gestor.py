@@ -5444,12 +5444,23 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
         
         # Usar una búsqueda más flexible (cualquier coincidencia parcial)
-        df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
-        print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}': {len(df)} filas")
+        filtered_df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
+        print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}': {len(filtered_df)} filas")
         
+        # Si no hay resultados después de filtrar por proveedor pero hay un filtro de dueño,
+        # ignoramos el filtro de proveedor y solo filtramos por dueño
+        if len(filtered_df) == 0 and dueno_filtro:
+            print(f"[EXCEL DEBUG] No se encontraron productos para el proveedor '{proveedor_nombre}' - ignorando filtro de proveedor y usando solo dueño")
+            # Usamos el DataFrame original sin filtrar por proveedor
+            df_for_dueno = df
+        else:
+            # Si encontramos productos con el proveedor o no hay filtro de dueño, continuamos normalmente
+            df_for_dueno = filtered_df
+        
+        # Aplicamos el filtro de dueño si existe
         if dueno_filtro:
             print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
-            df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
+            df = df_for_dueno[df_for_dueno['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
             print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
         
         # Filtrar por término de búsqueda si existe (soporta combinaciones "palabra1 palabra2")
