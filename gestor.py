@@ -5442,7 +5442,10 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         proveedor_info = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (proveedor_id,), fetch=True)
         if not proveedor_info:
             print(f"[EXCEL ERROR] No se encontró información para el proveedor con ID {proveedor_id}")
-            return resultados
+            # CAMBIO: Si no encontramos el proveedor, continuamos sin filtrar por proveedor
+            all_results = buscar_en_excel_manual(termino_busqueda, dueno_filtro)
+            print(f"[EXCEL DEBUG] Como no se encontró el proveedor, se devuelven todos los resultados: {len(all_results)}")
+            return all_results
         
         proveedor_nombre = proveedor_info[0]['nombre']
         print(f"[EXCEL DEBUG] Nombre del proveedor ID {proveedor_id}: '{proveedor_nombre}'")
@@ -5463,6 +5466,26 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.upper()}': {(df['Proveedor'] == proveedor_nombre.upper()).sum()} coincidencias")
         print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
         
+        # Búsqueda específica: Si buscamos un producto exacto por código, lo buscamos en todo el Excel
+        if termino_busqueda and len(termino_busqueda.strip()) >= 3 and not termino_busqueda.strip().isdigit():
+            exact_matches = df[df['Codigo'].astype(str).str.lower() == termino_busqueda.lower()]
+            if len(exact_matches) > 0:
+                print(f"[EXCEL DEBUG] ¡ENCONTRAMOS CÓDIGO EXACTO! '{termino_busqueda}' - {len(exact_matches)} coincidencias")
+                for _, row in exact_matches.iterrows():
+                    precio_val, precio_error = parse_price(row.get('Precio', ''))
+                    resultado = {
+                        'codigo': row.get('Codigo', ''),
+                        'nombre': row.get('Nombre', ''),
+                        'precio': precio_val,
+                        'precio_texto': str(row.get('Precio', '')) if precio_error else None,
+                        'proveedor': row.get('Proveedor', ''),
+                        'observaciones': row.get('Observaciones', ''),
+                        'dueno': row.get('Dueno', ''),
+                        'es_manual': True,
+                        'matchExacto': True
+                    }
+                    resultados.append(resultado)
+        
         # Usar una búsqueda más flexible que incluya coincidencias parciales y comparaciones insensibles a mayúsculas/minúsculas
         # Esta es una búsqueda más agresiva que la original
         filtered_df = df[df['Proveedor'].astype(str).str.lower().str.contains(proveedor_nombre.lower(), na=False)]
@@ -5470,12 +5493,20 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         
         # Si no hay resultados después de filtrar por proveedor pero hay un filtro de dueño,
         # ignoramos el filtro de proveedor y solo filtramos por dueño
-        if len(filtered_df) == 0 and dueno_filtro:
-            print(f"[EXCEL DEBUG] No se encontraron productos para el proveedor '{proveedor_nombre}' - ignorando filtro de proveedor y usando solo dueño")
-            # Usamos el DataFrame original sin filtrar por proveedor
+        if len(filtered_df) == 0:
+            print(f"[EXCEL DEBUG] No se encontraron productos para el proveedor '{proveedor_nombre}' - ignorando filtro de proveedor")
+            # CAMBIO: Usamos el DataFrame original sin filtrar por proveedor siempre que no hay resultados
             df_for_dueno = df
+            # Si hay término de búsqueda, buscamos específicamente ese término
+            if termino_busqueda:
+                print(f"[EXCEL DEBUG] Buscando específicamente el término '{termino_busqueda}' en todo el Excel:")
+                for idx, row in df.iterrows():
+                    codigo = str(row.get('Codigo', '')).lower()
+                    nombre = str(row.get('Nombre', '')).lower()
+                    if termino_busqueda.lower() in codigo or termino_busqueda.lower() in nombre:
+                        print(f"[EXCEL DEBUG] ¡ENCONTRADO SIN FILTRO DE PROVEEDOR! Fila {idx}, Código: {row.get('Codigo', '')}, Nombre: {row.get('Nombre', '')}")
         else:
-            # Si encontramos productos con el proveedor o no hay filtro de dueño, continuamos normalmente
+            # Si encontramos productos con el proveedor, continuamos normalmente
             df_for_dueno = filtered_df
         
         # Aplicamos el filtro de dueño si existe
@@ -5483,9 +5514,11 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
             print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
             df = df_for_dueno[df_for_dueno['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
             print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
+        else:
+            df = df_for_dueno
         
         # Filtrar por término de búsqueda si existe (soporta combinaciones "palabra1 palabra2")
-        if termino_busqueda:
+        if termino_busqueda and len(resultados) == 0:  # Solo filtrar si no tenemos resultados exactos
             print(f"[EXCEL DEBUG] Filtrando por término de búsqueda: {termino_busqueda}")
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
@@ -5499,6 +5532,36 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
                     mask_all &= mask_tok
                 df = df[mask_all]
                 print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(df)} filas")
+        
+        # Si después de todo esto no hay resultados, pero hay un término de búsqueda,
+        # volvemos a buscar en todo el Excel sin filtro de proveedor
+        if len(df) == 0 and len(resultados) == 0 and termino_busqueda:
+            print(f"[EXCEL DEBUG] No se encontraron resultados - buscando en todo el Excel sin filtros")
+            all_df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+            # Normalizar nombres de columnas
+            all_df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+            
+            # Filtrar solo por término de búsqueda
+            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
+            if tokens:
+                mask_all = pd.Series(True, index=all_df.index)
+                for tok in tokens:
+                    mask_tok = (
+                        all_df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
+                        all_df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
+                        all_df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
+                    )
+                    mask_all &= mask_tok
+                all_df = all_df[mask_all]
+                print(f"[EXCEL DEBUG] Resultados sin filtro de proveedor: {len(all_df)} filas")
+                
+                # Filtrar por dueño si existe
+                if dueno_filtro:
+                    all_df = all_df[all_df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
+                    print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(all_df)} filas")
+                
+                # Usar estos resultados
+                df = all_df
         
         print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
         
