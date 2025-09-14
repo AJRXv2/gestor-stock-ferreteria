@@ -5078,6 +5078,28 @@ def debug_proveedores():
 def debug_proveedores_ui():
     return render_template('debug_proveedores.html')
 
+@app.route('/fix_proveedores')
+@login_required
+def fix_proveedores():
+    """Reparar relaciones entre proveedores y dueños"""
+    try:
+        from fix_railway_proveedores import fix_provider_duenos_relations
+        result = fix_provider_duenos_relations(_is_postgres_configured())
+        return jsonify({
+            'success': True,
+            'message': 'Reparación completada',
+            'details': result
+        })
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error durante la reparación: {str(e)}',
+            'error': str(e),
+            'traceback': error_traceback
+        }), 500
+
 @app.route('/debug_obtener_proveedores_por_dueno/<string:dueno>')
 @login_required
 def debug_obtener_proveedores_por_dueno_endpoint(dueno):
