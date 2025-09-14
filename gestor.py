@@ -5152,6 +5152,8 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
     """Buscar productos en archivos Excel de proveedores y productos manuales"""
     resultados = []
     print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
+    # Normalizar el proveedor_filtro a minúsculas para comparaciones case-insensitive
+    proveedor_filtro = proveedor_filtro.lower() if proveedor_filtro else None
     
     # 1. Buscar en productos manuales
     if proveedor_filtro and proveedor_filtro.startswith('manual_'):
@@ -5165,7 +5167,9 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             resultados.extend(resultados_manuales)
         except (ValueError, TypeError):
             pass
-    elif proveedor_filtro and proveedor_filtro in PROVEEDOR_CONFIG:
+    elif proveedor_filtro and proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
+        # Obtener la clave original del diccionario (preservando mayúsculas)
+        proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
         # Nuevo: también incluir productos manuales que pertenezcan a ese proveedor Excel
         # Determinar alcance de dueños según flags
         if solo_ricky and not solo_fg:
@@ -5213,11 +5217,12 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             print("No se encontraron resultados manuales")
         
     # 2. Buscar en Excel de proveedores
-    if not proveedor_filtro or proveedor_filtro in PROVEEDOR_CONFIG:
+    if not proveedor_filtro or proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
         # Verificar si necesitamos buscar en todos o un proveedor específico
         if proveedor_filtro:
             # Verificar si el proveedor está habilitado para el filtro de dueño
-            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_filtro, {})
+            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
+            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_key, {})
             proveedor_dueno = proveedor_config.get('dueno', None)
             
             # Saltar si no coincide con los filtros de dueño
@@ -5807,13 +5812,22 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
     try:
         print(f"[EXCEL DEBUG] Iniciando búsqueda para proveedor '{proveedor}'")
         
-        # Verificar que exista la configuración del proveedor
-        if proveedor not in PROVEEDOR_CONFIG:
+        # Verificar que exista la configuración del proveedor (case-insensitive)
+        proveedor_lower = proveedor.lower() if proveedor else ''
+        
+        # Verificar primero con la clave exacta
+        if proveedor in PROVEEDOR_CONFIG:
+            proveedor_key = proveedor
+        # Si no existe, buscar de forma case-insensitive
+        else:
+            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_lower), None)
+            
+        if not proveedor_key:
             print(f"[EXCEL] Error: Proveedor '{proveedor}' no configurado")
             return []
         
         # Obtener configuración del proveedor
-        config = PROVEEDOR_CONFIG[proveedor]
+        config = PROVEEDOR_CONFIG[proveedor_key]
         print(f"[EXCEL DEBUG] Configuración del proveedor: {config}")
         
         excel_folder = config.get('folder', proveedor)
