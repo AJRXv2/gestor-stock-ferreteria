@@ -5621,9 +5621,23 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                             for col in df.columns:
                                 print(f"[EXCEL DEBUG]   {col}: {row[col]}")
                             print("[EXCEL DEBUG] ---")
+                            
+                            # Intentar una búsqueda manual por si hay problemas de formato
+                            if termino_busqueda and isinstance(termino_busqueda, str):
+                                codigo_str = str(row.get('Codigo', '')).lower()
+                                nombre_str = str(row.get('Nombre', '')).lower()
+                                term_lower = termino_busqueda.lower()
+                                print(f"[EXCEL DEBUG] Prueba manual - Código: '{codigo_str}', Término: '{term_lower}', ¿Coincide?: {term_lower in codigo_str}")
+                                print(f"[EXCEL DEBUG] Prueba manual - Nombre: '{nombre_str}', Término: '{term_lower}', ¿Coincide?: {term_lower in nombre_str}")
+                                
                     except Exception as e:
                         print(f"[EXCEL DEBUG] Error al mostrar filas: {e}")
                     print("[EXCEL DEBUG] ======= FIN DIAGNÓSTICO =======")
+                    
+                    # OPCIÓN: Si queremos mostrar el producto aunque no coincida exactamente, descomentar estas líneas:
+                    # print("[EXCEL DEBUG] Mostrando productos disponibles a pesar de no coincidir con el término de búsqueda")
+                    # df_for_results = df
+                    # Mantener resultados vacíos para el comportamiento actual:
                     df = filtered_by_term
                 else:
                     df = filtered_by_term
