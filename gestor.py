@@ -5420,21 +5420,18 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         proveedor_nombre = proveedor_info[0]['nombre']
         
         # Filtrar por proveedor específico - y por dueño si se especifica
-        # Convertimos a minúscula ambos lados para hacer una comparación más precisa
-        df['Proveedor_Norm'] = df['Proveedor'].astype(str).str.lower().str.strip()
-        proveedor_nombre_norm = proveedor_nombre.lower().strip()
+        # Convertimos a minúscula para mejor comparación, pero usamos las columnas originales
+        df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip() == proveedor_nombre.lower().strip()]
         
-        # Filtramos de dos maneras: coincidencia exacta o coincidencia por contiene
-        df_exact = df[df['Proveedor_Norm'] == proveedor_nombre_norm]
-        df_contains = df[df['Proveedor_Norm'].str.contains(proveedor_nombre_norm, na=False)]
-        
-        # Usamos primero las coincidencias exactas, y si no hay, las que contienen
-        if not df_exact.empty:
-            df = df_exact
-            print(f"Encontradas {len(df_exact)} coincidencias exactas para proveedor '{proveedor_nombre}'")
+        # Si no hay coincidencias exactas, intentamos con contiene
+        if df_filtered.empty:
+            df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip().str.contains(proveedor_nombre.lower().strip(), na=False)]
+            print(f"No hay coincidencias exactas, usando {len(df_filtered)} coincidencias parciales para '{proveedor_nombre}'")
         else:
-            df = df_contains
-            print(f"Encontradas {len(df_contains)} coincidencias parciales para proveedor '{proveedor_nombre}'")
+            print(f"Encontradas {len(df_filtered)} coincidencias exactas para '{proveedor_nombre}'")
+            
+        # Usar los resultados filtrados
+        df = df_filtered
         
         if dueno_filtro:
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
@@ -5486,20 +5483,22 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
         df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
         if df.empty:
             return resultados
-        # Filtrar por nombre de proveedor (coincidencia parcial / case-insensitive)
-        # Normalizamos los nombres para hacer una comparación más precisa
-        df['Proveedor_Norm'] = df['Proveedor'].astype(str).str.lower().str.strip()
-        proveedor_nombre_norm = str(nombre_proveedor).lower().strip()
+            
+        # Filtrar por nombre de proveedor (exacto primero, luego parcial)
+        proveedor_norm = str(nombre_proveedor).lower().strip()
         
-        # Intentamos primero con coincidencia exacta
-        df_exact = df[df['Proveedor_Norm'] == proveedor_nombre_norm]
-        if not df_exact.empty:
-            df = df_exact
-            print(f"Encontradas {len(df_exact)} coincidencias exactas para proveedor manual '{nombre_proveedor}'")
+        # Primero intentamos coincidencia exacta
+        df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip() == proveedor_norm]
+        
+        # Si no hay coincidencias exactas, usamos contiene
+        if df_filtered.empty:
+            df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip().str.contains(proveedor_norm, na=False)]
+            print(f"No hay coincidencias exactas, usando {len(df_filtered)} coincidencias parciales para '{nombre_proveedor}'")
         else:
-            # Si no hay coincidencias exactas, usamos contiene
-            df = df[df['Proveedor_Norm'].str.contains(proveedor_nombre_norm, na=False)]
-            print(f"Encontradas {len(df)} coincidencias parciales para proveedor manual '{nombre_proveedor}'")
+            print(f"Encontradas {len(df_filtered)} coincidencias exactas para '{nombre_proveedor}'")
+            
+        # Usar los resultados filtrados
+        df = df_filtered
         
         if dueno_filtro:
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
