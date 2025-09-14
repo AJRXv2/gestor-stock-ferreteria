@@ -5078,28 +5078,6 @@ def debug_proveedores():
 def debug_proveedores_ui():
     return render_template('debug_proveedores.html')
 
-@app.route('/fix_proveedores')
-@login_required
-def fix_proveedores():
-    """Reparar relaciones entre proveedores y dueños"""
-    try:
-        from fix_railway_proveedores import fix_provider_duenos_relations
-        result = fix_provider_duenos_relations(_is_postgres_configured())
-        return jsonify({
-            'success': True,
-            'message': 'Reparación completada',
-            'details': result
-        })
-    except Exception as e:
-        import traceback
-        error_traceback = traceback.format_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error durante la reparación: {str(e)}',
-            'error': str(e),
-            'traceback': error_traceback
-        }), 500
-
 @app.route('/debug_obtener_proveedores_por_dueno/<string:dueno>')
 @login_required
 def debug_obtener_proveedores_por_dueno_endpoint(dueno):
@@ -5442,7 +5420,22 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         proveedor_nombre = proveedor_info[0]['nombre']
         
         # Filtrar por proveedor específico - y por dueño si se especifica
-        df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
+        # Convertimos a minúscula ambos lados para hacer una comparación más precisa
+        df['Proveedor_Norm'] = df['Proveedor'].astype(str).str.lower().str.strip()
+        proveedor_nombre_norm = proveedor_nombre.lower().strip()
+        
+        # Filtramos de dos maneras: coincidencia exacta o coincidencia por contiene
+        df_exact = df[df['Proveedor_Norm'] == proveedor_nombre_norm]
+        df_contains = df[df['Proveedor_Norm'].str.contains(proveedor_nombre_norm, na=False)]
+        
+        # Usamos primero las coincidencias exactas, y si no hay, las que contienen
+        if not df_exact.empty:
+            df = df_exact
+            print(f"Encontradas {len(df_exact)} coincidencias exactas para proveedor '{proveedor_nombre}'")
+        else:
+            df = df_contains
+            print(f"Encontradas {len(df_contains)} coincidencias parciales para proveedor '{proveedor_nombre}'")
+        
         if dueno_filtro:
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
         
@@ -5494,7 +5487,20 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
         if df.empty:
             return resultados
         # Filtrar por nombre de proveedor (coincidencia parcial / case-insensitive)
-        df = df[df['Proveedor'].astype(str).str.contains(str(nombre_proveedor), case=False, na=False)]
+        # Normalizamos los nombres para hacer una comparación más precisa
+        df['Proveedor_Norm'] = df['Proveedor'].astype(str).str.lower().str.strip()
+        proveedor_nombre_norm = str(nombre_proveedor).lower().strip()
+        
+        # Intentamos primero con coincidencia exacta
+        df_exact = df[df['Proveedor_Norm'] == proveedor_nombre_norm]
+        if not df_exact.empty:
+            df = df_exact
+            print(f"Encontradas {len(df_exact)} coincidencias exactas para proveedor manual '{nombre_proveedor}'")
+        else:
+            # Si no hay coincidencias exactas, usamos contiene
+            df = df[df['Proveedor_Norm'].str.contains(proveedor_nombre_norm, na=False)]
+            print(f"Encontradas {len(df)} coincidencias parciales para proveedor manual '{nombre_proveedor}'")
+        
         if dueno_filtro:
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
         if df.empty:
