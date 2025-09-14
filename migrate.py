@@ -207,6 +207,57 @@ def cmd_mark_all():
     print(f"Marcadas como aplicadas: {', '.join(nuevas)}")
 
 
+def apply_all_migrations():
+    """Aplica todas las migraciones pendientes. Esta función se puede llamar programáticamente."""
+    try:
+        conn = get_connection()
+        if not conn:
+            print("[ERROR] No se pudo obtener conexión a la base de datos.")
+            return False
+            
+        cur = conn.cursor()
+        
+        # Asegurar que existe la tabla de control
+        ensure_schema_migrations_table(cur)
+        
+        # Obtener versiones aplicadas
+        aplicadas = get_applied_versions(cur)
+        
+        # Obtener migraciones disponibles
+        disponibles = list_migration_files()
+        
+        # Filtrar solo las nuevas
+        pendientes = [v for v, _ in disponibles if v not in aplicadas]
+        pendientes.sort()  # Ordenar para aplicar en secuencia
+        
+        if not pendientes:
+            print("No hay migraciones pendientes que aplicar.")
+            return True
+            
+        print(f"Migraciones pendientes: {', '.join(pendientes)}")
+        
+        # Aplicar cada migración pendiente en orden
+        for version in pendientes:
+            # Buscar archivo correspondiente
+            for v, path in disponibles:
+                if v == version:
+                    file_path = path
+                    break
+            else:
+                print(f"[ERROR] No se encontró archivo para versión {version}")
+                continue
+                
+            print(f"Aplicando migración {version}...")
+            apply_migration(cur, version, file_path)
+            
+        conn.commit()
+        print("Todas las migraciones pendientes aplicadas con éxito.")
+        return True
+    except Exception as e:
+        print(f"[ERROR] Error al aplicar migraciones automáticamente: {e}")
+        return False
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)

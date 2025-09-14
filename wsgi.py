@@ -14,6 +14,15 @@ if current_dir not in sys.path:
 if not os.environ.get('SECRET_KEY'):
     os.environ.setdefault('SECRET_KEY', 'brunokhalessiperrocasatresisletaschacoargentina')
 
+# Ejecutar migraciones de base de datos
+print("Ejecutando migraciones de base de datos...")
+try:
+    import migrate
+    migrate.apply_all_migrations()
+    print("Migraciones aplicadas con éxito")
+except Exception as e:
+    print(f"Error al aplicar migraciones: {e}")
+
 # En Railway, DATABASE_URL se configura automáticamente cuando agregas una base de datos PostgreSQL
 
 # Importa la aplicación Flask
