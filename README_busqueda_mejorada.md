@@ -2,11 +2,13 @@
 
 ## Problema Resuelto
 
-Se ha mejorado la función de búsqueda de productos manuales para solucionar el siguiente problema:
+Se ha mejorado la función de búsqueda de productos manuales para solucionar los siguientes problemas:
 
-- **Problema anterior:** Los productos agregados manualmente no aparecían cuando se filtraba por un proveedor diferente al que tenían asignado, lo que causaba confusión cuando un usuario buscaba un producto específico (como TERM32A) pero seleccionaba un proveedor incorrecto.
+- **Problema 1:** Los productos agregados manualmente no aparecían cuando se filtraba por un proveedor diferente al que tenían asignado, lo que causaba confusión cuando un usuario buscaba un producto específico (como TERM32A) pero seleccionaba un proveedor incorrecto.
 
-- **Solución implementada:** La búsqueda ahora es más inteligente y flexible, priorizando encontrar el producto que el usuario está buscando incluso cuando el filtro de proveedor no coincide exactamente.
+- **Problema 2:** Los productos con proveedor JELUZ no aparecían al filtrar por ese proveedor, debido a que JELUZ no estaba incluido en la configuración PROVEEDOR_CONFIG.
+
+- **Solución implementada:** La búsqueda ahora es más inteligente y flexible, priorizando encontrar el producto que el usuario está buscando incluso cuando el filtro de proveedor no coincide exactamente. Además, JELUZ ha sido agregado a PROVEEDOR_CONFIG para garantizar que los productos con este proveedor aparezcan correctamente.
 
 ## Cambios Realizados
 
@@ -19,6 +21,12 @@ Se ha mejorado la función de búsqueda de productos manuales para solucionar el
 
 3. **Fallback inteligente:**
    - Cuando no hay resultados, se realiza una búsqueda adicional sin filtros para intentar encontrar el producto.
+
+4. **Soporte mejorado para variaciones de mayúsculas/minúsculas:**
+   - La búsqueda ahora maneja correctamente diferentes variantes del nombre del proveedor (jeluz, JELUZ, Jeluz).
+
+5. **Configuración completa de proveedores:**
+   - Se agregó JELUZ a PROVEEDOR_CONFIG para garantizar que los productos de este proveedor aparezcan correctamente en las búsquedas.
 
 ## Recomendaciones para el Usuario
 

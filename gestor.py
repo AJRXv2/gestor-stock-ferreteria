@@ -300,6 +300,14 @@ PROVEEDOR_CONFIG = {
         'columnas_precio': ['NORTE SIN IVA', 'NORTE'],
         'dueno': 'ferreteria_general',
         'folder': 'ferreteria_general'
+    },
+    'jeluz': {
+        'fila_encabezado': 0,
+        'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
+        'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
+        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'],
+        'dueno': 'ferreteria_general',
+        'folder': 'ferreteria_general'
     }
 }
 
@@ -5166,10 +5174,25 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             duenos_manual = ['ferreteria_general']
         else:
             duenos_manual = ['ricky', 'ferreteria_general']
+        
+        # Buscar tanto por el nombre del proveedor en Excel como por posibles variaciones en mayúsculas/minúsculas
+        proveedor_nombre_original = proveedor_filtro
+        
+        # Intentar primero con el nombre exacto del proveedor
         for d in duenos_manual:
-            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_filtro, dueno_filtro=d)
+            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_original, dueno_filtro=d)
             if resultados_manuales:
                 resultados.extend(resultados_manuales)
+                
+        # Si no hay resultados, probar con variaciones de mayúsculas/minúsculas
+        if not resultados:
+            print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas")
+            proveedor_upper = proveedor_nombre_original.upper()
+            if proveedor_upper != proveedor_nombre_original:
+                for d in duenos_manual:
+                    resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_upper, dueno_filtro=d)
+                    if resultados_manuales:
+                        resultados.extend(resultados_manuales)
     elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
         # Si no hay filtro específico de Excel, incluir todos los manuales
         # Aplicar alcance por dueño si corresponde
