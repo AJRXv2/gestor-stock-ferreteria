@@ -1,1 +1,1 @@
-web: gunicorn wsgi:application
+web: python migrate.py apply && gunicorn wsgi:application
