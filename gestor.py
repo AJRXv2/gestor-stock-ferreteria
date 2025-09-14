@@ -5435,8 +5435,15 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         proveedor_nombre = proveedor_info[0]['nombre']
         print(f"[EXCEL DEBUG] Nombre del proveedor ID {proveedor_id}: '{proveedor_nombre}'")
         
-        # Filtrar por proveedor específico - y por dueño si se especifica
-        # Usamos la forma original con case=False que funcionaba antes
+        # Imprimir todos los proveedores disponibles en el Excel para diagnóstico
+        print(f"[EXCEL DEBUG] Proveedores disponibles en Excel: {df['Proveedor'].unique().tolist()}")
+        
+        # Verificar si está en mayúsculas o minúsculas
+        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre}': {(df['Proveedor'] == proveedor_nombre).sum()} coincidencias")
+        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.upper()}': {(df['Proveedor'] == proveedor_nombre.upper()).sum()} coincidencias")
+        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
+        
+        # Usar una búsqueda más flexible (cualquier coincidencia parcial)
         df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
         print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}': {len(df)} filas")
         
