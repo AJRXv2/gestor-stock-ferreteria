@@ -223,11 +223,22 @@ def apply_all_migrations():
         # Obtener versiones aplicadas
         aplicadas = get_applied_versions(cur)
         
-        # Obtener migraciones disponibles
-        disponibles = list_migration_files()
+        # Obtener migraciones disponibles (archivos)
+        archivos = list_migration_files()
+        
+        # Convertir archivos a versiones y crear mapeo
+        versiones_disponibles = []
+        mapeo_archivo_ruta = {}
+        
+        for archivo in archivos:
+            match = RE_VERSION.match(archivo)
+            if match:
+                version = match.group(1)
+                versiones_disponibles.append(version)
+                mapeo_archivo_ruta[version] = os.path.join(MIGRATIONS_DIR, archivo)
         
         # Filtrar solo las nuevas
-        pendientes = [v for v, _ in disponibles if v not in aplicadas]
+        pendientes = [v for v in versiones_disponibles if v not in aplicadas]
         pendientes.sort()  # Ordenar para aplicar en secuencia
         
         if not pendientes:
@@ -238,16 +249,8 @@ def apply_all_migrations():
         
         # Aplicar cada migración pendiente en orden
         for version in pendientes:
-            # Buscar archivo correspondiente
-            for v, path in disponibles:
-                if v == version:
-                    file_path = path
-                    break
-            else:
-                print(f"[ERROR] No se encontró archivo para versión {version}")
-                continue
-                
-            print(f"Aplicando migración {version}...")
+            file_path = mapeo_archivo_ruta[version]
+            print(f"Aplicando migración {version} desde {file_path}...")
             apply_migration(cur, version, file_path)
             
         conn.commit()
