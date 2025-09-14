@@ -5610,12 +5610,20 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                 print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(filtered_by_term)} filas")
                 
                 # Si no hay resultados después de filtrar por término, mostramos todos los productos disponibles
-                # y agregamos un mensaje de diagnóstico para saber qué hay en el Excel
                 if len(filtered_by_term) == 0:
-                    print(f"[EXCEL DEBUG] No se encontraron productos que coincidan con '{termino_busqueda}', mostrando primeras 5 filas disponibles para diagnóstico:")
-                    print(df.head().to_string())
-                    # Si estamos en un entorno de diagnóstico, continuamos con 0 resultados
-                    # En producción, podríamos decidir mostrar todos los productos disponibles
+                    print("[EXCEL DEBUG] ======= DIAGNÓSTICO: PRODUCTOS DISPONIBLES =======")
+                    print(f"[EXCEL DEBUG] No se encontraron productos que coincidan con '{termino_busqueda}'")
+                    print("[EXCEL DEBUG] Mostrando TODOS los productos disponibles después de filtrar por dueño:")
+                    try:
+                        # Mostrar cada fila individualmente para garantizar que se vea en los logs
+                        for idx, row in df.iterrows():
+                            print(f"[EXCEL DEBUG] Fila {idx}:")
+                            for col in df.columns:
+                                print(f"[EXCEL DEBUG]   {col}: {row[col]}")
+                            print("[EXCEL DEBUG] ---")
+                    except Exception as e:
+                        print(f"[EXCEL DEBUG] Error al mostrar filas: {e}")
+                    print("[EXCEL DEBUG] ======= FIN DIAGNÓSTICO =======")
                     df = filtered_by_term
                 else:
                     df = filtered_by_term
