@@ -119,6 +119,14 @@ def split_statements(sql):
     return statements
 
 
+def adapt_sql_for_postgres(sql):
+    """Adaptar sintaxis SQLite a PostgreSQL."""
+    # Reemplazar AUTOINCREMENT por SERIAL
+    sql = sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+    # Otros reemplazos que puedan ser necesarios
+    return sql
+
+
 def apply_migration(cur, version, path):
     sql = read_sql_file(path)
     statements = split_statements(sql)
@@ -130,6 +138,9 @@ def apply_migration(cur, version, path):
         if not stmt:
             continue
         try:
+            # Adaptar SQL según el motor de base de datos
+            if is_postgres():
+                stmt = adapt_sql_for_postgres(stmt)
             cur.execute(stmt)
         except Exception as e:
             print(f"[ERROR] Falló sentencia en {version}: {e}\nSQL: {stmt[:400]}")
