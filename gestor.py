@@ -5175,11 +5175,19 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
         # Aplicar alcance por dueño si corresponde
         if solo_ricky and not solo_fg:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
+            print(f"Búsqueda manual solo para dueño 'ricky': {len(resultados_manuales)} resultados")
         elif solo_fg and not solo_ricky:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ferreteria_general')
+            print(f"Búsqueda manual solo para dueño 'ferreteria_general': {len(resultados_manuales)} resultados")
         else:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda)
-        resultados.extend(resultados_manuales)
+            print(f"Búsqueda manual para todos los dueños: {len(resultados_manuales)} resultados")
+        
+        if resultados_manuales:
+            print(f"Agregando {len(resultados_manuales)} resultados manuales")
+            resultados.extend(resultados_manuales)
+        else:
+            print("No se encontraron resultados manuales")
         
     # 2. Buscar en Excel de proveedores
     if not proveedor_filtro or proveedor_filtro in PROVEEDOR_CONFIG:
@@ -5420,18 +5428,8 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         proveedor_nombre = proveedor_info[0]['nombre']
         
         # Filtrar por proveedor específico - y por dueño si se especifica
-        # Convertimos a minúscula para mejor comparación, pero usamos las columnas originales
-        df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip() == proveedor_nombre.lower().strip()]
-        
-        # Si no hay coincidencias exactas, intentamos con contiene
-        if df_filtered.empty:
-            df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip().str.contains(proveedor_nombre.lower().strip(), na=False)]
-            print(f"No hay coincidencias exactas, usando {len(df_filtered)} coincidencias parciales para '{proveedor_nombre}'")
-        else:
-            print(f"Encontradas {len(df_filtered)} coincidencias exactas para '{proveedor_nombre}'")
-            
-        # Usar los resultados filtrados
-        df = df_filtered
+        # Usamos la forma original con case=False que funcionaba antes
+        df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
         
         if dueno_filtro:
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
@@ -5484,21 +5482,9 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
         if df.empty:
             return resultados
             
-        # Filtrar por nombre de proveedor (exacto primero, luego parcial)
-        proveedor_norm = str(nombre_proveedor).lower().strip()
-        
-        # Primero intentamos coincidencia exacta
-        df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip() == proveedor_norm]
-        
-        # Si no hay coincidencias exactas, usamos contiene
-        if df_filtered.empty:
-            df_filtered = df[df['Proveedor'].astype(str).str.lower().str.strip().str.contains(proveedor_norm, na=False)]
-            print(f"No hay coincidencias exactas, usando {len(df_filtered)} coincidencias parciales para '{nombre_proveedor}'")
-        else:
-            print(f"Encontradas {len(df_filtered)} coincidencias exactas para '{nombre_proveedor}'")
-            
-        # Usar los resultados filtrados
-        df = df_filtered
+        # Filtrar por nombre de proveedor (coincidencia parcial / case-insensitive)
+        # Restauramos la forma original que funcionaba antes
+        df = df[df['Proveedor'].astype(str).str.contains(str(nombre_proveedor), case=False, na=False)]
         
         if dueno_filtro:
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
@@ -5538,13 +5524,23 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
     resultados = []
     try:
         if not os.path.exists(MANUAL_PRODUCTS_FILE):
+            print(f"Archivo de productos manuales no encontrado: {MANUAL_PRODUCTS_FILE}")
             return resultados
+            
+        print(f"Leyendo archivo de productos manuales: {MANUAL_PRODUCTS_FILE}")
         df = pd.read_excel(MANUAL_PRODUCTS_FILE)
         df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+        
+        print(f"Tamaño del DataFrame: {len(df)} filas")
         if df.empty:
+            print("El archivo de productos manuales está vacío")
             return resultados
+            
         if dueno_filtro:
+            print(f"Filtrando por dueño: {dueno_filtro}")
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
+            print(f"Después de filtrar por dueño: {len(df)} filas")
+            
         if termino_busqueda:
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
