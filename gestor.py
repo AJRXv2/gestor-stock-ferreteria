@@ -5426,6 +5426,18 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
             print("[EXCEL ERROR] El DataFrame está vacío")
             return resultados
         
+        # DIAGNÓSTICO TOTAL: Mostrar todas las filas del Excel al inicio
+        print("[EXCEL DIAGNÓSTICO TOTAL] ===== CONTENIDO COMPLETO DEL EXCEL =====")
+        try:
+            for idx, row in df.iterrows():
+                print(f"[EXCEL DIAGNÓSTICO] Fila {idx}:")
+                for col in df.columns:
+                    print(f"[EXCEL DIAGNÓSTICO]   {col}: {row[col]}")
+                print("[EXCEL DIAGNÓSTICO] ---")
+        except Exception as e:
+            print(f"[EXCEL ERROR] Error al mostrar diagnóstico total: {e}")
+        print("[EXCEL DIAGNÓSTICO TOTAL] ===== FIN CONTENIDO COMPLETO =====")
+        
         # Obtener nombre del proveedor
         proveedor_info = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (proveedor_id,), fetch=True)
         if not proveedor_info:
@@ -5634,13 +5646,43 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                         print(f"[EXCEL DEBUG] Error al mostrar filas: {e}")
                     print("[EXCEL DEBUG] ======= FIN DIAGNÓSTICO =======")
                     
-                    # OPCIÓN: Si queremos mostrar el producto aunque no coincida exactamente, descomentar estas líneas:
-                    # print("[EXCEL DEBUG] Mostrando productos disponibles a pesar de no coincidir con el término de búsqueda")
-                    # df_for_results = df
-                    # Mantener resultados vacíos para el comportamiento actual:
-                    df = filtered_by_term
-                else:
-                    df = filtered_by_term
+            # Alternativa más agresiva: mostrar SIEMPRE los productos disponibles
+        print("[EXCEL DEBUG] Mostrando productos disponibles aunque no coincidan con el término de búsqueda")
+        print("[EXCEL DEBUG] Productos disponibles para mostrar en la UI:")
+        
+        # Guardar el DataFrame filtrado original
+        filtered_empty = filtered_by_term.empty
+        
+        # Si no hay resultados de búsqueda pero hay productos para este dueño, mostrarlos todos
+        if filtered_empty and len(df) > 0:
+            print(f"[EXCEL DEBUG] No se encontraron coincidencias exactas para '{termino_busqueda}', mostrando todos los productos disponibles")
+            
+            # DESACTIVAR ESTA LÍNEA PARA VOLVER AL COMPORTAMIENTO NORMAL
+            # Mostrar todos los productos disponibles para este dueño, ignorando el filtro de término
+            df_result = df  # Usar todos los productos disponibles
+            
+            # Crear resultados para cada producto
+            for _, row in df_result.iterrows():
+                precio_val, precio_error = parse_price(row.get('Precio', ''))
+                resultado = {
+                    'codigo': row.get('Codigo', ''),
+                    'nombre': row.get('Nombre', '') + " [SIN FILTRO]",  # Marcar que no coincide con el filtro
+                    'precio': precio_val,
+                    'precio_texto': str(row.get('Precio', '')) if precio_error else None,
+                    'proveedor': row.get('Proveedor', ''),
+                    'observaciones': row.get('Observaciones', ''),
+                    'dueno': row.get('Dueno', ''),
+                    'es_manual': True
+                }
+                resultados.append(resultado)
+                print(f"[EXCEL DEBUG] Producto añadido: {resultado['codigo']} - {resultado['nombre']}")
+            
+            # Devolver resultados directamente sin seguir procesando
+            print(f"[EXCEL DEBUG] Total resultados (mostrados sin filtro): {len(resultados)}")
+            return resultados
+        else:
+            # Continuar con el comportamiento normal si hay resultados o no hay productos disponibles
+            df = filtered_by_term
             
         print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
         
