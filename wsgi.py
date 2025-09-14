@@ -23,6 +23,16 @@ try:
         print("Migraciones aplicadas con éxito")
     else:
         print("Advertencia: Algunas migraciones no se aplicaron correctamente")
+    
+    # Ejecutar diagnóstico después de las migraciones
+    print("Ejecutando diagnóstico de base de datos...")
+    try:
+        import diagnostics
+        diagnostics.run_diagnostics()
+    except Exception as e:
+        print(f"Error durante el diagnóstico: {e}")
+        print("Continuando con la inicialización de la aplicación...")
+        
 except Exception as e:
     print(f"Error al aplicar migraciones: {e}")
     print("Continuando con la inicialización de la aplicación de todos modos...")

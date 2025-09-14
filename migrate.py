@@ -177,6 +177,14 @@ def split_statements(sql):
 
 def adapt_sql_for_postgres(sql):
     """Adaptar sintaxis SQLite a PostgreSQL."""
+    # Si la sentencia está vacía, devolver vacío
+    if not sql or sql.isspace():
+        return ""
+        
+    # Ignorar comandos específicos de SQLite
+    if sql.strip().upper().startswith("PRAGMA"):
+        return ""
+        
     # Reemplazar AUTOINCREMENT por SERIAL
     sql = sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
     
@@ -185,11 +193,33 @@ def adapt_sql_for_postgres(sql):
         # PostgreSQL soporta COMMENT ON TABLE pero no el IF EXISTS
         sql = sql.replace("COMMENT ON TABLE IF EXISTS", "COMMENT ON TABLE")
     
-    # Ignorar PRAGMA (comandos específicos de SQLite)
-    if sql.strip().upper().startswith("PRAGMA"):
-        return ""
-    
+    # Ignorar o adaptar comandos específicos de algún motor
+    if sql.strip().upper().startswith("SELECT 'VERIFICANDO"):
+        # Es un comando de diagnóstico, mantenerlo
+        return sql
+        
     # Otros reemplazos que puedan ser necesarios
+    return sql
+
+def adapt_sql_for_sqlite(sql):
+    """Adaptar sintaxis PostgreSQL a SQLite."""
+    # Si la sentencia está vacía, devolver vacío
+    if not sql or sql.isspace():
+        return ""
+        
+    # Ignorar sentencias específicas de PostgreSQL
+    if "ALTER TABLE" in sql and "ADD COLUMN IF NOT EXISTS" in sql:
+        # SQLite no soporta IF NOT EXISTS en ADD COLUMN
+        return ""
+        
+    # Ignorar comandos de diagnóstico
+    if sql.strip().upper().startswith("SELECT 'VERIFICANDO"):
+        return ""
+        
+    # Ignorar bloques PL/pgSQL
+    if sql.strip().startswith("DO $$"):
+        return ""
+        
     return sql
 
 
@@ -210,6 +240,13 @@ def apply_migration(cur, version, path):
             # Adaptar SQL según el motor de base de datos
             if is_postgres():
                 stmt = adapt_sql_for_postgres(stmt)
+            else:
+                stmt = adapt_sql_for_sqlite(stmt)
+                
+            # Si después de la adaptación la sentencia está vacía, saltarla
+            if not stmt or stmt.isspace():
+                continue
+                
             cur.execute(stmt)
             count += 1
         except Exception as e:
