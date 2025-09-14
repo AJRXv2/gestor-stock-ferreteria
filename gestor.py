@@ -5450,14 +5450,23 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         # Imprimir todos los proveedores disponibles en el Excel para diagnóstico
         print(f"[EXCEL DEBUG] Proveedores disponibles en Excel: {df['Proveedor'].unique().tolist()}")
         
+        # Añadir diagnóstico para buscar específicamente productos con el código buscado
+        if termino_busqueda:
+            print(f"[EXCEL DEBUG] Buscando productos con código '{termino_busqueda}' en todo el Excel:")
+            for idx, row in df.iterrows():
+                codigo = str(row.get('Codigo', '')).lower()
+                if termino_busqueda.lower() in codigo:
+                    print(f"[EXCEL DEBUG] ¡ENCONTRADO! Fila {idx}, Código: {row.get('Codigo', '')}, Proveedor: {row.get('Proveedor', '')}, Dueño: {row.get('Dueno', '')}")
+        
         # Verificar si está en mayúsculas o minúsculas
         print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre}': {(df['Proveedor'] == proveedor_nombre).sum()} coincidencias")
         print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.upper()}': {(df['Proveedor'] == proveedor_nombre.upper()).sum()} coincidencias")
         print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
         
-        # Usar una búsqueda más flexible (cualquier coincidencia parcial)
-        filtered_df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
-        print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}': {len(filtered_df)} filas")
+        # Usar una búsqueda más flexible que incluya coincidencias parciales y comparaciones insensibles a mayúsculas/minúsculas
+        # Esta es una búsqueda más agresiva que la original
+        filtered_df = df[df['Proveedor'].astype(str).str.lower().str.contains(proveedor_nombre.lower(), na=False)]
+        print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}' (búsqueda flexible): {len(filtered_df)} filas")
         
         # Si no hay resultados después de filtrar por proveedor pero hay un filtro de dueño,
         # ignoramos el filtro de proveedor y solo filtramos por dueño
