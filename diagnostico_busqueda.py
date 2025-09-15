@@ -129,7 +129,7 @@ def ejecutar_diagnostico_busqueda(proveedor, termino):
         if proveedor and termino:
             # Caso 1: Parámetros originales
             try:
-                excel_results = buscar_en_excel(termino, provider_filtro=proveedor)
+                excel_results = buscar_en_excel(termino, proveedor_filtro=proveedor)
                 resultados['pruebas']['excel_original'] = {
                     'parametros': {'termino': termino, 'proveedor': proveedor},
                     'resultados': len(excel_results),
@@ -141,7 +141,7 @@ def ejecutar_diagnostico_busqueda(proveedor, termino):
             
             # Caso 2: Convertir proveedor a minúsculas
             try:
-                excel_results = buscar_en_excel(termino, provider_filtro=proveedor.lower())
+                excel_results = buscar_en_excel(termino, proveedor_filtro=proveedor.lower())
                 resultados['pruebas']['excel_lower'] = {
                     'parametros': {'termino': termino, 'proveedor': proveedor.lower()},
                     'resultados': len(excel_results),
@@ -153,7 +153,7 @@ def ejecutar_diagnostico_busqueda(proveedor, termino):
             
             # Caso 3: Usar mayúsculas
             try:
-                excel_results = buscar_en_excel(termino, provider_filtro=proveedor.upper())
+                excel_results = buscar_en_excel(termino, proveedor_filtro=proveedor.upper())
                 resultados['pruebas']['excel_upper'] = {
                     'parametros': {'termino': termino, 'proveedor': proveedor.upper()},
                     'resultados': len(excel_results),
@@ -169,19 +169,19 @@ def ejecutar_diagnostico_busqueda(proveedor, termino):
                 from buscar_en_todas_tablas import buscar_en_todas_tablas
                 
                 # 4.1 Búsqueda sin filtro de proveedor
-                resultados_todas = buscar_en_todas_tablas(termino, None)
+                resultados_todas = buscar_en_todas_tablas(conn, termino)
                 resultados['pruebas']['todas_tablas_sin_filtro'] = {
                     'parametros': {'termino': termino, 'proveedor': None},
-                    'resultados': len(resultados_todas),
+                    'resultados': len(resultados_todas) if resultados_todas else 0,
                     'muestra': resultados_todas[:3] if resultados_todas else []
                 }
                 
                 # 4.2 Búsqueda con filtro de proveedor
                 if proveedor:
-                    resultados_todas = buscar_en_todas_tablas(termino, proveedor)
+                    resultados_todas = buscar_en_todas_tablas(conn, termino)
                     resultados['pruebas']['todas_tablas_con_filtro'] = {
                         'parametros': {'termino': termino, 'proveedor': proveedor},
-                        'resultados': len(resultados_todas),
+                        'resultados': len(resultados_todas) if resultados_todas else 0,
                         'muestra': resultados_todas[:3] if resultados_todas else []
                     }
             except Exception as e:
@@ -198,26 +198,36 @@ def ejecutar_diagnostico_busqueda(proveedor, termino):
                     ORDER BY ordinal_position
                 """
                 estructura = db_query(query_estructura, (), conn=conn, fetch=True)
-                resultados['tablas'] = {
-                    'proveedores_manual_estructura': [
-                        {'columna': row['column_name'], 'tipo': row['data_type']}
-                        for row in estructura
-                    ]
-                }
+                if estructura and not isinstance(estructura, bool):
+                    resultados['tablas'] = {
+                        'proveedores_manual_estructura': [
+                            {'columna': row['column_name'], 'tipo': row['data_type']}
+                            for row in estructura
+                        ]
+                    }
+                else:
+                    resultados['errores'].append("No se pudo obtener la estructura de proveedores_manual")
             else:
                 # SQLite - obtener la estructura vía PRAGMA
                 query_estructura = "PRAGMA table_info(proveedores_manual)"
                 estructura = db_query(query_estructura, (), conn=conn, fetch=True)
-                resultados['tablas'] = {
-                    'proveedores_manual_estructura': [
-                        {'columna': row['name'], 'tipo': row['type']} 
-                        for row in estructura
-                    ]
-                }
+                if estructura and not isinstance(estructura, bool):
+                    resultados['tablas'] = {
+                        'proveedores_manual_estructura': [
+                            {'columna': row['name'], 'tipo': row['type']} 
+                            for row in estructura
+                        ]
+                    }
+                else:
+                    resultados['errores'].append("No se pudo obtener la estructura de proveedores_manual")
                 
             # Obtener datos de la tabla
             query_datos = "SELECT * FROM proveedores_manual LIMIT 10"
             datos = db_query(query_datos, (), conn=conn, fetch=True)
+            if datos and not isinstance(datos, bool):
+                resultados['tablas']['proveedores_manual_datos'] = datos
+            else:
+                resultados['errores'].append("No se pudieron obtener datos de proveedores_manual")
             
             resultados['tablas']['proveedores_manual_datos'] = [
                 dict(row) for row in datos
