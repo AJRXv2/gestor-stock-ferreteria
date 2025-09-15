@@ -7926,8 +7926,8 @@ def diagnosticar_proveedores_railway():
         dict: Un diccionario con los resultados del diagnóstico
     """
         # Log de depuración: mostrar el valor recibido y los valores en la tabla
-        print(f"[DEBUG] Valor recibido en proveedor_filtro: '{nombre_proveedor}'")
         try:
+            print(f"[DEBUG] Valor recibido en proveedor_filtro: '{nombre_proveedor}'")
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute("SELECT DISTINCT proveedor FROM productos_manual")
