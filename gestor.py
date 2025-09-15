@@ -11,6 +11,7 @@ try:
         HAS_POSTGRES = True
     except Exception:
         HAS_POSTGRES = False
+        HAS_POSTGRES = False  # Forzar desactivación de Postgres
 except ImportError as e:
     print(f"❌ Error de importación: {e}")
     print("💡 Instala las dependencias con: pip install flask pandas openpyxl")
@@ -300,14 +301,6 @@ PROVEEDOR_CONFIG = {
         'columnas_precio': ['NORTE SIN IVA', 'NORTE'],
         'dueno': 'ferreteria_general',
         'folder': 'ferreteria_general'
-    },
-    'jeluz': {
-        'fila_encabezado': 0,
-        'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
-        'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
-        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'],
-        'dueno': 'ferreteria_general',
-        'folder': 'ferreteria_general'
     }
 }
 
@@ -429,6 +422,8 @@ def _is_postgres_configured() -> bool:
         return all(os.environ.get(k) for k in ['DATABASE_URL']) and HAS_POSTGRES
     except Exception:
         return False
+def _is_postgres_configured() -> bool:
+    return False  # Forzar desactivación de Postgres
 
 # --- Funciones de Base de Datos ---
 def get_db_connection():
@@ -460,6 +455,16 @@ def get_db_connection():
     except sqlite3.Error as e:
         print(f"Error de conexión a SQLite: {e}")
         return None
+    def get_db_connection():
+        """Crear conexión a la base de datos (solo SQLite)."""
+        try:
+            conn = sqlite3.connect(DATABASE_FILE)
+            conn.row_factory = sqlite3.Row
+            print(f"[INIT] Motor de base de datos activo: SQLite")
+            return conn
+        except sqlite3.Error as e:
+            print(f"Error de conexión a SQLite: {e}")
+            return None
 
 _SQL_INSERT_OR_IGNORE_REGEX = re.compile(r"INSERT\s+OR\s+IGNORE\s+INTO\s+([A-Za-z0-9_\.\"]+)", re.IGNORECASE)
 
@@ -517,44 +522,14 @@ def _prepare_sql(query: str, use_postgres: bool) -> str:
     q = _convert_placeholders(q)
     return q
 
-# Alias para get_db_connection para compatibilidad con diagnósticos
-def db_connect():
-    """Alias para get_db_connection para compatibilidad con scripts de diagnóstico."""
-    return get_db_connection()
-
-# Función para ejecutar consultas directamente con una conexión
-def execute_query(conn, query, params=(), fetch=False):
-    """Ejecutar una consulta SQL con parámetros opcionales."""
-    cursor = conn.cursor()
-    try:
-        cursor.execute(query, params)
-        if fetch:
-            if _is_postgres_configured():
-                result = [dict(row) for row in cursor.fetchall()]
-            else:
-                result = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
-            return result
-        else:
-            conn.commit()
-            return cursor.rowcount
-    except Exception as e:
-        print(f"Error en execute_query: {e}")
-        raise
-    finally:
-        cursor.close()
-
-def db_query(query, params=(), fetch=False, conn=None):
+def db_query(query, params=(), fetch=False):
     """Ejecutar consulta en la base de datos (PostgreSQL o SQLite).
 
     - Adapta sintaxis y placeholders automáticamente para PostgreSQL.
     - Retorna lista de dicts si fetch=True, True/False según éxito si fetch=False.
-    - Opcionalmente acepta una conexión existente a través del parámetro conn.
     - Cierra siempre la conexión (uso simple por operación). Para alto volumen podría añadirse pool.
     """
-    close_conn = False
-    if conn is None:
-        conn = get_db_connection()
-        close_conn = True
+    conn = get_db_connection()
     if not conn:
         return None
     use_postgres = _is_postgres_configured()
@@ -588,11 +563,6 @@ def db_query(query, params=(), fetch=False, conn=None):
             cursor and cursor.close()
         except Exception:
             pass
-        if close_conn:
-            try:
-                conn.close()
-            except Exception:
-                pass
         try:
             conn.close()
         except Exception:
@@ -795,44 +765,6 @@ def canonicalize_proveedor_name(nombre: str) -> str:
     n = re.sub(r'\s+', ' ', n)
     return n
 
-def agregar_producto_db_manual(codigo, proveedor, nombre, precio, observaciones, dueno):
-    """Agregar producto a la base de datos de productos manuales"""
-    try:
-        # Asegurar que las tablas necesarias existen
-        ensure_productos_manual_columns()
-        
-        # Verificar si el producto ya existe (por código y dueño)
-        if codigo:
-            existing = db_query(
-                "SELECT id FROM productos_manual WHERE LOWER(codigo) = LOWER(?) AND dueno = ?", 
-                (codigo, dueno), 
-                fetch=True
-            )
-            if existing:
-                print(f"Producto con código '{codigo}' ya existe para {dueno}, actualizando...")
-                # Actualizar producto existente
-                db_query(
-                    """UPDATE productos_manual 
-                       SET nombre = ?, precio = ?, proveedor = ?, observaciones = ? 
-                       WHERE LOWER(codigo) = LOWER(?) AND dueno = ?""",
-                    (nombre, precio, proveedor, observaciones, codigo, dueno)
-                )
-                return True
-        
-        # Insertar nuevo producto
-        db_query(
-            """INSERT INTO productos_manual (codigo, nombre, precio, proveedor, observaciones, dueno) 
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (codigo, nombre, precio, proveedor, observaciones, dueno)
-        )
-        
-        print(f"Producto '{nombre}' agregado a la base de datos para {dueno}")
-        return True
-        
-    except Exception as e:
-        print(f"Error al agregar producto a la base de datos: {e}")
-        return False
-
 def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observaciones, dueno):
     """Agregar producto al Excel de productos manuales"""
     try:
@@ -884,32 +816,35 @@ def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observacion
         print(f"Error al agregar producto manual: {e}")
         return False
 
-# Note: a robust implementation of buscar_en_excel_manual is defined later in this file.
-# The earlier, malformed duplicate definition was removed to avoid syntax errors.
-
-def buscar_en_excel_manual_old(termino_busqueda, dueno_filtro=None):
-    """Función antigua que buscaba en Excel - mantenida para referencia"""
-    pass
-
-def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_filtro=None):
+def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
+    """Buscar productos en el Excel de productos manuales"""
     resultados = []
+    
     try:
-        # Aquí deberías obtener los datos de las filas, por ejemplo desde un Excel o una consulta
-        # Por ejemplo, rows = ...
-        rows = []  # Debes reemplazar esto por la obtención real de datos
+        if not os.path.exists(MANUAL_PRODUCTS_FILE):
+            return resultados
+        
+        wb = load_workbook(MANUAL_PRODUCTS_FILE)
+        ws = wb.active
+        
+        # Asumir que las columnas son (orden unificado):
+        # Codigo (A), Proveedor (B), Nombre (C), Precio (D), Observaciones (E), Dueno (F)
         tokens = [t.strip().lower() for t in str(termino_busqueda).split() if t.strip()]
-        for row in rows:
+        for row in ws.iter_rows(min_row=2, values_only=True):  # Saltar encabezado
             if len(row) < 6:
                 continue
+            
             codigo = str(row[0]).strip() if row[0] else ''
             proveedor = str(row[1]).strip() if row[1] else ''
             nombre = str(row[2]).strip() if row[2] else ''
             precio = str(row[3]).strip() if row[3] else ''
             observaciones = str(row[4]).strip() if row[4] else ''
             dueno = str(row[5]).strip() if row[5] else ''
+            
             # Filtrar por dueño si se especifica
             if dueno_filtro and dueno.lower() != dueno_filtro.lower():
                 continue
+            
             # Buscar en los campos relevantes con soporte de combinaciones (AND entre tokens)
             campos = [codigo.lower(), proveedor.lower(), nombre.lower(), precio.lower(), observaciones.lower()]
             coincide = True
@@ -918,6 +853,7 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
                     coincide = False
                     break
             if coincide:
+                
                 resultados.append({
                     'codigo': codigo,
                     'proveedor': proveedor,
@@ -926,8 +862,10 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
                     'observaciones': observaciones,
                     'dueno': dueno
                 })
+    
     except Exception as e:
         print(f"Error al buscar en Excel manual: {e}")
+    
     return resultados
 
 def init_db():
@@ -1338,44 +1276,6 @@ def init_db():
                 cursor.execute("INSERT OR REPLACE INTO proveedores_meta (nombre, dueno) VALUES ('Otros Proveedores', 'ferreteria_general')")
         except Exception:
             pass
-        
-        # Crear tabla proveedores_duenos para relaciones muchos-a-muchos
-        try:
-            cursor.execute(_adapt_sql_for_postgres('''
-                CREATE TABLE IF NOT EXISTS proveedores_duenos (
-                    id SERIAL PRIMARY KEY,
-                    proveedor_id INTEGER NOT NULL,
-                    dueno TEXT NOT NULL,
-                    UNIQUE(proveedor_id, dueno),
-                    FOREIGN KEY (proveedor_id) REFERENCES proveedores_manual(id) ON DELETE CASCADE
-                )
-            '''))
-            # Crear índices para mejorar rendimiento
-            try:
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_proveedor_id ON proveedores_duenos(proveedor_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_dueno ON proveedores_duenos(dueno)")
-            except Exception:
-                pass
-            
-            # Migrar datos desde proveedores_meta si no existen en proveedores_duenos
-            if use_postgres:
-                cursor.execute("""
-                    INSERT INTO proveedores_duenos (proveedor_id, dueno)
-                    SELECT pm.id, meta.dueno 
-                    FROM proveedores_meta meta
-                    JOIN proveedores_manual pm ON pm.nombre = meta.nombre
-                    ON CONFLICT (proveedor_id, dueno) DO NOTHING
-                """)
-            else:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno)
-                    SELECT pm.id, meta.dueno 
-                    FROM proveedores_meta meta
-                    JOIN proveedores_manual pm ON pm.nombre = meta.nombre
-                """)
-                
-        except Exception as e:
-            print(f"[WARN] Error creando tabla proveedores_duenos: {e}")
         
         conn.commit()
         # Índices para acelerar filtros de historial (creación idempotente)
@@ -2550,168 +2450,22 @@ def agregar_producto():
     
     # Obtener parámetros de búsqueda en Excel
     termino_excel = request.args.get('busqueda_excel', '')
+    proveedor_excel_filtro = request.args.get('proveedor_excel', '')
     proveedor_excel_ricky = request.args.get('proveedor_excel_ricky', '')
     proveedor_excel_fg = request.args.get('proveedor_excel_fg', '')
-    
-    # Usar exclusivamente uno de los selectores como filtro de proveedor
-    if proveedor_excel_ricky:
-        proveedor_excel_filtro = proveedor_excel_ricky
-        solo_ricky = True
-        solo_fg = False
-    elif proveedor_excel_fg:
-        proveedor_excel_filtro = proveedor_excel_fg
-        solo_ricky = False
-        solo_fg = True
-    else:
-        proveedor_excel_filtro = ''
-        
-        # Si no se seleccionaron cajas de verificación, no aplicar filtros exclusivos
-        # Esto permite la búsqueda en todos los proveedores de ambos dueños
-        solo_ricky = True if request.args.get('solo_ricky') else False
-        solo_fg = True if request.args.get('solo_fg') else False
-        
-        # Si ambas cajas están desmarcadas, buscar en todos los proveedores
-        if not solo_ricky and not solo_fg:
-            solo_ricky = False
-            solo_fg = False
-            
+    if not proveedor_excel_filtro:
+        proveedor_excel_filtro = proveedor_excel_ricky or proveedor_excel_fg or ''
     filtro_excel = request.args.get('filtro_excel', '')
+    solo_ricky = True if request.args.get('solo_ricky') else False
+    solo_fg = True if request.args.get('solo_fg') else False
     resultados_excel = []
     
     # Realizar búsqueda en Excel si hay término
     if termino_excel:
-        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' | solo_ricky: {solo_ricky} | solo_fg: {solo_fg}")
-        
-        # Si el término es un código numérico y tenemos proveedor específico, usar búsqueda precisa
-        if termino_excel.isdigit() and proveedor_excel_filtro:
-            print(f"🔢 Realizando búsqueda específica de código exacto: {termino_excel} en {proveedor_excel_filtro}")
-            # Buscar el código exacto en el proveedor específico
-            resultados_exactos = buscar_codigo_exacto_en_proveedor(
-                termino_excel, 
-                proveedor_excel_filtro, 
-                solo_ricky=solo_ricky, 
-                solo_fg=solo_fg
-            )
-            
-            if resultados_exactos:
-                print(f"📊 Encontrados {len(resultados_exactos)} resultados exactos")
-                resultados_excel = resultados_exactos
-            else:
-                # Hacer la búsqueda normal y luego filtrar estrictamente
-                print(f"🔍 No hay coincidencias exactas, buscando alternativas...")
-                resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-                
-                # Aplicar filtro extremadamente estricto - solo el código exacto y proveedor
-                resultados_filtrados = []
-                filtro_norm = _normalizar_nombre_proveedor(proveedor_excel_filtro)
-                for r in resultados_excel:
-                    r_codigo = str(r.get('codigo', '')).strip()
-                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
-                    r_proveedor_norm = _normalizar_nombre_proveedor(r_proveedor)
-                    r_archivo = str(r.get('archivo', '')).lower() if 'archivo' in r and r.get('archivo') else None
-
-                    # Verificar código exacto
-                    if r_codigo != termino_excel:
-                        continue
-
-                    # Verificar que el proveedor coincida (normalizado)
-                    if r_proveedor_norm != filtro_norm:
-                        continue
-
-                    # Si es producto manual (sin 'archivo'), no filtrar por archivo
-                    if r_archivo is None:
-                        resultados_filtrados.append(r)
-                        print(f"✅ Coincidencia estricta manual: Código {r_codigo} en proveedor {r_proveedor}")
-                        continue
-
-                    # Para productos de Excel, validar que el archivo empiece con el filtro normalizado
-                    if not r_archivo.startswith(filtro_norm):
-                        continue
-
-                    resultados_filtrados.append(r)
-                    print(f"✅ Coincidencia estricta: Código {r_codigo} en proveedor {r_proveedor}, archivo {r_archivo}")
-
-                if resultados_filtrados:
-                    resultados_excel = resultados_filtrados
-                    print(f"📊 Filtrado a {len(resultados_excel)} coincidencias exactas de código")
-        else:
-            # Búsqueda normal para términos de texto o sin proveedor específico
-            resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-            print(f"📊 Resultados encontrados: {len(resultados_excel)}")
-            
-            # Filtrar resultados para eliminar entradas inválidas, con debug
-            resultados_filtrados_debug = []
-            for r in resultados_excel:
-                nombre = r.get('nombre')
-                if not nombre:
-                    print(f"[DEPURACIÓN] Filtrado: sin nombre. codigo={r.get('codigo')} proveedor={r.get('proveedor')} es_manual={r.get('es_manual')}")
-                    continue
-                if nombre.startswith('Fila '):
-                    print(f"[DEPURACIÓN] Filtrado: nombre inicia con 'Fila '. codigo={r.get('codigo')} proveedor={r.get('proveedor')} es_manual={r.get('es_manual')}")
-                    continue
-                resultados_filtrados_debug.append(r)
-            resultados_excel = resultados_filtrados_debug
-            print(f"📊 Resultados después de filtrar entradas inválidas: {len(resultados_excel)}")
-            
-            # Si hay un proveedor seleccionado, aplicar filtro muy estricto
-            if proveedor_excel_filtro:
-                resultados_filtrados = []
-                filtro_norm = _normalizar_nombre_proveedor(proveedor_excel_filtro)
-                for r in resultados_excel:
-                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
-                    r_proveedor_norm = _normalizar_nombre_proveedor(r_proveedor)
-                    r_archivo = str(r.get('archivo', '')).lower() if 'archivo' in r and r.get('archivo') else None
-
-                    # Verificar que el proveedor coincida (normalizado)
-                    if r_proveedor_norm != filtro_norm:
-                        continue
-
-                    # Si es producto manual, añadir directamente
-                    if r_archivo is None:
-                        resultados_filtrados.append(r)
-                        continue
-
-                    # Para productos de Excel, verificar que el archivo empiece con el filtro
-                    if not r_archivo.startswith(filtro_norm):
-                        print(f"⚠️ Omitiendo resultado de {r_archivo}, no coincide con proveedor {filtro_norm}")
-                        continue
-
-                    resultados_filtrados.append(r)
-
-                resultados_excel = resultados_filtrados
-        
-        # Aplicar deduplicación para mostrar resultados únicos por producto Y proveedor
-        # Agrupar productos por nombre, código Y proveedor para mantener la variedad de proveedores
-        productos_unicos = {}
-        
-        # Criterio de deduplicación: considerar código, nombre del producto Y proveedor
-        # Mantener diferentes proveedores para el mismo producto
-        for r in resultados_excel:
-            codigo = str(r.get('codigo', '')).strip()
-            nombre = str(r.get('nombre', '')).lower().strip()
-            proveedor = str(r.get('proveedor', '')).lower().strip()
-            
-            # Clave única basada en código, nombre del producto y proveedor
-            clave_producto = f"{codigo}|{nombre}|{proveedor}"
-            
-            # Almacenar un resultado por cada combinación única de producto/proveedor
-            if clave_producto not in productos_unicos:
-                productos_unicos[clave_producto] = r
-        
-        # Convertir el diccionario en lista final de resultados
-        resultados_previos = len(resultados_excel)
-        resultados_excel = list(productos_unicos.values())
-        
-        # Log simple sin mostrar datos detallados
-        print(f"✅ Deduplicación completada: {len(resultados_excel)} productos únicos (de {resultados_previos} resultados originales)")
-        # Debug: mostrar si hay productos manuales luego de deduplicación
-        try:
-            manuals_after = [r for r in resultados_excel if r.get('es_manual')]
-            print(f"[DEBUG] manuals_after count: {len(manuals_after)}")
-            for idx, m in enumerate(manuals_after[:5]):
-                print(f"[DEBUG] manual_after #{idx+1}: codigo={m.get('codigo')} proveedor={m.get('proveedor')} nombre={m.get('nombre')}")
-        except Exception:
-            print("[DEBUG] Error al volcar manuals_after")
+        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' y filtro adicional: '{filtro_excel}'")
+        # Pasar flags de alcance (solo_ricky / solo_fg) a la búsqueda
+        resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+        print(f"📊 Resultados encontrados: {len(resultados_excel)}")
     
     # Obtener proveedores manuales para el selector
     proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
@@ -2735,7 +2489,7 @@ def agregar_producto():
                     archivos = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(key.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
                     if archivos:
                         dueno_display = 'Ricky' if dueno == 'ricky' else 'Ferretería General'
-                        item = { 'key': key, 'nombre': key.title().replace('tools','Tools') + f' (Excel - {dueno_display})' }
+                        item = { 'key': key, 'nombre': key.title().replace('tools','Tools') + f' ({dueno_display})' }
                         if dueno == 'ricky':
                             proveedores_excel_ricky.append(item)
                         else:
@@ -2743,33 +2497,17 @@ def agregar_producto():
     # 2) Manuales por dueño (desde mappings activos)
     ocultos_rows = db_query("SELECT LOWER(nombre) as nombre, dueno FROM proveedores_ocultos", fetch=True) or []
     ocultos_pairs = {(o['nombre'], o['dueno']) for o in ocultos_rows}
-    
-    # Usar proveedores_duenos como fuente principal, fallback a proveedores_meta
-    try:
-        mappings = db_query("""
-            SELECT pm.id, pm.nombre, pd.dueno 
-            FROM proveedores_manual pm 
-            JOIN proveedores_duenos pd ON pm.id = pd.proveedor_id 
-            ORDER BY pm.nombre, pd.dueno
-        """, fetch=True) or []
-        print(f"[DEBUG] Usando proveedores_duenos: {len(mappings)} mappings encontrados")
-    except Exception as e:
-        print(f"[DEBUG] proveedores_duenos no disponible, usando proveedores_meta fallback: {e}")
-        try:
-            mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre, m.dueno", fetch=True) or []
-            print(f"[DEBUG] Usando proveedores_meta fallback: {len(mappings)} mappings encontrados")
-        except Exception as e2:
-            print(f"[DEBUG] Ambas tablas fallan, usando lista vacía: {e2}")
-            mappings = []
+    mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre, m.dueno", fetch=True) or []
     for row in mappings:
         base = (row['nombre'] or '').strip()
         dueno_val = row['dueno']
         if (base.lower(), dueno_val) in ocultos_pairs:
             continue
-        # Permitir tanto Excel como Manual para el mismo proveedor
-        # (comentado: if dueno_val == 'ricky' and base.lower() in PROVEEDOR_CONFIG: continue)
+        # Evitar duplicar Ricky si ya existe como proveedor Excel nativo
+        if dueno_val == 'ricky' and base.lower() in PROVEEDOR_CONFIG:
+            continue
         dueno_display = 'Ricky' if dueno_val == 'ricky' else 'Ferretería General'
-        item = { 'key': f"manual_{row['id']}_{dueno_val}", 'nombre': f"{base} (Manual - {dueno_display})" }
+        item = { 'key': f"manual_{row['id']}_{dueno_val}", 'nombre': f"{base} ({dueno_display})" }
         if dueno_val == 'ricky':
             proveedores_excel_ricky.append(item)
         else:
@@ -2797,16 +2535,6 @@ def agregar_producto():
     # Determinar selección activa por grupo
     selected_ricky = proveedor_excel_filtro if any(p['key'] == proveedor_excel_filtro for p in proveedores_excel_ricky) else ''
     selected_fg = proveedor_excel_filtro if any(p['key'] == proveedor_excel_filtro for p in proveedores_excel_fg) else ''
-
-    # Debug: volcar primeros resultados para inspección en logs (ayuda a verificar productos manuales)
-    try:
-        dump_count = min(8, len(resultados_excel)) if resultados_excel else 0
-        print(f"[DEBUG] resultados_excel count: {len(resultados_excel) if resultados_excel is not None else 0} - mostrando {dump_count} entradas:")
-        for i in range(dump_count):
-            item = resultados_excel[i]
-            print(f"[DEBUG] #{i+1} codigo={item.get('codigo')} proveedor={item.get('proveedor')} archivo={item.get('archivo') if 'archivo' in item else None} es_manual={item.get('es_manual')} nombre={item.get('nombre')}")
-    except Exception as _:
-        print("[DEBUG] Error al volcar resultados_excel")
 
     return render_template('agregar.html', 
                          fecha_actual=datetime.now().strftime('%Y-%m-%d'),
@@ -2867,30 +2595,6 @@ def procesar_producto():
 def productos_manual():
     proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True)
     return render_template('productos_manual.html', proveedores=proveedores)
-
-
-@app.route('/debug/resultados_excel', methods=['GET'])
-@login_required
-def debug_resultados_excel():
-    """Endpoint temporal para devolver los resultados de la búsqueda en Excel/manual como JSON.
-    Usa los mismos parámetros query que la vista `agregar_producto`.
-    """
-    try:
-        termino_excel = request.args.get('busqueda_excel', '')
-        proveedor_excel_ricky = request.args.get('proveedor_excel_ricky', '')
-        proveedor_excel_fg = request.args.get('proveedor_excel_fg', '')
-        proveedor_excel_filtro = proveedor_excel_ricky or proveedor_excel_fg or request.args.get('proveedor_excel', '')
-        filtro_excel = request.args.get('filtro_excel', '')
-        solo_ricky = True if request.args.get('solo_ricky') else False
-        solo_fg = True if request.args.get('solo_fg') else False
-
-        resultados = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-        return jsonify({'success': True, 'count': len(resultados), 'resultados': resultados})
-    except Exception as e:
-        import traceback
-        print(f"[DEBUG ENDPOINT] Error: {e}")
-        print(traceback.format_exc())
-        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/carrito')
 @login_required
@@ -3094,109 +2798,27 @@ def agregar_proveedor():
 
 
 # Helper reutilizable para insertar / asociar proveedor a uno o varios dueños
-def sincronizar_proveedores_meta_duenos():
-    """
-    Sincroniza las tablas proveedores_meta y proveedores_duenos.
-    Esta función debe ejecutarse cada vez que se modifican proveedores para mantener consistencia.
-    """
-    try:
-        conn = get_db_connection()
-        if not conn:
-            return False, "No se pudo conectar a la base de datos"
-        
-        cursor = conn.cursor()
-        use_postgres = _is_postgres_configured()
-        
-        # Sincronizar desde proveedores_duenos hacia proveedores_meta
-        if use_postgres:
-            cursor.execute("""
-                INSERT INTO proveedores_meta (nombre, dueno)
-                SELECT pm.nombre, pd.dueno 
-                FROM proveedores_duenos pd
-                JOIN proveedores_manual pm ON pm.id = pd.proveedor_id
-                ON CONFLICT (nombre, dueno) DO NOTHING
-            """)
-        else:
-            cursor.execute("""
-                INSERT OR IGNORE INTO proveedores_meta (nombre, dueno)
-                SELECT pm.nombre, pd.dueno 
-                FROM proveedores_duenos pd
-                JOIN proveedores_manual pm ON pm.id = pd.proveedor_id
-            """)
-        
-        # Sincronizar desde proveedores_meta hacia proveedores_duenos
-        if use_postgres:
-            cursor.execute("""
-                INSERT INTO proveedores_duenos (proveedor_id, dueno)
-                SELECT pm.id, meta.dueno 
-                FROM proveedores_meta meta
-                JOIN proveedores_manual pm ON pm.nombre = meta.nombre
-                ON CONFLICT (proveedor_id, dueno) DO NOTHING
-            """)
-        else:
-            cursor.execute("""
-                INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno)
-                SELECT pm.id, meta.dueno 
-                FROM proveedores_meta meta
-                JOIN proveedores_manual pm ON pm.nombre = meta.nombre
-            """)
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return True, "Sincronización completada exitosamente"
-        
-    except Exception as e:
-        return False, f"Error en sincronización: {str(e)}"
-
 def _upsert_proveedor(nombre: str, dueno_param: str):
     """Crea el proveedor si no existe y asegura mappings según dueno_param ('ricky','ferreteria_general','ambos').
-       Devuelve (nombre_guardado, nuevo_flag, agregados(list_dueños_nuevos)).
-       Mantiene sincronizadas las tablas proveedores_meta y proveedores_duenos."""
+       Devuelve (nombre_guardado, nuevo_flag, agregados(list_dueños_nuevos))."""
     nombre_guardado = nombre
-    existente = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+    existente = db_query("SELECT nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
     if not existente:
         db_query("INSERT INTO proveedores_manual (nombre) VALUES (?)", (nombre_guardado,))
-        # Obtener el ID del proveedor recién creado
-        proveedor_data = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre_guardado,), fetch=True)
-        proveedor_id = proveedor_data[0]['id'] if proveedor_data else None
         nuevo_flag = True
     else:
         nombre_guardado = existente[0]['nombre']
-        proveedor_id = existente[0]['id']
         nuevo_flag = False
-    
     if dueno_param == 'ambos':
         destinos = ['ricky', 'ferreteria_general']
     else:
         destinos = ['ricky'] if dueno_param == 'ricky' else ['ferreteria_general']
-    
     agregados = []
     for d in destinos:
-        # Actualizar proveedores_duenos (tabla principal para consultas) - PRIORITARIO
-        if proveedor_id:
-            ok_duenos = db_query("INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)", (proveedor_id, d))
-            print(f"[DEBUG] Proveedor '{nombre_guardado}' asociado a dueño '{d}' en proveedores_duenos")
-        
-        # Actualizar proveedores_meta (solo si la tabla existe)
-        try:
-            ok_meta = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
-            print(f"[DEBUG] Proveedor '{nombre_guardado}' asociado a dueño '{d}' en proveedores_meta (legacy)")
-        except Exception as e:
-            print(f"[DEBUG] No se pudo actualizar proveedores_meta (tabla puede no existir): {e}")
-            ok_meta = True  # No fallar por esto
-        
-        # Eliminar de ocultos (si la tabla existe)
-        try:
-            db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", (nombre_guardado, d))
-        except Exception as e:
-            print(f"[DEBUG] No se pudo actualizar proveedores_ocultos: {e}")
-        
-        # Considerar exitoso si al menos proveedores_duenos funcionó
-        if proveedor_id and ok_duenos:
+        ok = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
+        db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", (nombre_guardado, d))
+        if ok:
             agregados.append(d)
-    
     return nombre_guardado, nuevo_flag, agregados, destinos
 
 
@@ -4043,23 +3665,7 @@ def eliminar_todo_historial():
 def eliminar_manual():
     """Ruta para gestionar productos manuales"""
     # Preparar listas de proveedores por dueño para la UI
-    try:
-        mappings = db_query("""
-            SELECT pm.id, pm.nombre, pd.dueno 
-            FROM proveedores_manual pm 
-            JOIN proveedores_duenos pd ON pm.id = pd.proveedor_id 
-            ORDER BY pm.nombre
-        """, fetch=True) or []
-        print(f"[DEBUG] eliminar_manual usando proveedores_duenos: {len(mappings)} mappings")
-    except Exception as e:
-        print(f"[DEBUG] eliminar_manual fallback a proveedores_meta: {e}")
-        try:
-            mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre", fetch=True) or []
-            print(f"[DEBUG] eliminar_manual usando proveedores_meta: {len(mappings)} mappings")
-        except Exception as e2:
-            print(f"[DEBUG] eliminar_manual ambas tablas fallan: {e2}")
-            mappings = []
-    
+    mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre", fetch=True) or []
     proveedores_ricky = []
     proveedores_fg = []
     for row in mappings:
@@ -4141,13 +3747,10 @@ def agregar_producto_manual():
             flash('Debe seleccionar un proveedor existente o crear uno nuevo con dueño.', 'danger')
             return redirect(url_for('agregar_producto'))
         
-        # Agregar a la base de datos de productos manuales
-        result_db = agregar_producto_db_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno)
+        # Agregar al Excel de productos manuales
+        result = agregar_producto_excel_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno)
         
-        # También agregar al Excel para compatibilidad con código legacy
-        result_excel = agregar_producto_excel_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno)
-        
-        if result_db:
+        if result:
             flash(f'Producto "{nombre}" agregado al catálogo manual de {DUENOS_CONFIG[dueno]["nombre"]}.', 'success')
         else:
             flash('Error al agregar el producto al catálogo manual.', 'danger')
@@ -4654,38 +4257,19 @@ def obtener_proveedores_por_dueno():
         
         print(f"[DEBUG] obtener_proveedores_por_dueno llamado con dueño: '{dueno}'")
         
-        # Detectar si es PostgreSQL y usar la sintaxis correcta
-        use_postgres = _is_postgres_configured()
-        print(f"[DEBUG] Usando PostgreSQL: {use_postgres}")
+        # Usar la nueva tabla proveedores_duenos para obtener proveedores
+        proveedores = db_query(
+            """
+            SELECT DISTINCT p.nombre 
+            FROM proveedores_manual p
+            JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+            WHERE pd.dueno = ?
+            ORDER BY p.nombre
+            """, 
+            (dueno,), fetch=True
+        )
         
-        if use_postgres:
-            # Usar sintaxis PostgreSQL explícitamente
-            proveedores = db_query(
-                """
-                SELECT DISTINCT p.nombre 
-                FROM proveedores_manual p
-                JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
-                WHERE pd.dueno = %s
-                ORDER BY p.nombre
-                """, 
-                (dueno,), fetch=True
-            )
-        else:
-            # Usar sintaxis SQLite
-            proveedores = db_query(
-                """
-                SELECT DISTINCT p.nombre 
-                FROM proveedores_manual p
-                JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
-                WHERE pd.dueno = ?
-                ORDER BY p.nombre
-                """, 
-                (dueno,), fetch=True
-            )
-        
-        print(f"[DEBUG] Consulta ejecutada. Resultados: {proveedores}")
-        
-        resultado = [p['nombre'] for p in proveedores] if proveedores else []
+        resultado = [p['nombre'] for p in proveedores]
         print(f"[DEBUG] obtener_proveedores_por_dueno - proveedores encontrados: {resultado}")
         
         return jsonify({
@@ -4695,60 +4279,7 @@ def obtener_proveedores_por_dueno():
         
     except Exception as e:
         print(f"Error en obtener_proveedores_por_dueno: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
-
-# Endpoint de debug para verificar estado de las tablas
-@app.route('/debug_proveedores_duenos/<string:dueno>')
-def debug_proveedores_duenos_publico(dueno):
-    """Endpoint público para debuggear proveedores_duenos sin autenticación"""
-    try:
-        print(f"[DEBUG_PUBLIC] Debugging proveedores para dueño: '{dueno}'")
-        
-        # Verificar si la tabla existe
-        try:
-            count_duenos = db_query("SELECT COUNT(*) as count FROM proveedores_duenos", fetch=True)
-            print(f"[DEBUG_PUBLIC] Total registros en proveedores_duenos: {count_duenos[0]['count'] if count_duenos else 0}")
-        except Exception as e:
-            print(f"[DEBUG_PUBLIC] Error accediendo proveedores_duenos: {e}")
-            return jsonify({'error': f'Tabla proveedores_duenos no existe: {e}'})
-        
-        # Verificar registros para el dueño específico
-        try:
-            use_postgres = _is_postgres_configured()
-            print(f"[DEBUG_PUBLIC] Usando PostgreSQL: {use_postgres}")
-            
-            if use_postgres:
-                registros_dueno = db_query(
-                    "SELECT pd.proveedor_id, pd.dueno, pm.nombre FROM proveedores_duenos pd JOIN proveedores_manual pm ON pm.id = pd.proveedor_id WHERE pd.dueno = %s", 
-                    (dueno,), fetch=True
-                )
-            else:
-                registros_dueno = db_query(
-                    "SELECT pd.proveedor_id, pd.dueno, pm.nombre FROM proveedores_duenos pd JOIN proveedores_manual pm ON pm.id = pd.proveedor_id WHERE pd.dueno = ?", 
-                    (dueno,), fetch=True
-                )
-            
-            print(f"[DEBUG_PUBLIC] Registros para {dueno}: {registros_dueno}")
-            
-            return jsonify({
-                'dueno': dueno,
-                'postgres': use_postgres,
-                'total_registros_duenos': count_duenos[0]['count'] if count_duenos else 0,
-                'registros_para_dueno': registros_dueno,
-                'proveedores_nombres': [r['nombre'] for r in registros_dueno] if registros_dueno else []
-            })
-            
-        except Exception as e:
-            print(f"[DEBUG_PUBLIC] Error en consulta específica: {e}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'error': f'Error en consulta: {e}'})
-            
-    except Exception as e:
-        print(f"[DEBUG_PUBLIC] Error general: {e}")
-        return jsonify({'error': f'Error general: {e}'})
 
 @app.route('/obtener_proveedores_por_dueno_test', methods=['POST'])
 @csrf.exempt  # Eximir este endpoint de protección CSRF para pruebas
@@ -5509,22 +5040,11 @@ def debug_stock_item():
 
 # --- Funciones de Búsqueda en Excel ---
 def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
-    def normalizar_nombre(nombre):
-        import unicodedata
-        if not nombre:
-            return ''
-        base = ' '.join(str(nombre).strip().split())
-        nfkd = unicodedata.normalize('NFKD', base)
-        sin_acentos = ''.join(ch for ch in nfkd if not unicodedata.combining(ch))
-        return sin_acentos.lower()
-    """Buscar productos en archivos Excel de proveedores y productos manuales de la base de datos"""
+    """Buscar productos en archivos Excel de proveedores y productos manuales"""
     resultados = []
     print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
     
-    # Normalizar el proveedor_filtro a minúsculas para comparaciones case-insensitive
-    proveedor_filtro_norm = normalizar_nombre(proveedor_filtro) if proveedor_filtro else None
-    
-    # 1. Buscar en productos manuales (base de datos)
+    # 1. Buscar en productos manuales
     if proveedor_filtro and proveedor_filtro.startswith('manual_'):
         # Filtro específico de proveedor manual (incluye dueño)
         try:
@@ -5532,22 +5052,12 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             parts = rest.split('_', 1)
             proveedor_id = int(parts[0])
             dueno_sel = parts[1] if len(parts) > 1 else None
-            print(f"🔍 [MANUAL] Buscando en proveedor manual ID {proveedor_id} para dueño {dueno_sel}")
             resultados_manuales = buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_sel)
             resultados.extend(resultados_manuales)
-            try:
-                print(f"🔍 [MANUAL] Encontrados {len(resultados_manuales)} resultados manuales")
-                if resultados_manuales:
-                    print(f"🔍 [MANUAL] sample manual[0]: {resultados_manuales[0]}")
-            except Exception:
-                print("🔍 [MANUAL] Error al volcar muestra de resultados_manuales")
-        except (ValueError, TypeError) as e:
-            print(f"❌ [MANUAL] Error procesando filtro manual: {e}")
+        except (ValueError, TypeError):
             pass
-    elif proveedor_filtro and proveedor_filtro_norm in [normalizar_nombre(k) for k in PROVEEDOR_CONFIG.keys()]:
-        # Obtener la clave original del diccionario (preservando mayúsculas)
-        proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if normalizar_nombre(k) == proveedor_filtro_norm), proveedor_filtro)
-        # También incluir productos manuales que pertenezcan a ese proveedor Excel
+    elif proveedor_filtro and proveedor_filtro in PROVEEDOR_CONFIG:
+        # Nuevo: también incluir productos manuales que pertenezcan a ese proveedor Excel
         # Determinar alcance de dueños según flags
         if solo_ricky and not solo_fg:
             duenos_manual = ['ricky']
@@ -5555,54 +5065,27 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             duenos_manual = ['ferreteria_general']
         else:
             duenos_manual = ['ricky', 'ferreteria_general']
-        
-        # Buscar productos manuales que coincidan con el nombre del proveedor Excel
-        proveedor_nombre_original = PROVEEDOR_CONFIG[proveedor_key].get('nombre', proveedor_key)
-        proveedor_nombre_norm = normalizar_nombre(proveedor_nombre_original)
         for d in duenos_manual:
-            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_original, dueno_filtro=d)
-            # Si no se encuentra, probar con el nombre normalizado
-            if not resultados_manuales:
-                resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_norm, dueno_filtro=d)
+            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_filtro, dueno_filtro=d)
             if resultados_manuales:
                 resultados.extend(resultados_manuales)
-        # Si no hay resultados, probar con variaciones de mayúsculas/minúsculas
-        if not resultados:
-            print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas y normalizada")
-            proveedor_upper = proveedor_nombre_original.upper()
-            proveedor_norm_upper = proveedor_nombre_norm.upper()
-            for d in duenos_manual:
-                resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_upper, dueno_filtro=d)
-                if not resultados_manuales:
-                    resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_norm_upper, dueno_filtro=d)
-                if resultados_manuales:
-                    resultados.extend(resultados_manuales)
     elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
         # Si no hay filtro específico de Excel, incluir todos los manuales
         # Aplicar alcance por dueño si corresponde
         if solo_ricky and not solo_fg:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
-            print(f"Búsqueda manual solo para dueño 'ricky': {len(resultados_manuales)} resultados")
         elif solo_fg and not solo_ricky:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ferreteria_general')
-            print(f"Búsqueda manual solo para dueño 'ferreteria_general': {len(resultados_manuales)} resultados")
         else:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda)
-            print(f"Búsqueda manual para todos los dueños: {len(resultados_manuales)} resultados")
+        resultados.extend(resultados_manuales)
         
-        if resultados_manuales:
-            print(f"Agregando {len(resultados_manuales)} resultados manuales")
-            resultados.extend(resultados_manuales)
-        else:
-            print("No se encontraron resultados manuales")
-        
-    # 2. Buscar en Excel de proveedores (archivos Excel)
-    if not proveedor_filtro or proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
+    # 2. Buscar en Excel de proveedores
+    if not proveedor_filtro or proveedor_filtro in PROVEEDOR_CONFIG:
         # Verificar si necesitamos buscar en todos o un proveedor específico
         if proveedor_filtro:
             # Verificar si el proveedor está habilitado para el filtro de dueño
-            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
-            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_key, {})
+            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_filtro, {})
             proveedor_dueno = proveedor_config.get('dueno', None)
             
             # Saltar si no coincide con los filtros de dueño
@@ -5628,13 +5111,10 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             )
             resultados.extend(resultados_proveedor)
     
-    # Primera deduplicación básica - eliminar duplicados exactos
-    # Esta deduplicación es más ligera y se hace a nivel de función
-    resultados_sin_duplicados = []
-    claves_vistas = set()
+    # Log cantidad total de resultados
+    print(f"🔍 [BUSCAR_EXCEL] Total de resultados: {len(resultados)}")
     
-    # ...existing code...
-    return resultados_sin_duplicados
+    return resultados
 
 def agregar_producto_manual_excel():
     """Agregar producto manual al Excel (no directamente al stock)"""
@@ -5800,152 +5280,167 @@ def log_stock_history(tipo_cambio: str, fuente: str = None, stock_row: dict = No
         print(f"[WARN] log_stock_history fallo: {e}")
 
 def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_filtro=None):
-    """Buscar en la tabla productos_manual por ID de proveedor. Permite filtrar por dueño."""
-    try:
-        print(f"[DB DEBUG] Buscando por ID de proveedor. Término: '{termino_busqueda}', Proveedor ID: {proveedor_id}, Dueño: {dueno_filtro}")
-        
-        # Obtener el nombre del proveedor
-        prov_data = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (proveedor_id,), fetch=True)
-        if not prov_data:
-            print(f"[DB ERROR] Proveedor con ID {proveedor_id} no encontrado")
-            return []
-        
-        nombre_proveedor = prov_data[0]['nombre']
-        
-        # Usar la función de búsqueda por nombre de proveedor
-        return buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro)
-    except Exception as e:
-        print(f"[DB ERROR] Error en buscar_en_excel_manual_por_proveedor: {e}")
-        import traceback
-        print(traceback.format_exc())
-        return []
-
-    # (removido) bloque duplicado/colgado que fue trasladado a implementaciones correctas más abajo.
-
-def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro=None):
+    """Buscar productos en el Excel de productos manuales por proveedor específico"""
     resultados = []
-    """Buscar en la tabla productos_manual por nombre de proveedor. Permite filtrar por dueño."""
+    
     try:
-        proveedor_norm = _normalizar_nombre_proveedor(nombre_proveedor)
-        print(f"[DB DEBUG] Buscando por nombre de proveedor en DB. Término: '{termino_busqueda}', Proveedor: '{nombre_proveedor}' normalizado: '{proveedor_norm}', Dueño: {dueno_filtro}")
-        # Construir consulta SQL robusta
-        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(TRIM(proveedor)) = LOWER(TRIM(?))"
-        params = [proveedor_norm]
+        if not os.path.exists(MANUAL_PRODUCTS_FILE):
+            return resultados
+        
+        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+        # Normalizar nombres de columnas por si existen acentos
+        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+        
+        if df.empty:
+            return resultados
+        
+        # Obtener nombre del proveedor
+        proveedor_info = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (proveedor_id,), fetch=True)
+        if not proveedor_info:
+            return resultados
+        
+        proveedor_nombre = proveedor_info[0]['nombre']
+        
+        # Filtrar por proveedor específico - y por dueño si se especifica
+        df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
         if dueno_filtro:
-            query += " AND LOWER(TRIM(dueno)) = LOWER(TRIM(?))"
-            params.append(dueno_filtro)
+            df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
+        
+        # Filtrar por término de búsqueda si existe (soporta combinaciones "palabra1 palabra2")
         if termino_busqueda:
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
-                or_conditions = []
-                for token in tokens:
-                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?))")
-                    params.extend([f"%{token}%", f"%{token}%"])
-                query += f" AND ({' AND '.join(or_conditions)})"
-        print(f"[DB DEBUG] SQL: {query}")
-        print(f"[DB DEBUG] Params: {params}")
-        rows = db_query(query, tuple(params), fetch=True)
-        print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
-        try:
-            if rows and len(rows) > 0:
-                print(f"[DB DEBUG] sample row 0: {rows[0]}")
-        except Exception:
-            print("[DB DEBUG] Error al volcar sample de rows")
-        for row in (rows or []):
-            precio_val, precio_error = parse_price(str(row.get('precio', '')))
-            resultados.append({
-                'codigo': row.get('codigo', ''),
-                'nombre': row.get('nombre', ''),
+                mask_all = pd.Series(True, index=df.index)
+                for tok in tokens:
+                    mask_tok = (
+                        df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
+                        df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
+                        df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
+                    )
+                    mask_all &= mask_tok
+                df = df[mask_all]
+        
+        # Convertir a lista de diccionarios
+        for _, row in df.iterrows():
+            precio_val, precio_error = parse_price(row.get('Precio', ''))
+            resultado = {
+                'codigo': row.get('Codigo', ''),
+                'nombre': row.get('Nombre', ''),
                 'precio': precio_val,
-                'precio_texto': str(row.get('precio', '')) if precio_error else None,
-                'proveedor': row.get('proveedor', ''),
-                'observaciones': row.get('observaciones', ''),
-                'dueno': row.get('dueno', ''),
+                'precio_texto': str(row.get('Precio', '')) if precio_error else None,
+                'proveedor': row.get('Proveedor', ''),
+                'observaciones': row.get('Observaciones', ''),
+                'dueno': row.get('Dueno', ''),
+                'es_manual': True
+            }
+            resultados.append(resultado)
+    
+    except Exception as e:
+        print(f"Error al buscar en Excel manual por proveedor: {e}")
+    
+    return resultados
+
+def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro=None):
+    """Buscar productos manuales filtrando por el nombre (clave) del proveedor Excel seleccionado.
+    Esto permite que al filtrar por un proveedor Excel también se muestren los productos agregados manualmente
+    asociados a ese proveedor (si el campo 'Proveedor' en productos_manual.xlsx contiene ese nombre).
+    """
+    resultados = []
+    try:
+        if not os.path.exists(MANUAL_PRODUCTS_FILE):
+            return resultados
+        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+        if df.empty:
+            return resultados
+        # Filtrar por nombre de proveedor (coincidencia parcial / case-insensitive)
+        df = df[df['Proveedor'].astype(str).str.contains(str(nombre_proveedor), case=False, na=False)]
+        if dueno_filtro:
+            df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
+        if df.empty:
+            return resultados
+        # Aplicar término de búsqueda (tokens AND)
+        if termino_busqueda:
+            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
+            if tokens:
+                mask_all = pd.Series(True, index=df.index)
+                for tok in tokens:
+                    tok_mask = (
+                        df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
+                        df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
+                        df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
+                    )
+                    mask_all &= tok_mask
+                df = df[mask_all]
+        for _, row in df.iterrows():
+            precio_val, precio_error = parse_price(row.get('Precio', ''))
+            resultados.append({
+                'codigo': row.get('Codigo', ''),
+                'nombre': row.get('Nombre', ''),
+                'precio': precio_val,
+                'precio_texto': str(row.get('Precio', '')) if precio_error else None,
+                'proveedor': row.get('Proveedor', ''),
+                'observaciones': row.get('Observaciones', ''),
+                'dueno': row.get('Dueno', ''),
                 'es_manual': True
             })
-            
     except Exception as e:
-        print(f"[DB ERROR] Error en buscar_en_excel_manual_por_nombre_proveedor: {e}")
-        import traceback
-        print(traceback.format_exc())
+        print(f"Error en buscar_en_excel_manual_por_nombre_proveedor: {e}")
     return resultados
 
 def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
-    """Buscar en la tabla productos_manual de la base de datos sin proveedor específico. Permite filtrar por dueño."""
+    """Buscar en productos_manual.xlsx sin proveedor específico. Permite filtrar por dueño."""
     resultados = []
     try:
-        print(f"[DB DEBUG] Iniciando búsqueda en DB manual. Término: '{termino_busqueda}', Dueño: {dueno_filtro}")
-        
-        # Construir consulta SQL
-        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE 1=1"
-        params = []
-        
+        if not os.path.exists(MANUAL_PRODUCTS_FILE):
+            return resultados
+        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+        if df.empty:
+            return resultados
         if dueno_filtro:
-            query += " AND LOWER(dueno) = LOWER(?)"
-            params.append(dueno_filtro)
-            
+            df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
         if termino_busqueda:
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
-                or_conditions = []
-                for token in tokens:
-                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?) OR LOWER(proveedor) LIKE LOWER(?))")
-                    params.extend([f"%{token}%", f"%{token}%", f"%{token}%"])
-                query += f" AND ({' AND '.join(or_conditions)})"
-        
-        # Ejecutar consulta
-        rows = db_query(query, tuple(params), fetch=True)
-        print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
-        try:
-            if rows and len(rows) > 0:
-                print(f"[DB DEBUG] sample row 0: {rows[0]}")
-        except Exception:
-            print("[DB DEBUG] Error al volcar sample de rows")
-        
-        # Convertir resultados al formato esperado
-        for row in (rows or []):
-            precio_val, precio_error = parse_price(str(row.get('precio', '')))
+                mask_all = pd.Series(True, index=df.index)
+                for tok in tokens:
+                    tok_mask = (
+                        df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
+                        df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
+                        df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
+                    )
+                    mask_all &= tok_mask
+                df = df[mask_all]
+        for _, row in df.iterrows():
+            precio_val, precio_error = parse_price(row.get('Precio', ''))
             resultados.append({
-                'codigo': row.get('codigo', ''),
-                'nombre': row.get('nombre', ''),
+                'codigo': row.get('Codigo', ''),
+                'nombre': row.get('Nombre', ''),
                 'precio': precio_val,
-                'precio_texto': str(row.get('precio', '')) if precio_error else None,
-                'proveedor': row.get('proveedor', ''),
-                'observaciones': row.get('observaciones', ''),
-                'dueno': row.get('dueno', ''),
+                'precio_texto': str(row.get('Precio', '')) if precio_error else None,
+                'proveedor': row.get('Proveedor', ''),
+                'observaciones': row.get('Observaciones', ''),
+                'dueno': row.get('Dueno', ''),
                 'es_manual': True
             })
-            
     except Exception as e:
-        print(f"[DB ERROR] Error en buscar_en_excel_manual: {e}")
-        import traceback
-        print(traceback.format_exc())
+        print(f"Error en buscar_en_excel_manual: {e}")
     return resultados
-    
+
 def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None):
     """Buscar productos en archivos Excel del proveedor especificado"""
     resultados = []
-    claves_vistas = set()  # Conjunto para controlar duplicados
-    
     try:
         print(f"[EXCEL DEBUG] Iniciando búsqueda para proveedor '{proveedor}'")
         
-        # Verificar que exista la configuración del proveedor (case-insensitive)
-        proveedor_lower = proveedor.lower() if proveedor else ''
-        
-        # Verificar primero con la clave exacta
-        if proveedor in PROVEEDOR_CONFIG:
-            proveedor_key = proveedor
-        # Si no existe, buscar de forma case-insensitive
-        else:
-            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_lower), None)
-            
-        if not proveedor_key:
+        # Verificar que exista la configuración del proveedor
+        if proveedor not in PROVEEDOR_CONFIG:
             print(f"[EXCEL] Error: Proveedor '{proveedor}' no configurado")
             return []
         
         # Obtener configuración del proveedor
-        config = PROVEEDOR_CONFIG[proveedor_key]
+        config = PROVEEDOR_CONFIG[proveedor]
         print(f"[EXCEL DEBUG] Configuración del proveedor: {config}")
         
         excel_folder = config.get('folder', proveedor)
@@ -6013,75 +5508,40 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                     
                     # Buscar en cada fila
                     for row_idx, row in enumerate(filas, 1):
-                        # Guardamos valores originales y convertimos a minúsculas solo para búsqueda
-                        row_values_orig = [str(cell.value) if cell.value is not None else '' for cell in row]
-                        row_values_lower = [val.lower() for val in row_values_orig]
-                        row_text_lower = ' '.join(row_values_lower)
+                        row_values = [str(cell.value).lower() if cell.value is not None else '' for cell in row]
+                        row_text = ' '.join(row_values)
                         
-                        # Verificar si el término está específicamente en código o nombre
-                        codigo_lower = row_values_lower[0] if len(row_values_lower) > 0 else ''
-                        nombre_lower = row_values_lower[1] if len(row_values_lower) > 1 else ''
-                        
-                        # Hacer un filtrado más estricto
-                        match_found = False
-                        # Si el término parece un código (solo números), buscar coincidencia exacta en código
-                        if termino_busqueda.isdigit():
-                            # Coincidencia exacta con el código
-                            if termino_busqueda == codigo_lower:
-                                match_found = True
-                                print(f"[EXCEL] ✅ Coincidencia exacta de código: {termino_busqueda} == {codigo_lower}")
-                            # Si no coincide exactamente, buscar como parte del código (solo si tiene espacios)
-                            elif codigo_lower and termino_busqueda in codigo_lower.split():
-                                match_found = True
-                                print(f"[EXCEL] ✅ Coincidencia en parte del código: {termino_busqueda} en {codigo_lower}")
-                        # Si no es un código, buscar en cualquier parte de la fila
-                        else:
-                            if termino_busqueda in row_text_lower:
-                                match_found = True
-                                print(f"[EXCEL] ✅ Coincidencia de texto: {termino_busqueda} en fila")
-                        
-                        if not match_found:
-                            continue
-                            
-                        # Aplicar filtro adicional si existe
-                        if filtro_adicional and filtro_adicional.lower() not in row_text_lower:
-                            continue
-                            
-                        # Extraer datos de la fila
-                        codigo = row_values_orig[0] if len(row_values_orig) > 0 else ''
-                        nombre = row_values_orig[1] if len(row_values_orig) > 1 else ''
-                        precio = 0.0
-                        
-                        # Intentar extraer precio
-                        if len(row_values_orig) > 2:
-                            try:
-                                precio_text = row_values_orig[2].replace('.', '').replace(',', '.')
-                                precio = float(precio_text) if precio_text else 0.0
-                            except (ValueError, TypeError):
-                                precio = 0.0
-                            
-                            # Crear clave única para evitar duplicados
-                            clave = f"{codigo}_{proveedor.lower()}_{nombre_archivo}_{ws_name}_{row_idx}"
-                            
-                            # Verificar si ya hemos procesado este resultado exacto
-                            if clave in claves_vistas:
-                                print(f"[EXCEL] ⚠️ Omitiendo duplicado para código {codigo} en {nombre_archivo}")
+                        # Verificar si el término está en esta fila
+                        if termino_busqueda in row_text:
+                            # Aplicar filtro adicional si existe
+                            if filtro_adicional and filtro_adicional.lower() not in row_text:
                                 continue
                                 
-                            claves_vistas.add(clave)
+                            # Extraer datos de la fila
+                            codigo = row_values[0] if len(row_values) > 0 else ''
+                            nombre = row_values[1] if len(row_values) > 1 else ''
+                            precio = 0.0
+                            
+                            # Intentar extraer precio
+                            if len(row_values) > 2:
+                                try:
+                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
+                                    precio = float(precio_text) if precio_text else 0.0
+                                except (ValueError, TypeError):
+                                    precio = 0.0
                             
                             # Crear resultado
                             resultado = {
                                 'codigo': codigo,
                                 'nombre': nombre if nombre else f"Fila {row_idx}",
                                 'precio': precio,
-                                'proveedor': proveedor.title(),
+                                'proveedor': proveedor,
                                 'archivo': nombre_archivo,
                                 'hoja': ws_name,
                                 'fila': row_idx,
                                 'tipo': 'excel',
                                 'dueno': dueno,
-                                'row_text': row_text_lower
+                                'row_text': row_text
                             }
                             resultados.append(resultado)
                 
@@ -6091,125 +5551,8 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                 
     except Exception as e:
         print(f"[EXCEL] Error general en buscar_en_excel_proveedor: {e}")
-    
-    print(f"[EXCEL] Búsqueda en proveedor '{proveedor}' completada: {len(resultados)} resultados (de {len(claves_vistas)} coincidencias)")
+        
     return resultados
-
-def buscar_codigo_exacto_en_proveedor(codigo, proveedor, solo_ricky=False, solo_fg=False):
-    """Busca un código específico en un proveedor específico con criterios muy estrictos"""
-    resultados = []
-    claves_vistas = set()  # Conjunto para controlar duplicados
-    
-    try:
-        print(f"🎯 [EXCEL] Iniciando búsqueda exacta de código '{codigo}' en proveedor '{proveedor}'")
-        if not codigo.isdigit() or not proveedor:
-            print(f"⚠️ [EXCEL] Código no numérico o proveedor vacío")
-            return []
-        
-        # Verificar que exista la configuración del proveedor
-        if proveedor not in PROVEEDOR_CONFIG:
-            print(f"⚠️ [EXCEL] Error: Proveedor '{proveedor}' no configurado")
-            return []
-            
-        # Obtener configuración del proveedor
-        config = PROVEEDOR_CONFIG[proveedor]
-        dueno = config.get('dueno', 'ferreteria_general')
-        print(f"🔍 [EXCEL] Dueño del proveedor: {dueno}")
-        
-        # Verificar si el proveedor está habilitado para el filtro de dueño
-        if (solo_ricky and dueno != 'ricky') or (solo_fg and dueno != 'ferreteria_general'):
-            print(f"⚠️ [EXCEL] Proveedor no coincide con filtro de dueño")
-            return []
-        
-        # Directorio base para archivos del proveedor
-        directorio_base = os.path.join('listas_excel', config.get('folder', proveedor))
-        print(f"📁 [EXCEL] Buscando en directorio: {directorio_base}")
-        
-        if not os.path.exists(directorio_base):
-            print(f"⚠️ [EXCEL] Directorio no existe: {directorio_base}")
-            return []
-            
-        # Buscar en todos los archivos Excel disponibles
-        archivos_excel = []
-        for root, _, files in os.walk(directorio_base):
-            for file in files:
-                if file.endswith('.xlsx') or file.endswith('.xls'):
-                    ruta_completa = os.path.join(root, file)
-                    archivos_excel.append(ruta_completa)
-                    
-        print(f"📊 [EXCEL] Encontrados {len(archivos_excel)} archivos para analizar")
-        
-        # Buscar el código exacto en cada archivo
-        for archivo in archivos_excel:
-            try:
-                from openpyxl import load_workbook
-                wb = load_workbook(archivo, read_only=True, data_only=True)
-                
-                for ws_name in wb.sheetnames:
-                    ws = wb[ws_name]
-                    filas = list(ws.rows)
-                    
-                    for row_idx, row in enumerate(filas, 1):
-                        # Obtener valores de celda
-                        row_values = [str(cell.value) if cell.value is not None else '' for cell in row]
-                        if len(row_values) == 0:
-                            continue
-                        
-                        # Obtener código y verificar coincidencia exacta
-                        fila_codigo = row_values[0].strip() if len(row_values) > 0 else ''
-                        if fila_codigo == codigo:
-                            print(f"✅ [EXCEL] Coincidencia exacta encontrada en {os.path.basename(archivo)}, hoja {ws_name}, fila {row_idx}")
-                            
-                            # Extraer datos
-                            nombre = row_values[1] if len(row_values) > 1 else f"Fila {row_idx}"
-                            precio = 0.0
-                            
-                            if len(row_values) > 2:
-                                try:
-                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
-                                    precio = float(precio_text) if precio_text else 0.0
-                                except (ValueError, TypeError):
-                                    precio = 0.0
-                                    
-                            # Verificar que el archivo corresponda realmente al proveedor buscado
-                            archivo_base = os.path.basename(archivo).lower()
-                            if not archivo_base.startswith(proveedor.lower()):
-                                print(f"⚠️ [EXCEL] Omitiendo resultado de {archivo_base}, no coincide con proveedor {proveedor.lower()}")
-                                continue
-                                
-                            # Crear clave única para evitar duplicados
-                            clave = f"{codigo}_{proveedor.lower()}_{archivo_base}_{ws_name}_{row_idx}"
-                            
-                            # Verificar si ya hemos procesado este resultado exacto
-                            if clave in claves_vistas:
-                                print(f"⚠️ [EXCEL] Omitiendo duplicado para código {codigo} en {archivo_base}")
-                                continue
-                                
-                            claves_vistas.add(clave)
-                            
-                            # Crear resultado
-                            resultado = {
-                                'codigo': codigo,
-                                'nombre': nombre,
-                                'precio': precio,
-                                'proveedor': proveedor.title(),
-                                'archivo': os.path.basename(archivo),
-                                'hoja': ws_name,
-                                'fila': row_idx,
-                                'tipo': 'excel',
-                                'dueno': dueno,
-                                'coincidencia_exacta': True
-                            }
-                            resultados.append(resultado)
-            except Exception as e:
-                print(f"⚠️ [EXCEL] Error al procesar archivo {archivo}: {e}")
-                
-        print(f"🎯 [EXCEL] Búsqueda exacta completada: {len(resultados)} resultados (de {len(claves_vistas)} coincidencias)")
-        return resultados
-        
-    except Exception as e:
-        print(f"❌ [EXCEL] Error en buscar_codigo_exacto_en_proveedor: {e}")
-        return []
 
 def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key, dueno='ricky'):
     """Procesar un archivo Excel específico"""
@@ -7127,878 +6470,6 @@ def procesar_escaneo():
         }
     
     return redirect(url_for('escanear'))
-
-# Importar el blueprint de diagnóstico Railway
-try:
-    from diagnostico_railway import diagnostico_railway_bp
-    app.register_blueprint(diagnostico_railway_bp)
-    print("[INFO] Blueprint de diagnóstico Railway registrado correctamente")
-except ImportError as e:
-    print(f"[WARN] No se pudo importar el blueprint de diagnóstico Railway: {e}")
-
-# Importar el blueprint de diagnóstico de búsqueda
-try:
-    from diagnostico_busqueda import diagnostico_busqueda_bp
-    app.register_blueprint(diagnostico_busqueda_bp)
-    print("[INFO] Blueprint de diagnóstico de búsqueda registrado correctamente")
-except ImportError as e:
-    print(f"[WARN] No se pudo importar el blueprint de diagnóstico de búsqueda: {e}")
-
-@app.route('/api/clean_railway_db', methods=['POST'])
-@login_required
-def api_clean_railway_db():
-    """Endpoint para limpiar la base de datos PostgreSQL en Railway.
-    
-    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
-    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
-    """
-    # Verificar si es entorno PostgreSQL
-    if not _is_postgres_configured():
-        return jsonify({
-            "success": False,
-            "mensaje": "Este endpoint solo funciona con PostgreSQL en Railway."
-        })
-    
-    # Verificar token de seguridad
-    migration_token = os.environ.get('MIGRATION_TOKEN', 'default_migration_token')
-    
-    # Obtener token de la solicitud (header o form data)
-    token = request.headers.get('X-Migration-Token')
-    if not token:
-        token = request.form.get('token')
-    
-    # Verificar token (excepto en desarrollo local)
-    if token != migration_token and 'DATABASE_URL' in os.environ:
-        return jsonify({
-            "success": False,
-            "mensaje": "Token de migración inválido"
-        })
-    
-    # Importar y ejecutar la función de limpieza
-    try:
-        from clean_railway_db import clean_railway_db
-        resultado = clean_railway_db()
-        return jsonify(resultado)
-    except ImportError:
-        return jsonify({
-            "success": False,
-            "mensaje": "No se encontró el módulo clean_railway_db.py"
-        })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "mensaje": "Error al ejecutar la limpieza de la base de datos."
-        })
-
-# Endpoint público para limpiar la base de datos sin necesidad de consola
-# Este endpoint usa un código secreto en la URL para mayor seguridad
-@app.route('/limpiar_base_datos_railway/<string:codigo_secreto>', methods=['GET'])
-def limpiar_base_datos_railway(codigo_secreto):
-    """Endpoint público que limpia la base de datos PostgreSQL en Railway.
-    Se accede directamente desde el navegador con un código secreto en la URL.
-    """
-    # Código secreto fijo para facilitar su uso
-    CODIGO_SECRETO_LIMPIEZA = "CleanRailwayDB2025"
-    
-    # Verificar código secreto
-    if codigo_secreto != CODIGO_SECRETO_LIMPIEZA:
-        return jsonify({
-            "success": False,
-            "mensaje": "Código secreto inválido"
-        })
-    
-    # Verificar si es entorno PostgreSQL
-    if not _is_postgres_configured():
-        return jsonify({
-            "success": False,
-            "mensaje": "Este endpoint solo funciona con PostgreSQL en Railway."
-        })
-    
-    # Importar y ejecutar la función de limpieza
-    try:
-        from clean_railway_db import clean_railway_db
-        resultado = clean_railway_db()
-        
-        # Crear una respuesta HTML para mostrar en el navegador
-        html_response = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Base de datos limpiada</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
-                .success {{ color: green; }}
-                .error {{ color: red; }}
-                .container {{ max-width: 800px; margin: 0 auto; }}
-                table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1 class="{'success' if resultado.get('success') else 'error'}">
-                    {resultado.get('mensaje', 'Operación completada')}
-                </h1>
-                
-                {'<h2>Tablas limpiadas:</h2>' if resultado.get('tablas_limpiadas') else ''}
-                {'<ul>' + ''.join([f'<li>{tabla}</li>' for tabla in resultado.get('tablas_limpiadas', [])]) + '</ul>' if resultado.get('tablas_limpiadas') else ''}
-                
-                {'<h2>Registros eliminados:</h2>' if resultado.get('registros_eliminados') else ''}
-                {'<table><tr><th>Tabla</th><th>Estado</th><th>Antes</th><th>Después</th><th>Eliminados</th></tr>' + 
-                ''.join([
-                    f'<tr><td>{tabla}</td><td>{"Limpiada" if info.get("exists", True) else "No existe"}</td><td>{info.get("before", 0)}</td><td>{info.get("after", 0)}</td><td>{info.get("deleted", 0)}</td></tr>' 
-                    if "error" not in info else 
-                    f'<tr><td>{tabla}</td><td style="color:red;">Error: {info.get("error", "Desconocido")}</td><td colspan="3">-</td></tr>'
-                    for tabla, info in resultado.get('registros_eliminados', {}).items()
-                ]) + '</table>' if resultado.get('registros_eliminados') else ''}
-                
-                <p><a href="/">Volver a la página principal</a></p>
-            </div>
-        </body>
-        </html>
-        """
-        
-        # Devolver respuesta HTML
-        return html_response
-        
-    except ImportError:
-        return "Error: No se encontró el módulo clean_railway_db.py"
-    except Exception as e:
-        return f"Error al ejecutar la limpieza de la base de datos: {str(e)}"
-
-# Endpoint para realizar diagnóstico de productos persistentes
-@app.route('/diagnostico_productos/<string:codigo_secreto>', methods=['GET'])
-def diagnostico_productos(codigo_secreto):
-    """Endpoint público que ejecuta el diagnóstico de productos persistentes.
-    Se accede directamente desde el navegador con un código secreto en la URL.
-    Puede recibir el parámetro 'clean=true' para eliminar los productos problemáticos.
-    """
-    # Código secreto fijo para facilitar su uso
-    CODIGO_SECRETO_DIAGNOSTICO = "DiagRailwayDB2025"
-    
-    # Verificar código secreto
-    if codigo_secreto != CODIGO_SECRETO_DIAGNOSTICO:
-        return jsonify({
-            "success": False,
-            "mensaje": "Código secreto inválido"
-        })
-    
-    # Verificar si se solicitó limpieza
-    clean_option = request.args.get('clean', 'false').lower() == 'true'
-    
-    # Ejecutar diagnóstico
-    try:
-        import io
-        import sys
-        from contextlib import redirect_stdout
-        
-        # Capturar la salida del diagnóstico
-        buffer = io.StringIO()
-        with redirect_stdout(buffer):
-            from diagnostico_productos import run_diagnostics
-            run_diagnostics(clean_products=clean_option)
-        
-        output = buffer.getvalue()
-        
-        # Verificar si hay un archivo de resultados JSON
-        import os
-        import json
-        json_results = {}
-        if os.path.exists('diagnostico_productos_resultado.json'):
-            try:
-                with open('diagnostico_productos_resultado.json', 'r', encoding='utf-8') as f:
-                    json_results = json.load(f)
-            except Exception as e:
-                output += f"\nError al leer el archivo JSON de resultados: {e}"
-        
-        # Crear una respuesta HTML para mostrar en el navegador
-        html_response = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Diagnóstico de productos persistentes</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
-                .success {{ color: green; }}
-                .error {{ color: red; }}
-                .container {{ max-width: 900px; margin: 0 auto; }}
-                pre {{ background-color: #f5f5f5; padding: 15px; overflow-x: auto; white-space: pre-wrap; }}
-                table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f2f2f2; }}
-                .actions {{ margin-top: 20px; }}
-                .actions a {{ display: inline-block; padding: 10px 15px; background-color: #4CAF50; color: white; 
-                              text-decoration: none; margin-right: 10px; border-radius: 4px; }}
-                .actions a.danger {{ background-color: #f44336; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Diagnóstico de productos persistentes</h1>
-                
-                <div class="actions">
-                    <a href="/">Volver a la página principal</a>
-                    <a href="/diagnostico_productos/{CODIGO_SECRETO_DIAGNOSTICO}?clean=true" class="danger">
-                        Ejecutar con eliminación de productos
-                    </a>
-                </div>
-                
-                <h2>Resultados del diagnóstico</h2>
-                <pre>{output}</pre>
-                
-                {'<h2>Resumen del diagnóstico</h2>' if json_results else ''}
-                {'<table>' +
-                '<tr><th>Categoría</th><th>Productos encontrados</th></tr>' +
-                f'<tr><td>Base de datos</td><td>{"Sí" if json_results.get("resultados_db") else "No"}</td></tr>' +
-                f'<tr><td>Archivos Excel</td><td>{"Sí" if json_results.get("resultados_excel") else "No"}</td></tr>' +
-                f'<tr><td>Productos eliminados</td><td>{"Sí" if json_results.get("productos_eliminados") else "No"}</td></tr>' +
-                '</table>' if json_results else ''}
-                
-                <div class="actions">
-                    <a href="/limpiar_base_datos_railway/CleanRailwayDB2025">
-                        Ejecutar limpieza completa de la base de datos
-                    </a>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        return html_response
-        
-    except ImportError as e:
-        return f"Error: No se encontró el módulo necesario: {e}"
-    except Exception as e:
-        import traceback
-        return f"Error al ejecutar el diagnóstico: {str(e)}<br><pre>{traceback.format_exc()}</pre>"
-
-@app.route('/api/fix_railway_db', methods=['POST'])
-def fix_railway_db():
-    """Endpoint para ejecutar la migración de la base de datos en Railway.
-    
-    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
-    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
-    """
-    try:
-        # Verificar si estamos en Railway con PostgreSQL
-        if not _is_postgres_configured():
-            return jsonify({
-                'success': False,
-                'message': 'Este endpoint solo funciona en entornos con PostgreSQL (Railway)'
-            }), 400
-        
-        # Verificar token de seguridad
-        expected_token = os.environ.get('MIGRATION_TOKEN')
-        if not expected_token:
-            return jsonify({
-                'success': False, 
-                'message': 'No se ha configurado MIGRATION_TOKEN en las variables de entorno'
-            }), 500
-        
-        provided_token = request.headers.get('X-Migration-Token') or request.form.get('token')
-        if not provided_token or provided_token != expected_token:
-            return jsonify({
-                'success': False,
-                'message': 'Token de migración inválido o no proporcionado'
-            }), 403
-        
-        # Ejecutar la migración
-        from fix_railway_pg import execute_migration
-        result = execute_migration()
-        
-        if result:
-            return jsonify({
-                'success': True,
-                'message': 'Migración aplicada correctamente'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Error al aplicar la migración. Revise los logs del servidor.'
-            }), 500
-    
-    except Exception as e:
-        print(f"[ERROR] Error en el endpoint de migración: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-@app.route('/api/fix_railway_proveedores_case', methods=['POST'])
-def fix_railway_proveedores_case():
-    """Endpoint para normalizar nombres de proveedores en la base de datos de Railway.
-    
-    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
-    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
-    """
-    try:
-        # Verificar si estamos en Railway con PostgreSQL
-        if not _is_postgres_configured():
-            return jsonify({
-                'success': False,
-                'message': 'Este endpoint solo funciona en entornos con PostgreSQL (Railway)'
-            }), 400
-        
-        # Verificar token de seguridad
-        expected_token = os.environ.get('MIGRATION_TOKEN')
-        if not expected_token:
-            return jsonify({
-                'success': False, 
-                'message': 'No se ha configurado MIGRATION_TOKEN en las variables de entorno'
-            }), 500
-        
-        provided_token = request.headers.get('X-Migration-Token') or request.form.get('token')
-        if not provided_token or provided_token != expected_token:
-            return jsonify({
-                'success': False,
-                'message': 'Token de migración inválido o no proporcionado'
-            }), 403
-        
-        # Ejecutar la normalización de proveedores
-        from fix_railway_proveedores_case import normalizar_proveedores
-        result = normalizar_proveedores()
-        
-        if result:
-            return jsonify({
-                'success': True,
-                'message': 'Normalización de proveedores aplicada correctamente'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Error al normalizar proveedores. Revise los logs del servidor.'
-            }), 500
-    
-    except Exception as e:
-        print(f"[ERROR] Error en el endpoint de normalización de proveedores: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-@app.route('/api/sincronizar_proveedores', methods=['POST'])
-@login_required
-def api_sincronizar_proveedores():
-    """Endpoint para sincronizar las tablas proveedores_meta y proveedores_duenos.
-    
-    Soluciona el problema de proveedores que no aparecen en el formulario
-    de agregar productos en Railway.
-    """
-    try:
-        print("[DEBUG] Iniciando sincronización de proveedores...")
-        
-        # Ejecutar la sincronización
-        success, message = sincronizar_proveedores_meta_duenos()
-        
-        if success:
-            print(f"[DEBUG] Sincronización exitosa: {message}")
-            return jsonify({
-                'success': True,
-                'message': message
-            })
-        else:
-            print(f"[DEBUG] Sincronización falló: {message}")
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 500
-    
-    except Exception as e:
-        print(f"[ERROR] Error en sincronización de proveedores: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-# Endpoint alternativo sin autenticación para Railway (con código secreto)
-@app.route('/api/sincronizar_proveedores_railway/<string:codigo_secreto>', methods=['GET', 'POST'])
-def api_sincronizar_proveedores_railway(codigo_secreto):
-    """Endpoint público para sincronizar proveedores en Railway usando código secreto."""
-    try:
-        # Verificar código secreto
-        codigo_esperado = os.environ.get('RAILWAY_SECRET_CODE', 'railway_fix_2024')
-        if codigo_secreto != codigo_esperado:
-            return jsonify({
-                'success': False,
-                'message': 'Código secreto inválido'
-            }), 403
-        
-        print("[DEBUG] Iniciando sincronización Railway...")
-        
-        # Ejecutar la sincronización
-        success, message = sincronizar_proveedores_meta_duenos()
-        
-        if success:
-            print(f"[DEBUG] Sincronización Railway exitosa: {message}")
-            return jsonify({
-                'success': True,
-                'message': message
-            })
-        else:
-            print(f"[DEBUG] Sincronización Railway falló: {message}")
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 500
-    
-    except Exception as e:
-        print(f"[ERROR] Error en sincronización Railway: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-@app.route('/fix_railway_simple/<string:codigo_secreto>', methods=['GET'])
-def fix_railway_simple(codigo_secreto):
-    """Endpoint público simple para crear solo la tabla proveedores_duenos sin migrar datos."""
-    try:
-        # Verificar código secreto
-        codigo_esperado = os.environ.get('RAILWAY_SECRET_CODE', 'railway_fix_2024')
-        if codigo_secreto != codigo_esperado:
-            return jsonify({
-                'success': False,
-                'message': 'Código secreto inválido'
-            }), 403
-        
-        print("[DEBUG] Ejecutando fix simple para Railway...")
-        
-        if not _is_postgres_configured():
-            return jsonify({
-                'success': False,
-                'message': 'Este endpoint solo funciona con PostgreSQL (Railway)'
-            }), 400
-        
-        # Solo crear la tabla, SIN migración de datos
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS proveedores_duenos (
-            id SERIAL PRIMARY KEY,
-            proveedor_id INTEGER NOT NULL,
-            dueno TEXT NOT NULL,
-            CONSTRAINT proveedores_duenos_unique UNIQUE (proveedor_id, dueno),
-            CONSTRAINT fk_proveedor FOREIGN KEY (proveedor_id) REFERENCES proveedores_manual(id) ON DELETE CASCADE
-        )
-        """
-        
-        success = db_query(create_table_sql)
-        if not success:
-            return jsonify({
-                'success': False,
-                'message': 'Error creando tabla proveedores_duenos'
-            }), 500
-        
-        # Crear índices
-        indices = [
-            "CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_proveedor_id ON proveedores_duenos(proveedor_id)",
-            "CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_dueno ON proveedores_duenos(dueno)"
-        ]
-        
-        for indice in indices:
-            db_query(indice)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Tabla proveedores_duenos creada exitosamente. Los nuevos proveedores manuales ahora funcionarán correctamente.'
-        })
-        
-    except Exception as e:
-        print(f"[ERROR] Error en fix simple: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-@app.route('/init_railway_db/<string:codigo_secreto>', methods=['GET'])
-def init_railway_db(codigo_secreto):
-    """Endpoint para forzar la inicialización completa de la base de datos en Railway."""
-    try:
-        # Verificar código secreto
-        codigo_esperado = os.environ.get('RAILWAY_SECRET_CODE', 'railway_fix_2024')
-        if codigo_secreto != codigo_esperado:
-            return jsonify({
-                'success': False,
-                'message': 'Código secreto inválido'
-            }), 403
-        
-        print("[DEBUG] Forzando inicialización completa de Railway DB...")
-        
-        if not _is_postgres_configured():
-            return jsonify({
-                'success': False,
-                'message': 'Este endpoint solo funciona con PostgreSQL (Railway)'
-            }), 400
-        
-        # Ejecutar init_db() completo
-        try:
-            init_db()
-            print("[DEBUG] init_db() ejecutado exitosamente")
-        except Exception as e:
-            print(f"[ERROR] Error en init_db(): {e}")
-            return jsonify({
-                'success': False,
-                'message': f'Error en init_db(): {str(e)}'
-            }), 500
-        
-        # Verificar que las tablas críticas existan
-        tablas_criticas = ['proveedores_manual', 'proveedores_meta', 'proveedores_duenos', 'notificaciones']
-        tablas_creadas = []
-        tablas_faltantes = []
-        
-        for tabla in tablas_criticas:
-            try:
-                result = db_query(f"SELECT COUNT(*) FROM {tabla}", fetch=True)
-                if result is not None:
-                    count = result[0]['count'] if result else 0
-                    tablas_creadas.append(f"{tabla} ({count} registros)")
-                else:
-                    tablas_faltantes.append(tabla)
-            except Exception as e:
-                print(f"[ERROR] Error verificando tabla {tabla}: {e}")
-                tablas_faltantes.append(f"{tabla} (error: {str(e)})")
-        
-        # Verificar la consulta específica que falla
-        try:
-            test_proveedores = db_query("""
-                SELECT DISTINCT p.nombre 
-                FROM proveedores_manual p
-                JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
-                WHERE pd.dueno = %s
-                ORDER BY p.nombre
-            """, ('ferreteria_general',), fetch=True)
-            
-            consulta_funciona = True
-            proveedores_encontrados = [p['nombre'] for p in test_proveedores] if test_proveedores else []
-        except Exception as e:
-            consulta_funciona = False
-            proveedores_encontrados = []
-            print(f"[ERROR] Error en consulta de proveedores: {e}")
-        
-        return jsonify({
-            'success': len(tablas_faltantes) == 0,
-            'message': 'Inicialización de Railway DB completada',
-            'tablas_creadas': tablas_creadas,
-            'tablas_faltantes': tablas_faltantes,
-            'consulta_proveedores_funciona': consulta_funciona,
-            'proveedores_ferreteria_general': proveedores_encontrados
-        })
-        
-    except Exception as e:
-        print(f"[ERROR] Error en inicialización Railway: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-@app.route('/api/diagnostico_proveedores', methods=['GET'])
-@login_required
-def api_diagnostico_proveedores():
-    """Endpoint para diagnosticar el estado de las tablas de proveedores."""
-    try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({
-                'success': False,
-                'message': 'No se pudo conectar a la base de datos'
-            }), 500
-        
-        cursor = conn.cursor()
-        
-        # Contar proveedores en cada tabla
-        diagnostico = {}
-        
-        # proveedores_manual
-        cursor.execute("SELECT COUNT(*) FROM proveedores_manual")
-        diagnostico['proveedores_manual_count'] = cursor.fetchone()[0]
-        
-        # proveedores_meta
-        cursor.execute("SELECT COUNT(*) FROM proveedores_meta")
-        diagnostico['proveedores_meta_count'] = cursor.fetchone()[0]
-        
-        # proveedores_duenos
-        try:
-            cursor.execute("SELECT COUNT(*) FROM proveedores_duenos")
-            diagnostico['proveedores_duenos_count'] = cursor.fetchone()[0]
-            diagnostico['proveedores_duenos_exists'] = True
-        except Exception:
-            diagnostico['proveedores_duenos_count'] = 0
-            diagnostico['proveedores_duenos_exists'] = False
-        
-        # Obtener distribución por dueño en cada tabla
-        try:
-            cursor.execute("SELECT dueno, COUNT(*) FROM proveedores_meta GROUP BY dueno")
-            diagnostico['meta_por_dueno'] = dict(cursor.fetchall())
-        except Exception:
-            diagnostico['meta_por_dueno'] = {}
-        
-        try:
-            cursor.execute("""
-                SELECT pd.dueno, COUNT(*) 
-                FROM proveedores_duenos pd
-                GROUP BY pd.dueno
-            """)
-            diagnostico['duenos_por_dueno'] = dict(cursor.fetchall())
-        except Exception:
-            diagnostico['duenos_por_dueno'] = {}
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'diagnostico': diagnostico
-        })
-    
-    except Exception as e:
-        print(f"[ERROR] Error en diagnóstico: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Error: {str(e)}'
-        }), 500
-
-@app.route('/admin/proveedores')
-@login_required
-def admin_proveedores():
-    """Página de administración para diagnosticar y corregir problemas con proveedores."""
-    return render_template('admin_proveedores.html')
-
-# Ruta para corregir problemas de visibilidad de proveedores en Railway
-@app.route('/admin/corregir_proveedores', methods=['GET', 'POST'])
-@login_required
-def admin_corregir_proveedores():
-    """Ruta de administración para diagnosticar y corregir problemas con los proveedores
-    en la versión Railway (PostgreSQL). Específicamente soluciona el problema de proveedores
-    que no aparecen en la sección de agregar productos ni en gestionar productos."""
-    
-    # Inicializar resultados
-    diagnostico = {}
-    correccion = {}
-    indices = {}
-    
-    # Si es una solicitud POST, realizar correcciones
-    if request.method == 'POST':
-        accion = request.form.get('accion', '')
-        
-        if accion == 'diagnosticar':
-            diagnostico = diagnosticar_proveedores_railway()
-        
-        elif accion == 'corregir':
-            correccion = corregir_proveedores_railway()
-            diagnostico = diagnosticar_proveedores_railway()  # Actualizar diagnóstico después de corrección
-        
-        elif accion == 'indices':
-            indices = verificar_indices_railway()
-    
-    # Para GET, mostrar solo diagnóstico inicial
-    else:
-        diagnostico = diagnosticar_proveedores_railway()
-    
-    return render_template(
-        'admin_corregir_proveedores.html',
-        diagnostico=diagnostico,
-        correccion=correccion,
-        indices=indices,
-        is_postgres=_is_postgres_configured()
-    )
-
-def diagnosticar_proveedores_railway():
-    """Diagnostica el estado de los proveedores y sus relaciones en la base de datos.
-    
-    Verifica si hay proveedores sin dueños asociados, lo cual causa que no aparezcan
-    en las secciones de agregar productos y gestionar productos.
-    
-    Returns:
-        dict: Un diccionario con los resultados del diagnóstico
-    """
-    # Log de depuración: mostrar el valor recibido y los valores en la tabla
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT DISTINCT proveedor FROM productos_manual")
-        proveedores_en_bd = cur.fetchall()
-        print(f"[DEBUG] Proveedores en productos_manual:")
-        for p in proveedores_en_bd:
-            print(f"  - '{p[0]}'")
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"[DEBUG] Error al obtener proveedores de productos_manual: {e}")
-    resultados = {
-        'proveedores_total': 0,
-        'proveedores_sin_dueno': [],
-        'duenos': []
-    }
-    
-    conn = get_db_connection()
-    if not conn:
-        return {"error": "No se pudo conectar a la base de datos"}
-    
-    try:
-        # Verificar proveedores sin dueños asociados
-        query_proveedores_sin_dueno = """
-        SELECT p.id, p.nombre
-        FROM proveedores_manual p
-        LEFT JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
-        WHERE pd.proveedor_id IS NULL
-        ORDER BY p.nombre
-        """
-        
-        sin_dueno = db_query(query_proveedores_sin_dueno, fetch=True, conn=conn)
-        
-        # Obtener todos los proveedores para estadísticas
-        query_todos_proveedores = "SELECT COUNT(*) as total FROM proveedores_manual"
-        total = db_query(query_todos_proveedores, fetch=True, conn=conn)
-        
-        # Obtener dueños existentes
-        query_duenos = "SELECT DISTINCT dueno FROM proveedores_duenos"
-        duenos = db_query(query_duenos, fetch=True, conn=conn)
-        
-        resultados['proveedores_total'] = total[0]['total'] if total else 0
-        resultados['proveedores_sin_dueno'] = sin_dueno if sin_dueno else []
-        resultados['duenos'] = [d['dueno'] for d in duenos] if duenos else []
-        
-        # Verificar tabla proveedores_duenos
-        if _is_postgres_configured():
-            # Verificar índices en PostgreSQL
-            indices_query = """
-            SELECT indexname FROM pg_indexes 
-            WHERE tablename = 'proveedores_duenos'
-            """
-            indices = db_query(indices_query, fetch=True, conn=conn)
-            resultados['indices'] = [idx['indexname'] for idx in indices] if indices else []
-        
-    except Exception as e:
-        resultados['error'] = f"Error durante el diagnóstico: {str(e)}"
-    finally:
-        try:
-            conn.close()
-        except:
-            pass
-    
-    return resultados
-
-def corregir_proveedores_railway():
-    """Corrige el problema de proveedores sin dueños asociados.
-    
-    Asocia automáticamente los proveedores sin dueño a ambos dueños
-    ('ricky' y 'ferreteria_general') para garantizar su visibilidad.
-    
-    Returns:
-        dict: Un diccionario con los resultados de la corrección
-    """
-    resultados = {
-        'corregidos': 0,
-        'errores': [],
-        'proveedores': []
-    }
-    
-    # Primero diagnosticar
-    diagnostico = diagnosticar_proveedores_railway()
-    if 'error' in diagnostico:
-        return {"error": diagnostico['error']}
-    
-    if not diagnostico.get('proveedores_sin_dueno'):
-        return {"mensaje": "No hay proveedores sin dueño que corregir", "corregidos": 0}
-    
-    conn = get_db_connection()
-    if not conn:
-        return {"error": "No se pudo conectar a la base de datos"}
-    
-    try:
-        for p in diagnostico['proveedores_sin_dueno']:
-            proveedor_id = p['id']
-            nombre = p['nombre']
-            
-            # Asociar a ambos dueños
-            duenos = ['ricky', 'ferreteria_general']
-            proveedor_corregido = True
-            
-            for d in duenos:
-                # Insertar en proveedores_duenos
-                ok_duenos = db_query(
-                    "INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)",
-                    (proveedor_id, d),
-                    conn=conn
-                )
-                
-                # Insertar en proveedores_meta (legacy)
-                ok_meta = db_query(
-                    "INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)",
-                    (nombre, d),
-                    conn=conn
-                )
-                
-                if not (ok_duenos and ok_meta):
-                    proveedor_corregido = False
-                    resultados['errores'].append(f"Error al asociar proveedor '{nombre}' a dueño '{d}'")
-            
-            if proveedor_corregido:
-                resultados['corregidos'] += 1
-                resultados['proveedores'].append(nombre)
-    
-    except Exception as e:
-        resultados['error'] = f"Error durante la corrección: {str(e)}"
-    finally:
-        try:
-            conn.close()
-        except:
-            pass
-    
-    return resultados
-
-def verificar_indices_railway():
-    """Verifica y crea índices necesarios en PostgreSQL para mejorar el rendimiento.
-    
-    Esta función solo hace algo en entorno PostgreSQL (Railway).
-    
-    Returns:
-        dict: Un diccionario con los resultados de la verificación
-    """
-    if not _is_postgres_configured():
-        return {"mensaje": "No es necesario verificar índices en SQLite"}
-    
-    resultados = {
-        'indices_creados': 0,
-        'errores': []
-    }
-    
-    conn = get_db_connection()
-    if not conn:
-        return {"error": "No se pudo conectar a la base de datos"}
-    
-    try:
-        # Índices para proveedores_duenos
-        indices = [
-            "CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_proveedor_id ON proveedores_duenos(proveedor_id)",
-            "CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_dueno ON proveedores_duenos(dueno)"
-        ]
-        
-        for idx_query in indices:
-            ok = db_query(idx_query, conn=conn)
-            if ok:
-                resultados['indices_creados'] += 1
-            else:
-                resultados['errores'].append(f"Error al crear índice: {idx_query}")
-    
-    except Exception as e:
-        resultados['error'] = f"Error durante la verificación de índices: {str(e)}"
-    finally:
-        try:
-            conn.close()
-        except:
-            pass
-    
-    return resultados
 
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")
