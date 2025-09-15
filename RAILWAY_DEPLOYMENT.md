@@ -15,7 +15,7 @@ Esta guía contiene los pasos necesarios para desplegar correctamente la aplicac
 ✅ El código ya ha sido adaptado para PostgreSQL.  
 ✅ El archivo `requirements.txt` incluye todas las dependencias necesarias.  
 ✅ El archivo `Procfile` está configurado correctamente.  
-✅ Se ha implementado el endpoint de migración `/api/fix_railway_db`.
+✅ Se han implementado endpoints de migración y diagnóstico.
 
 ### 2. Conectar Railway con GitHub
 
@@ -45,38 +45,72 @@ Esta guía contiene los pasos necesarios para desplegar correctamente la aplicac
    - `FLASK_ENV`: production
    - `SECRET_KEY`: Genera una clave secreta para Flask (distinta del token de migración)
 
-### 5. Ejecutar la Migración de la Base de Datos
+### 5. Ejecutar los Diagnósticos
 
-Después de que el despliegue esté completo:
+Una vez que el despliegue esté completo, primero debemos diagnosticar los problemas específicos:
 
 1. Obtén la URL de tu aplicación desde el panel de Railway (algo como `https://gestor-stock-ferreteria-xxxx.up.railway.app`)
-2. Ejecuta el siguiente comando desde tu máquina local (reemplaza los valores según corresponda):
+2. Accede a los endpoints de diagnóstico:
+
+```
+# Diagnóstico general de la base de datos
+https://gestor-stock-ferreteria-xxxx.up.railway.app/diagnostico_railway
+
+# Diagnóstico específico de búsqueda por proveedor
+https://gestor-stock-ferreteria-xxxx.up.railway.app/diagnostico_busqueda?proveedor=jeluz&termino=cable
+```
+
+Revisa los resultados para identificar problemas específicos.
+
+### 6. Ejecutar las Correcciones
+
+Después de revisar los diagnósticos, ejecuta los endpoints de corrección:
+
+1. Primero, aplica la migración de la estructura de la base de datos:
 
 ```bash
 curl -X POST https://gestor-stock-ferreteria-xxxx.up.railway.app/api/fix_railway_db -H "X-Migration-Token: TU_TOKEN_AQUI"
 ```
 
-Alternativamente, puedes usar Postman o cualquier otra herramienta para hacer una petición POST al endpoint con el header `X-Migration-Token` configurado.
+2. Luego, normaliza los nombres de proveedores (esto puede resolver problemas de búsqueda por case sensitivity):
 
-### 6. Verificar la Migración
+```bash
+curl -X POST https://gestor-stock-ferreteria-xxxx.up.railway.app/api/fix_railway_proveedores_case -H "X-Migration-Token: TU_TOKEN_AQUI"
+```
 
-1. La respuesta del endpoint debe ser un JSON con `"success": true` si la migración fue exitosa
-2. Si hay algún error, revisa los logs de la aplicación en Railway:
-   - Ve al panel del proyecto
-   - Selecciona el servicio web
-   - Ve a la pestaña "Logs"
+Alternativamente, puedes usar el script `test_migration_endpoint.py` actualizado para probar estos endpoints localmente antes de ejecutarlos en Railway:
 
-## Solución de Problemas
+```bash
+# Configurar token
+$env:MIGRATION_TOKEN = "tu_token_secreto"
 
-### La Aplicación no Funciona Después de la Migración
+# Ejecutar diagnóstico de Railway
+python test_migration_endpoint.py diagnostico_railway
 
-Si la aplicación sigue teniendo problemas después de la migración:
+# Ejecutar diagnóstico de búsqueda
+python test_migration_endpoint.py diagnostico_busqueda
 
-1. Verifica los logs en Railway para identificar errores específicos
-2. Considera hacer cambios locales, probarlos, y luego hacer un nuevo despliegue:
-   - Modifica el código según sea necesario
-   - Haz commit y push a GitHub
-   - Railway detectará los cambios y hará un nuevo despliegue automáticamente
+# Ejecutar migración de base de datos
+python test_migration_endpoint.py fix_db
+
+# Ejecutar normalización de proveedores
+python test_migration_endpoint.py fix_proveedores_case
+```
+
+### 7. Verificar las Correcciones
+
+1. Vuelve a acceder a los endpoints de diagnóstico para verificar que los problemas se han resuelto.
+2. Prueba la funcionalidad de búsqueda en la aplicación para asegurarte de que ahora funciona correctamente.
+
+## Solución de Problemas Específicos
+
+### Problemas con la Búsqueda por Proveedor
+
+Si la búsqueda por proveedor sigue sin funcionar correctamente después de aplicar las correcciones, verifica:
+
+1. **Sensibilidad a mayúsculas/minúsculas**: Asegúrate de que se ha ejecutado correctamente la normalización de proveedores.
+2. **Estructura de la base de datos**: Verifica que todas las tablas necesarias existen y tienen la estructura correcta.
+3. **Datos de proveedores**: Verifica que los proveedores existen en la tabla `proveedores_manual` y tienen el formato correcto.
 
 ### Errores en la Base de Datos
 
@@ -86,33 +120,26 @@ Si encuentras errores específicos de la base de datos:
 2. Ve a la pestaña "Data"
 3. Puedes ejecutar consultas SQL directamente para verificar y modificar la estructura de la base de datos
 
-## Comandos Útiles
+```sql
+-- Ver nombres de proveedores actuales
+SELECT DISTINCT proveedor FROM productos_manual ORDER BY proveedor;
 
-### Probar el Endpoint de Migración Localmente
-
-```bash
-# Configura el token de migración
-$env:MIGRATION_TOKEN = "tu_token_secreto"
-
-# Ejecuta el script de prueba
-python test_migration_endpoint.py
+-- Verificar relaciones entre proveedores y dueños
+SELECT pd.*, pm.nombre FROM proveedores_duenos pd
+JOIN proveedores_manual pm ON pd.proveedor_id = pm.id;
 ```
 
-### Ejecutar Consultas SQL en Railway
+## Comandos Útiles para Diagnóstico
 
-1. Ve al servicio de PostgreSQL en Railway
-2. Selecciona la pestaña "Data"
-3. Ejecuta consultas como:
+```bash
+# Ver logs de la aplicación en Railway
+railway logs
 
-```sql
--- Ver todas las tablas
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public';
+# Conectarse directamente a la base de datos en Railway
+railway connect
 
--- Verificar estructura de una tabla específica
-SELECT column_name, data_type 
-FROM information_schema.columns 
-WHERE table_name = 'proveedores_duenos';
+# Ejecutar una consulta SQL específica
+railway run "SELECT * FROM proveedores_manual LIMIT 10"
 ```
 
 ## Contacto y Soporte
@@ -121,4 +148,5 @@ Si encuentras problemas durante el despliegue, puedes:
 
 1. Revisar los logs en Railway para obtener más información sobre los errores
 2. Consultar la [documentación de Railway](https://docs.railway.app/)
-3. Contactar al desarrollador para soporte adicional
+3. Utilizar los endpoints de diagnóstico para obtener información detallada
+4. Contactar al desarrollador para soporte adicional

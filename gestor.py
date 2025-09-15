@@ -7010,6 +7010,22 @@ def procesar_escaneo():
     
     return redirect(url_for('escanear'))
 
+# Importar el blueprint de diagnóstico Railway
+try:
+    from diagnostico_railway import diagnostico_railway_bp
+    app.register_blueprint(diagnostico_railway_bp)
+    print("[INFO] Blueprint de diagnóstico Railway registrado correctamente")
+except ImportError as e:
+    print(f"[WARN] No se pudo importar el blueprint de diagnóstico Railway: {e}")
+
+# Importar el blueprint de diagnóstico de búsqueda
+try:
+    from diagnostico_busqueda import diagnostico_busqueda_bp
+    app.register_blueprint(diagnostico_busqueda_bp)
+    print("[INFO] Blueprint de diagnóstico de búsqueda registrado correctamente")
+except ImportError as e:
+    print(f"[WARN] No se pudo importar el blueprint de diagnóstico de búsqueda: {e}")
+
 @app.route('/api/fix_railway_db', methods=['POST'])
 def fix_railway_db():
     """Endpoint para ejecutar la migración de la base de datos en Railway.
@@ -7057,6 +7073,60 @@ def fix_railway_db():
     
     except Exception as e:
         print(f"[ERROR] Error en el endpoint de migración: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        }), 500
+
+@app.route('/api/fix_railway_proveedores_case', methods=['POST'])
+def fix_railway_proveedores_case():
+    """Endpoint para normalizar nombres de proveedores en la base de datos de Railway.
+    
+    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
+    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
+    """
+    try:
+        # Verificar si estamos en Railway con PostgreSQL
+        if not _is_postgres_configured():
+            return jsonify({
+                'success': False,
+                'message': 'Este endpoint solo funciona en entornos con PostgreSQL (Railway)'
+            }), 400
+        
+        # Verificar token de seguridad
+        expected_token = os.environ.get('MIGRATION_TOKEN')
+        if not expected_token:
+            return jsonify({
+                'success': False, 
+                'message': 'No se ha configurado MIGRATION_TOKEN en las variables de entorno'
+            }), 500
+        
+        provided_token = request.headers.get('X-Migration-Token') or request.form.get('token')
+        if not provided_token or provided_token != expected_token:
+            return jsonify({
+                'success': False,
+                'message': 'Token de migración inválido o no proporcionado'
+            }), 403
+        
+        # Ejecutar la normalización de proveedores
+        from fix_railway_proveedores_case import normalizar_proveedores
+        result = normalizar_proveedores()
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'message': 'Normalización de proveedores aplicada correctamente'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Error al normalizar proveedores. Revise los logs del servidor.'
+            }), 500
+    
+    except Exception as e:
+        print(f"[ERROR] Error en el endpoint de normalización de proveedores: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
