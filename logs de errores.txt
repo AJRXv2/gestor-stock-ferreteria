@@ -1,628 +1,617 @@
-2025-09-15T08:52:27.000000000Z [inf]  Starting Container
-2025-09-15T08:52:27.300517258Z [err]  [2025-09-15 08:52:27 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:27.300521301Z [err]  [2025-09-15 08:52:27 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:27.300525297Z [err]  [2025-09-15 08:52:27 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:27.300532058Z [err]  [2025-09-15 08:52:27 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:27.300536754Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:27.335881837Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:27.336119459Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:27.336177773Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:27.336183731Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:27.343463756Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:27.343469947Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:27.358363824Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:27.358369153Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:27.365271928Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:27.368875811Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:27.372381873Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:27.376173150Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:27.421391686Z [err]  [2025-09-15 08:52:27 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:27.421397953Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:27.421403881Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:27.421410163Z [err]      worker.init_process()
-2025-09-15T08:52:27.421415939Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:27.421422258Z [err]      self.load_wsgi()
-2025-09-15T08:52:27.421429471Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:27.421435975Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:27.421441682Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:27.421447133Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:27.421452558Z [err]      self.callable = self.load()
-2025-09-15T08:52:27.421459337Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:27.421465840Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:27.421470884Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:27.421478310Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:27.421484172Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:27.421489642Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:27.421495036Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:27.421501020Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:27.421507120Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:27.421513021Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:27.421519440Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:27.421525468Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:27.421531255Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:27.421537027Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:27.421542906Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:27.421548641Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:27.421554827Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:27.421560093Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:27.421567716Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:27.421573676Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:27.421579374Z [err]      from gestor import app as application
-2025-09-15T08:52:27.421586164Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:27.421592115Z [err]      except Exception as e:
-2025-09-15T08:52:27.421599129Z [err]                            ^
-2025-09-15T08:52:27.421604064Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:27.421607859Z [err]  [2025-09-15 08:52:27 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:27.458398110Z [err]  [2025-09-15 08:52:27 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:27.458408692Z [err]  [2025-09-15 08:52:27 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:27.458415950Z [err]  [2025-09-15 08:52:27 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:28.983499271Z [err]  [2025-09-15 08:52:28 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:28.983506742Z [err]  [2025-09-15 08:52:28 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:28.983514126Z [err]  [2025-09-15 08:52:28 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:28.987177644Z [err]  [2025-09-15 08:52:28 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:28.994252979Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:29.030353010Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:29.030361450Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:29.030370149Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:29.030379567Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:29.036605160Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:29.036612556Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:29.051692635Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:29.051699809Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:29.058763150Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:29.061618321Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:29.065428632Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:29.069472031Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:29.126006976Z [err]  [2025-09-15 08:52:29 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:29.126012355Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:29.126016929Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:29.126021488Z [err]      worker.init_process()
-2025-09-15T08:52:29.126025437Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:29.126029706Z [err]      self.load_wsgi()
-2025-09-15T08:52:29.126034416Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:29.126039292Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:29.126043238Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:29.126047544Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:29.126051509Z [err]      self.callable = self.load()
-2025-09-15T08:52:29.126055875Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:29.126060514Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:29.126066335Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:29.126070526Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:29.126074413Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:29.126078287Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:29.126084236Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:29.126088046Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:29.126091953Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:29.126097660Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:29.126102382Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:29.126107084Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:29.126111701Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:29.126115980Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:29.126120360Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:29.126124000Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:29.126128499Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:29.126132129Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:29.126135915Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:29.126141468Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:29.126145203Z [err]      from gestor import app as application
-2025-09-15T08:52:29.126149542Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:29.126154106Z [err]      except Exception as e:
-2025-09-15T08:52:29.126158248Z [err]                            ^
-2025-09-15T08:52:29.126162276Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:29.126166392Z [err]  [2025-09-15 08:52:29 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:29.168587191Z [err]  [2025-09-15 08:52:29 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:29.168592214Z [err]  [2025-09-15 08:52:29 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:29.168596897Z [err]  [2025-09-15 08:52:29 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:30.797317299Z [err]  [2025-09-15 08:52:30 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:30.800972853Z [err]  [2025-09-15 08:52:30 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:30.800981713Z [err]  [2025-09-15 08:52:30 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:30.803461940Z [err]  [2025-09-15 08:52:30 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:30.812505479Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:30.900076665Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:30.903351487Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:30.903356158Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:30.903361011Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:30.907041401Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:30.907054456Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:30.929923087Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:30.929932369Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:30.938662776Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:30.944693690Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:30.948487831Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:30.952270266Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:31.001094030Z [err]  [2025-09-15 08:52:30 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:31.001102671Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:31.001107266Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:31.001113769Z [err]      worker.init_process()
-2025-09-15T08:52:31.001118554Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:31.001123929Z [err]      self.load_wsgi()
-2025-09-15T08:52:31.001128776Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:31.001134448Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:31.001138324Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:31.001142241Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:31.001146510Z [err]      self.callable = self.load()
-2025-09-15T08:52:31.001151077Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:31.001155702Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:31.001161322Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:31.001166554Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:31.001170683Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:31.001177078Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:31.001181279Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:31.001186223Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:31.001190294Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:31.001194151Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:31.001198833Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:31.001202828Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:31.001207670Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:31.001211739Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:31.001215706Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:31.001220377Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:31.001224611Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:31.001228359Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:31.001232096Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:31.001235684Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:31.001240895Z [err]      from gestor import app as application
-2025-09-15T08:52:31.001245160Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:31.001251014Z [err]      except Exception as e:
-2025-09-15T08:52:31.001255279Z [err]                            ^
-2025-09-15T08:52:31.001260712Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:31.001265187Z [err]  [2025-09-15 08:52:30 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:31.054510486Z [err]  [2025-09-15 08:52:31 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:31.054514895Z [err]  [2025-09-15 08:52:31 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:31.054519108Z [err]  [2025-09-15 08:52:31 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:32.408796439Z [err]  [2025-09-15 08:52:32 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:32.412573380Z [err]  [2025-09-15 08:52:32 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:32.412578438Z [err]  [2025-09-15 08:52:32 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:32.412583753Z [err]  [2025-09-15 08:52:32 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:32.425687937Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:32.455485732Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:32.455496301Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:32.455501469Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:32.455506118Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:32.459364176Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:32.459369951Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:32.474859641Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:32.474866738Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:32.483198347Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:32.486936871Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:32.491621918Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:32.494823088Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:32.538828778Z [err]  [2025-09-15 08:52:32 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:32.538833442Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:32.538838262Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:32.538843492Z [err]      worker.init_process()
-2025-09-15T08:52:32.538849727Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:32.538856986Z [err]      self.load_wsgi()
-2025-09-15T08:52:32.538863436Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:32.538869560Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:32.538875140Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:32.538880039Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:32.538887520Z [err]      self.callable = self.load()
-2025-09-15T08:52:32.538895055Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:32.538901212Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:32.538907958Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:32.538915485Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:32.538921679Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:32.538927728Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:32.538935166Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:32.538941974Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:32.538948163Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:32.538953295Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:32.538963212Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:32.538970333Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:32.538975978Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:32.538982250Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:32.538988265Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:32.538993679Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:32.538999348Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:32.539005659Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:32.539010908Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:32.539017168Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:32.539021967Z [err]      from gestor import app as application
-2025-09-15T08:52:32.539028075Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:32.539034471Z [err]      except Exception as e:
-2025-09-15T08:52:32.539040795Z [err]                            ^
-2025-09-15T08:52:32.539046591Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:32.539054920Z [err]  [2025-09-15 08:52:32 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:32.574536186Z [err]  [2025-09-15 08:52:32 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:32.574542725Z [err]  [2025-09-15 08:52:32 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:32.574548544Z [err]  [2025-09-15 08:52:32 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:34.069509539Z [err]  [2025-09-15 08:52:34 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:34.069513938Z [err]  [2025-09-15 08:52:34 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:34.069518557Z [err]  [2025-09-15 08:52:34 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:34.069523257Z [err]  [2025-09-15 08:52:34 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:34.078589735Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:34.163978085Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:34.163984096Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:34.163992017Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:34.163998317Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:34.171198215Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:34.171204383Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:34.183999995Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:34.184006374Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:34.190577410Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:34.194573754Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:34.198423036Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:34.202241240Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:34.247413571Z [err]  [2025-09-15 08:52:34 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:34.247420781Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:34.247426759Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:34.247435000Z [err]      worker.init_process()
-2025-09-15T08:52:34.247440955Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:34.247446926Z [err]      self.load_wsgi()
-2025-09-15T08:52:34.247452267Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:34.247458848Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:34.247465544Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:34.247472630Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:34.247484563Z [err]      self.callable = self.load()
-2025-09-15T08:52:34.247491878Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:34.247497932Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:34.247504120Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:34.247510587Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:34.247520011Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:34.247525436Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:34.247531426Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:34.247537705Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:34.247545984Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:34.247551513Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:34.247557826Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:34.247563370Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:34.247569937Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:34.247577306Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:34.247583608Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:34.247588684Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:34.247594373Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:34.247600715Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:34.247605552Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:34.247609401Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:34.247613296Z [err]      from gestor import app as application
-2025-09-15T08:52:34.247617355Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:34.247624255Z [err]      except Exception as e:
-2025-09-15T08:52:34.247628624Z [err]                            ^
-2025-09-15T08:52:34.247632854Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:34.247636724Z [err]  [2025-09-15 08:52:34 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:34.315865054Z [err]  [2025-09-15 08:52:34 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:34.315871190Z [err]  [2025-09-15 08:52:34 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:34.315875776Z [err]  [2025-09-15 08:52:34 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:35.662196888Z [err]  [2025-09-15 08:52:35 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:35.662207442Z [err]  [2025-09-15 08:52:35 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:35.662215597Z [err]  [2025-09-15 08:52:35 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:35.665107252Z [err]  [2025-09-15 08:52:35 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:35.676387155Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:35.705713293Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:35.705878364Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:35.705884709Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:35.705892167Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:35.712757751Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:35.712762266Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:35.727385418Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:35.727392281Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:35.731231138Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:35.734981381Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:35.738312970Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:35.741017139Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:35.792283889Z [err]  [2025-09-15 08:52:35 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:35.792287649Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:35.792291481Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:35.792295289Z [err]      worker.init_process()
-2025-09-15T08:52:35.792300271Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:35.792305092Z [err]      self.load_wsgi()
-2025-09-15T08:52:35.792308884Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:35.792312632Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:35.792316957Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:35.792321036Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:35.792325594Z [err]      self.callable = self.load()
-2025-09-15T08:52:35.792331224Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:35.792336477Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:35.792340504Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:35.792344469Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:35.792351031Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:35.792355419Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:35.792359030Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:35.792363065Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:35.792366871Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:35.792372435Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:35.792380992Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:35.792384810Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:35.792388513Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:35.792392728Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:35.792397668Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:35.792403043Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:35.792406959Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:35.792410991Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:35.792414912Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:35.792419291Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:35.792424443Z [err]      from gestor import app as application
-2025-09-15T08:52:35.792427913Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:35.792431695Z [err]      except Exception as e:
-2025-09-15T08:52:35.792435707Z [err]                            ^
-2025-09-15T08:52:35.792439774Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:35.792444082Z [err]  [2025-09-15 08:52:35 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:35.828275134Z [err]  [2025-09-15 08:52:35 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:35.828282551Z [err]  [2025-09-15 08:52:35 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:35.828288784Z [err]  [2025-09-15 08:52:35 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:37.467921785Z [err]  [2025-09-15 08:52:37 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:37.467928865Z [err]  [2025-09-15 08:52:37 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:37.467937001Z [err]  [2025-09-15 08:52:37 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:37.472121313Z [err]  [2025-09-15 08:52:37 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:37.479120048Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:37.564664703Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:37.564670501Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:37.564676955Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:37.564684322Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:37.571435301Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:37.571443383Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:37.589955026Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:37.589963288Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:37.589970162Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:37.593248089Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:37.597148603Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:37.600589150Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:37.647337485Z [err]  [2025-09-15 08:52:37 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:37.647345197Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:37.647352200Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:37.647359722Z [err]      worker.init_process()
-2025-09-15T08:52:37.647365573Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:37.647401279Z [err]      self.load_wsgi()
-2025-09-15T08:52:37.647406606Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:37.647411905Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:37.647416651Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:37.647421926Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:37.647426591Z [err]      self.callable = self.load()
-2025-09-15T08:52:37.647430978Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:37.647435735Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:37.647441213Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:37.647447644Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:37.647452476Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:37.647456963Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:37.647461333Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:37.647464991Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:37.647468870Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:37.647474049Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:37.647478112Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:37.647482341Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:37.647486117Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:37.647490125Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:37.647495978Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:37.647499855Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:37.647504025Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:37.647507964Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:37.647511604Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:37.647515916Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:37.647520360Z [err]      from gestor import app as application
-2025-09-15T08:52:37.647524820Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:37.647530188Z [err]      except Exception as e:
-2025-09-15T08:52:37.647534358Z [err]                            ^
-2025-09-15T08:52:37.647538381Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:37.647543026Z [err]  [2025-09-15 08:52:37 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:37.691138637Z [err]  [2025-09-15 08:52:37 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:37.691144143Z [err]  [2025-09-15 08:52:37 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:37.691149696Z [err]  [2025-09-15 08:52:37 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:39.157588233Z [err]  [2025-09-15 08:52:39 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:39.157595534Z [err]  [2025-09-15 08:52:39 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:39.157602707Z [err]  [2025-09-15 08:52:39 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:39.161096407Z [err]  [2025-09-15 08:52:39 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:39.168486905Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:39.197075237Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:39.200694645Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:39.200699565Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:39.200704727Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:39.204167686Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:39.204179891Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:39.221882163Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:39.221887042Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:39.225297681Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:39.228583509Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:39.232232965Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:39.235874961Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:39.277292844Z [err]  [2025-09-15 08:52:39 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:39.277299884Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:39.277305246Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:39.277309939Z [err]      worker.init_process()
-2025-09-15T08:52:39.277314394Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:39.277319681Z [err]      self.load_wsgi()
-2025-09-15T08:52:39.277325066Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:39.277329801Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:39.277334373Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:39.277338679Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:39.277342746Z [err]      self.callable = self.load()
-2025-09-15T08:52:39.277346488Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:39.277350717Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:39.277355146Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:39.277359492Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:39.277363317Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:39.277366856Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:39.277370812Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:39.277375435Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:39.277380216Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:39.277383885Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:39.277388781Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:39.277394097Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:39.277398804Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:39.277403547Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:39.277407863Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:39.277412692Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:39.277416520Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:39.277421521Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:39.277426262Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:39.277430891Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:39.277435756Z [err]      from gestor import app as application
-2025-09-15T08:52:39.277439663Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:39.277443733Z [err]      except Exception as e:
-2025-09-15T08:52:39.277449083Z [err]                            ^
-2025-09-15T08:52:39.277453863Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:39.277458721Z [err]  [2025-09-15 08:52:39 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:39.318570881Z [err]  [2025-09-15 08:52:39 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:39.318576999Z [err]  [2025-09-15 08:52:39 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:39.318582970Z [err]  [2025-09-15 08:52:39 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:40.882693500Z [err]  [2025-09-15 08:52:40 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:40.882700440Z [err]  [2025-09-15 08:52:40 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:40.882706692Z [err]  [2025-09-15 08:52:40 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:40.886584639Z [err]  [2025-09-15 08:52:40 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:40.893587420Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:40.982278571Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:40.982286316Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:40.982290818Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:40.982295384Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:40.986245129Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:40.986254683Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:41.001816662Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:41.001830533Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:41.005338607Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:41.014906439Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:41.014911678Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:41.027145439Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:41.073271082Z [err]  [2025-09-15 08:52:41 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:41.073275535Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:41.073280844Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:41.073285743Z [err]      worker.init_process()
-2025-09-15T08:52:41.073290697Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:41.073295187Z [err]      self.load_wsgi()
-2025-09-15T08:52:41.073300682Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:41.073305002Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:41.073310439Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:41.073317970Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:41.073322444Z [err]      self.callable = self.load()
-2025-09-15T08:52:41.073327329Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:41.073331338Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:41.073335239Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:41.073340699Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:41.073344843Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:41.073348800Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:41.073353244Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:41.073356818Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:41.073362136Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:41.073366345Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:41.073370585Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:41.073374725Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:41.073382687Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:41.073387450Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:41.073391888Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:41.073395597Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:41.073399677Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:41.073403644Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:41.073408172Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:41.073413812Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:41.073417838Z [err]      from gestor import app as application
-2025-09-15T08:52:41.073423162Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:41.073427206Z [err]      except Exception as e:
-2025-09-15T08:52:41.073431557Z [err]                            ^
-2025-09-15T08:52:41.073436291Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:41.073440554Z [err]  [2025-09-15 08:52:41 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:41.115440404Z [err]  [2025-09-15 08:52:41 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:41.115445842Z [err]  [2025-09-15 08:52:41 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:41.115450963Z [err]  [2025-09-15 08:52:41 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:42.645081258Z [err]  [2025-09-15 08:52:42 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:42.645085878Z [err]  [2025-09-15 08:52:42 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:42.645092086Z [err]  [2025-09-15 08:52:42 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:42.648916084Z [err]  [2025-09-15 08:52:42 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:42.655999794Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:42.689094161Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:42.689099573Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:42.689104893Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:42.689110482Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:42.696528801Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:42.696535356Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:42.712560608Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:42.712570119Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:42.716847847Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:42.720435545Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:42.724250862Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:42.727348949Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:42.775433115Z [err]  [2025-09-15 08:52:42 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:42.775438567Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:42.775443000Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:42.775448167Z [err]      worker.init_process()
-2025-09-15T08:52:42.775453040Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:42.775457760Z [err]      self.load_wsgi()
-2025-09-15T08:52:42.775462731Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:42.775466867Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:42.775474056Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:42.775479317Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:42.775483945Z [err]      self.callable = self.load()
-2025-09-15T08:52:42.775488724Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:42.775492826Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:42.775497366Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:42.775501689Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:42.775513589Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:42.775523121Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:42.775527414Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:42.775532494Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:42.775536567Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:42.775540534Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:42.775544413Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:42.775550119Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:42.775554270Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:42.775558519Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:42.775565898Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:42.775569573Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:42.775573280Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:42.775578546Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:42.775583431Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:42.775597367Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:42.775601266Z [err]      from gestor import app as application
-2025-09-15T08:52:42.775605840Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:42.775612921Z [err]      except Exception as e:
-2025-09-15T08:52:42.775617640Z [err]                            ^
-2025-09-15T08:52:42.775622644Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:42.775626873Z [err]  [2025-09-15 08:52:42 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:42.809722503Z [err]  [2025-09-15 08:52:42 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:42.809726714Z [err]  [2025-09-15 08:52:42 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:42.809731250Z [err]  [2025-09-15 08:52:42 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T08:52:44.326562833Z [err]  [2025-09-15 08:52:44 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T08:52:44.326568099Z [err]  [2025-09-15 08:52:44 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T08:52:44.326571931Z [err]  [2025-09-15 08:52:44 +0000] [1] [INFO] Using worker: sync
-2025-09-15T08:52:44.326575690Z [err]  [2025-09-15 08:52:44 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T08:52:44.326580156Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T08:52:44.395745399Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T08:52:44.399311142Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T08:52:44.399315837Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T08:52:44.399320092Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T08:52:44.403147728Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T08:52:44.403152588Z [inf]  Motor: PostgreSQL
-2025-09-15T08:52:44.417740218Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T08:52:44.417759390Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T08:52:44.427267474Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T08:52:44.427274445Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T08:52:44.430972029Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T08:52:44.434779114Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T08:52:44.484538288Z [err]  [2025-09-15 08:52:44 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T08:52:44.484545140Z [err]  Traceback (most recent call last):
-2025-09-15T08:52:44.484550270Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T08:52:44.484554940Z [err]      worker.init_process()
-2025-09-15T08:52:44.484559538Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T08:52:44.484564288Z [err]      self.load_wsgi()
-2025-09-15T08:52:44.484570132Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T08:52:44.484573996Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T08:52:44.484578309Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T08:52:44.484582417Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T08:52:44.484586785Z [err]      self.callable = self.load()
-2025-09-15T08:52:44.484591322Z [err]                      ^^^^^^^^^^^
-2025-09-15T08:52:44.484595321Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T08:52:44.484599094Z [err]      return self.load_wsgiapp()
-2025-09-15T08:52:44.484602951Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:44.484607517Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T08:52:44.484612636Z [err]      return util.import_app(self.app_uri)
-2025-09-15T08:52:44.484617595Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:44.484621332Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T08:52:44.484625749Z [err]      mod = importlib.import_module(module)
-2025-09-15T08:52:44.484630112Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:44.484642664Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T08:52:44.484646739Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T08:52:44.484650713Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T08:52:44.484655080Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T08:52:44.484659549Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T08:52:44.484664433Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T08:52:44.484668631Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T08:52:44.484672487Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T08:52:44.484676552Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T08:52:44.484681898Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T08:52:44.484687163Z [err]      from gestor import app as application
-2025-09-15T08:52:44.484691359Z [err]    File "/app/gestor.py", line 5921
-2025-09-15T08:52:44.484695174Z [err]      except Exception as e:
-2025-09-15T08:52:44.484699661Z [err]                            ^
-2025-09-15T08:52:44.484704198Z [err]  IndentationError: unindent does not match any outer indentation level
-2025-09-15T08:52:44.484709005Z [err]  [2025-09-15 08:52:44 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T08:52:44.524934786Z [err]  [2025-09-15 08:52:44 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T08:52:44.524941425Z [err]  [2025-09-15 08:52:44 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T08:52:44.524947120Z [err]  [2025-09-15 08:52:44 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:10.000000000Z [inf]  Starting Container
+2025-09-15T09:49:11.355610067Z [err]  [2025-09-15 09:49:10 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:11.355614145Z [err]  [2025-09-15 09:49:10 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:11.355618715Z [err]  [2025-09-15 09:49:10 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:11.355626695Z [err]  [2025-09-15 09:49:10 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:11.355632180Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:11.355637605Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:11.355642963Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:11.355649337Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:11.355658417Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:11.355663331Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:11.355669651Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:11.355673540Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:11.355677980Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:11.355684970Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:11.355689059Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:11.355693563Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:11.355698343Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:11.355705515Z [err]  [2025-09-15 09:49:10 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:11.355711167Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:11.355715292Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:11.355750839Z [err]      worker.init_process()
+2025-09-15T09:49:11.355754456Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:11.355759024Z [err]      self.load_wsgi()
+2025-09-15T09:49:11.355764044Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:11.355768525Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:11.355774390Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:11.356093512Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:11.356097456Z [err]      self.callable = self.load()
+2025-09-15T09:49:11.356104737Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:11.356109451Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:11.356113854Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:11.356117587Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:11.356121740Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:11.356125835Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:11.356130477Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:11.356135944Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:11.356140731Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:11.356144611Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:11.356149924Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:11.356153225Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:11.356156921Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:11.356160706Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:11.356167295Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:11.356170805Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:11.356174235Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:11.356177809Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:11.356182680Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:11.356186416Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:11.356190248Z [err]      from gestor import app as application
+2025-09-15T09:49:11.356194623Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:11.356199120Z [err]      for d in duenos_manual:
+2025-09-15T09:49:11.356202865Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:11.356207782Z [err]  [2025-09-15 09:49:10 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:11.356212009Z [err]  [2025-09-15 09:49:10 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:11.356217896Z [err]  [2025-09-15 09:49:10 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:11.356221637Z [err]  [2025-09-15 09:49:10 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:12.093557854Z [err]  [2025-09-15 09:49:12 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:12.093565089Z [err]  [2025-09-15 09:49:12 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:12.093569870Z [err]  [2025-09-15 09:49:12 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:12.097134656Z [err]  [2025-09-15 09:49:12 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:12.104492828Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:12.137732209Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:12.140587915Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:12.140596477Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:12.140603574Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:12.144299433Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:12.144304704Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:12.161795658Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:12.161801935Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:12.164753407Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:12.170710209Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:12.173928118Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:12.177455113Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:12.261765208Z [err]  [2025-09-15 09:49:12 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:12.261772833Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:12.261781880Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:12.261792029Z [err]      worker.init_process()
+2025-09-15T09:49:12.261799134Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:12.261804717Z [err]      self.load_wsgi()
+2025-09-15T09:49:12.261811043Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:12.261817305Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:12.261824011Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:12.261829683Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:12.261834876Z [err]      self.callable = self.load()
+2025-09-15T09:49:12.261841703Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:12.261847944Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:12.261854041Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:12.261860098Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:12.261866017Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:12.261871845Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:12.261877332Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:12.261884789Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:12.261892143Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:12.261898011Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:12.261903474Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:12.261909505Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:12.261916181Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:12.261922359Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:12.261928315Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:12.261933376Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:12.261941123Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:12.261947487Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:12.261953761Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:12.261960422Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:12.261965974Z [err]      from gestor import app as application
+2025-09-15T09:49:12.261971477Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:12.261977792Z [err]      for d in duenos_manual:
+2025-09-15T09:49:12.261983854Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:12.261990478Z [err]  [2025-09-15 09:49:12 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:12.301039944Z [err]  [2025-09-15 09:49:12 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:12.301047306Z [err]  [2025-09-15 09:49:12 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:12.301052586Z [err]  [2025-09-15 09:49:12 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:14.301238929Z [err]  [2025-09-15 09:49:14 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:14.301248171Z [err]  [2025-09-15 09:49:14 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:14.301254762Z [err]  [2025-09-15 09:49:14 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:14.304641410Z [err]  [2025-09-15 09:49:14 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:14.365014639Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:14.403473336Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:14.407458882Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:14.407501530Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:14.407514870Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:14.411303616Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:14.411309198Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:14.425690301Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:14.425698213Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:14.432782598Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:14.436336714Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:14.440193838Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:14.440409208Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:14.535686154Z [err]  [2025-09-15 09:49:14 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:14.535693426Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:14.535698608Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:14.535703765Z [err]      worker.init_process()
+2025-09-15T09:49:14.535709018Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:14.535714060Z [err]      self.load_wsgi()
+2025-09-15T09:49:14.535718608Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:14.535723354Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:14.535727945Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:14.535733126Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:14.535737202Z [err]      self.callable = self.load()
+2025-09-15T09:49:14.535741299Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:14.535745095Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:14.535749128Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:14.535754185Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:14.535758536Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:14.535765261Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:14.535770701Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:14.535776035Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:14.535781720Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:14.535797842Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:14.535802863Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:14.535808649Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:14.535814411Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:14.535821235Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:14.535829208Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:14.535834839Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:14.535840358Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:14.535845152Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:14.535849531Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:14.535854972Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:14.535859449Z [err]      from gestor import app as application
+2025-09-15T09:49:14.535863848Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:14.535869953Z [err]      for d in duenos_manual:
+2025-09-15T09:49:14.535873921Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:14.535878223Z [err]  [2025-09-15 09:49:14 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:14.577949903Z [err]  [2025-09-15 09:49:14 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:14.577954816Z [err]  [2025-09-15 09:49:14 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:14.577958918Z [err]  [2025-09-15 09:49:14 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:16.157481210Z [err]  [2025-09-15 09:49:16 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:16.157489025Z [err]  [2025-09-15 09:49:16 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:16.157494284Z [err]  [2025-09-15 09:49:16 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:16.161296184Z [err]  [2025-09-15 09:49:16 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:16.172475537Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:16.203746294Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:16.203753396Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:16.203759923Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:16.203766862Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:16.207498544Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:16.207507188Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:16.227942734Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:16.227949224Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:16.234127262Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:16.237937766Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:16.241726531Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:16.245343299Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:16.370986017Z [err]  [2025-09-15 09:49:16 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:16.370990534Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:16.370998607Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:16.371003692Z [err]      worker.init_process()
+2025-09-15T09:49:16.371007897Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:16.371011893Z [err]      self.load_wsgi()
+2025-09-15T09:49:16.371015443Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:16.371019792Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:16.371023795Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:16.371027795Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:16.371036078Z [err]      self.callable = self.load()
+2025-09-15T09:49:16.371041501Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:16.371046708Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:16.371051255Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:16.371055532Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:16.371061054Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:16.371064739Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:16.371068326Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:16.371072299Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:16.371076421Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:16.371080070Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:16.371159660Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:16.371163904Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:16.371167786Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:16.371172843Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:16.371176726Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:16.371181571Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:16.371186044Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:16.371190656Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:16.371196811Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:16.371201506Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:16.371233933Z [err]      from gestor import app as application
+2025-09-15T09:49:16.371239841Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:16.371244706Z [err]      for d in duenos_manual:
+2025-09-15T09:49:16.371250339Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:16.371254701Z [err]  [2025-09-15 09:49:16 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:16.411042498Z [err]  [2025-09-15 09:49:16 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:16.411051052Z [err]  [2025-09-15 09:49:16 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:16.411056439Z [err]  [2025-09-15 09:49:16 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:17.834079905Z [err]  [2025-09-15 09:49:17 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:17.834085637Z [err]  [2025-09-15 09:49:17 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:17.834091707Z [err]  [2025-09-15 09:49:17 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:17.836713709Z [err]  [2025-09-15 09:49:17 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:17.843743149Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:17.934055437Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:17.937028794Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:17.937036194Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:17.937044586Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:17.940239545Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:17.940243844Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:17.958007042Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:17.958011326Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:17.961605371Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:17.969409865Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:17.972765421Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:17.976358333Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:18.070364814Z [err]  [2025-09-15 09:49:18 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:18.070371451Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:18.070379082Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:18.070384800Z [err]      worker.init_process()
+2025-09-15T09:49:18.070391096Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:18.070397214Z [err]      self.load_wsgi()
+2025-09-15T09:49:18.070402542Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:18.070407441Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:18.070412411Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:18.070417384Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:18.070423223Z [err]      self.callable = self.load()
+2025-09-15T09:49:18.070428544Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:18.070433146Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:18.070437939Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:18.070442758Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:18.070448377Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:18.070454368Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:18.070459313Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:18.070626924Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:18.070634501Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:18.070640550Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:18.070646584Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:18.070654100Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:18.070659257Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:18.070664357Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:18.070669750Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:18.070675766Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:18.070680801Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:18.070686667Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:18.070691590Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:18.070696831Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:18.070704024Z [err]      from gestor import app as application
+2025-09-15T09:49:18.070711050Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:18.070716219Z [err]      for d in duenos_manual:
+2025-09-15T09:49:18.070722244Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:18.070728428Z [err]  [2025-09-15 09:49:18 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:18.116323087Z [err]  [2025-09-15 09:49:18 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:18.116328998Z [err]  [2025-09-15 09:49:18 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:18.116334117Z [err]  [2025-09-15 09:49:18 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:19.633322463Z [err]  [2025-09-15 09:49:19 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:19.660593190Z [err]  [2025-09-15 09:49:19 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:19.660602606Z [err]  [2025-09-15 09:49:19 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:19.660615733Z [err]  [2025-09-15 09:49:19 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:19.661350843Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:19.676933106Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:19.680981759Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:19.680986279Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:19.680992852Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:19.684535177Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:19.684540015Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:19.699753925Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:19.699759830Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:19.706613415Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:19.709985674Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:19.713576806Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:19.717073309Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:19.830581036Z [err]  [2025-09-15 09:49:19 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:19.830585058Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:19.830589191Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:19.830596207Z [err]      worker.init_process()
+2025-09-15T09:49:19.830600418Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:19.830604494Z [err]      self.load_wsgi()
+2025-09-15T09:49:19.830609504Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:19.830613442Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:19.830708147Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:19.830713031Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:19.830717023Z [err]      self.callable = self.load()
+2025-09-15T09:49:19.830720745Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:19.830724385Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:19.830728187Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:19.830732961Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:19.830736912Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:19.830741015Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:19.830744968Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:19.830749633Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:19.830754481Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:19.830758957Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:19.830763211Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:19.830767466Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:19.830771482Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:19.830776328Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:19.830781881Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:19.830786789Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:19.830790461Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:19.830794119Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:19.830797721Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:19.830802001Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:19.830806781Z [err]      from gestor import app as application
+2025-09-15T09:49:19.830810946Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:19.830814985Z [err]      for d in duenos_manual:
+2025-09-15T09:49:19.830819120Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:19.830824187Z [err]  [2025-09-15 09:49:19 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:19.891547660Z [err]  [2025-09-15 09:49:19 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:19.891552842Z [err]  [2025-09-15 09:49:19 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:19.891557178Z [err]  [2025-09-15 09:49:19 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:21.612888103Z [err]  [2025-09-15 09:49:21 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:21.612899337Z [err]  [2025-09-15 09:49:21 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:21.612905906Z [err]  [2025-09-15 09:49:21 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:21.616367402Z [err]  [2025-09-15 09:49:21 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:21.623596037Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:21.716234391Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:21.716242005Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:21.716247156Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:21.716253302Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:21.723747271Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:21.723753237Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:21.738177737Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:21.738186787Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:21.742638253Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:21.746539176Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:21.749792988Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:21.756501847Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:21.842498581Z [err]  [2025-09-15 09:49:21 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:21.842503591Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:21.842509078Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:21.842514270Z [err]      worker.init_process()
+2025-09-15T09:49:21.842519767Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:21.842525828Z [err]      self.load_wsgi()
+2025-09-15T09:49:21.842533413Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:21.842540776Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:21.842547518Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:21.842552614Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:21.842558627Z [err]      self.callable = self.load()
+2025-09-15T09:49:21.842565082Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:21.842569678Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:21.842575034Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:21.842579572Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:21.842584989Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:21.842590287Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:21.842595051Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:21.842600135Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:21.842605532Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:21.842611279Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:21.842629822Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:21.842635898Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:21.842641304Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:21.842646541Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:21.842652067Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:21.842657643Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:21.842663327Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:21.842670473Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:21.842675690Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:21.842680157Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:21.842686377Z [err]      from gestor import app as application
+2025-09-15T09:49:21.842691555Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:21.842696903Z [err]      for d in duenos_manual:
+2025-09-15T09:49:21.842701719Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:21.842708243Z [err]  [2025-09-15 09:49:21 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:21.886826111Z [err]  [2025-09-15 09:49:21 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:21.886830025Z [err]  [2025-09-15 09:49:21 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:21.886835346Z [err]  [2025-09-15 09:49:21 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:23.413729978Z [err]  [2025-09-15 09:49:23 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:23.414191031Z [err]  [2025-09-15 09:49:23 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:23.414200993Z [err]  [2025-09-15 09:49:23 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:23.420252711Z [err]  [2025-09-15 09:49:23 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:23.427277003Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:23.463323996Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:23.463330261Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:23.463337079Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:23.463344159Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:23.465783022Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:23.465789764Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:23.478849192Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:23.478854005Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:23.486756045Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:23.498210583Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:23.502536820Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:23.506092069Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:23.592182327Z [err]  [2025-09-15 09:49:23 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:23.592187401Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:23.592193543Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:23.592197965Z [err]      worker.init_process()
+2025-09-15T09:49:23.592202331Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:23.592206507Z [err]      self.load_wsgi()
+2025-09-15T09:49:23.592210784Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:23.592215177Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:23.592219071Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:23.592223591Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:23.592229476Z [err]      self.callable = self.load()
+2025-09-15T09:49:23.592234093Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:23.592238957Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:23.592243002Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:23.592247219Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:23.592251330Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:23.592255247Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:23.592259984Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:23.592265518Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:23.592270384Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:23.592274510Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:23.592278409Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:23.592283342Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:23.592337709Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:23.592342905Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:23.592347647Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:23.592351717Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:23.592356530Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:23.592361541Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:23.592365839Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:23.592370222Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:23.592373968Z [err]      from gestor import app as application
+2025-09-15T09:49:23.592377869Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:23.592382816Z [err]      for d in duenos_manual:
+2025-09-15T09:49:23.592386731Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:23.592390981Z [err]  [2025-09-15 09:49:23 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:23.625151514Z [err]  [2025-09-15 09:49:23 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:23.625160111Z [err]  [2025-09-15 09:49:23 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:23.625167298Z [err]  [2025-09-15 09:49:23 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:25.192463177Z [err]  [2025-09-15 09:49:25 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:25.192471085Z [err]  [2025-09-15 09:49:25 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:25.192479580Z [err]  [2025-09-15 09:49:25 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:25.196788891Z [err]  [2025-09-15 09:49:25 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:25.204565312Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:25.296167708Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:25.296181921Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:25.296189568Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:25.296195603Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:25.299933741Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:25.299939789Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:25.316632560Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:25.316638317Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:25.320391085Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:25.329658661Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:25.329665500Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:25.381946134Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:25.418448248Z [err]  [2025-09-15 09:49:25 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:25.418452432Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:25.418456480Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:25.418460502Z [err]      worker.init_process()
+2025-09-15T09:49:25.418465021Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:25.418469256Z [err]      self.load_wsgi()
+2025-09-15T09:49:25.418472941Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:25.418476824Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:25.418480463Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:25.418486079Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:25.418490519Z [err]      self.callable = self.load()
+2025-09-15T09:49:25.418496037Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:25.418500857Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:25.418509573Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:25.418513300Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:25.418517847Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:25.418521688Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:25.418525663Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:25.418529938Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:25.418534076Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:25.418538805Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:25.418543332Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:25.418547369Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:25.418551177Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:25.418554728Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:25.418559054Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:25.418563585Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:25.418567863Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:25.418571637Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:25.418575472Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:25.418579096Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:25.418584739Z [err]      from gestor import app as application
+2025-09-15T09:49:25.418588776Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:25.418592391Z [err]      for d in duenos_manual:
+2025-09-15T09:49:25.418598660Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:25.418603962Z [err]  [2025-09-15 09:49:25 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:25.459945615Z [err]  [2025-09-15 09:49:25 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:25.459949649Z [err]  [2025-09-15 09:49:25 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:25.459954465Z [err]  [2025-09-15 09:49:25 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:26.854736355Z [err]  [2025-09-15 09:49:26 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:26.854741883Z [err]  [2025-09-15 09:49:26 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:26.854749345Z [err]  [2025-09-15 09:49:26 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:26.858485812Z [err]  [2025-09-15 09:49:26 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:26.870118412Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:26.904334189Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:26.904340144Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:26.904345820Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:26.904353217Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:26.908188973Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:26.908194546Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:26.925717134Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:26.925722854Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:26.928923687Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:26.932895567Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:26.939987771Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:26.943338784Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:27.036472738Z [err]  [2025-09-15 09:49:27 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:27.036478413Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:27.036482842Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:27.036487349Z [err]      worker.init_process()
+2025-09-15T09:49:27.036491542Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:27.036496025Z [err]      self.load_wsgi()
+2025-09-15T09:49:27.036501807Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:27.036506041Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:27.036510138Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:27.036514415Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:27.036518425Z [err]      self.callable = self.load()
+2025-09-15T09:49:27.036523317Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:27.036527237Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:27.036531099Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:27.036535449Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:27.036539251Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:27.036543712Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:27.036548177Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:27.036553631Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:27.036559278Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:27.036564581Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:27.036575730Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:27.036580838Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:27.036586697Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:27.036591834Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:27.036597681Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:27.036605468Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:27.036611068Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:27.036616671Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:27.036622055Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:27.036629914Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:27.036635387Z [err]      from gestor import app as application
+2025-09-15T09:49:27.036641025Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:27.036646177Z [err]      for d in duenos_manual:
+2025-09-15T09:49:27.036652010Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:27.036657633Z [err]  [2025-09-15 09:49:27 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:27.069603495Z [err]  [2025-09-15 09:49:27 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:27.072953169Z [err]  [2025-09-15 09:49:27 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:27.072959267Z [err]  [2025-09-15 09:49:27 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T09:49:28.600877473Z [err]  [2025-09-15 09:49:28 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T09:49:28.600885124Z [err]  [2025-09-15 09:49:28 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T09:49:28.600892615Z [err]  [2025-09-15 09:49:28 +0000] [1] [INFO] Using worker: sync
+2025-09-15T09:49:28.604225866Z [err]  [2025-09-15 09:49:28 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T09:49:28.613804959Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T09:49:28.710595336Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T09:49:28.714530093Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T09:49:28.714543758Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T09:49:28.714551804Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T09:49:28.717844984Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T09:49:28.717855286Z [inf]  Motor: PostgreSQL
+2025-09-15T09:49:28.735322908Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T09:49:28.735331371Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T09:49:28.739171153Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T09:49:28.743535073Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T09:49:28.752782001Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T09:49:28.752785960Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T09:49:28.847878127Z [err]  [2025-09-15 09:49:28 +0000] [4] [ERROR] Exception in worker process
+2025-09-15T09:49:28.847884403Z [err]  Traceback (most recent call last):
+2025-09-15T09:49:28.847889160Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
+2025-09-15T09:49:28.847892945Z [err]      worker.init_process()
+2025-09-15T09:49:28.847897616Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
+2025-09-15T09:49:28.847903106Z [err]      self.load_wsgi()
+2025-09-15T09:49:28.847907447Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
+2025-09-15T09:49:28.847911907Z [err]      self.wsgi = self.app.wsgi()
+2025-09-15T09:49:28.847916186Z [err]                  ^^^^^^^^^^^^^^^
+2025-09-15T09:49:28.847920625Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-09-15T09:49:28.847924865Z [err]      self.callable = self.load()
+2025-09-15T09:49:28.847928840Z [err]                      ^^^^^^^^^^^
+2025-09-15T09:49:28.847932768Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-09-15T09:49:28.847937264Z [err]      return self.load_wsgiapp()
+2025-09-15T09:49:28.847941540Z [err]             ^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:28.847948264Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-09-15T09:49:28.847953624Z [err]      return util.import_app(self.app_uri)
+2025-09-15T09:49:28.847958969Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:28.847965205Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
+2025-09-15T09:49:28.847970845Z [err]      mod = importlib.import_module(module)
+2025-09-15T09:49:28.847976235Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:28.847981639Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-15T09:49:28.847985756Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-15T09:49:28.847989418Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-15T09:49:28.847993527Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+2025-09-15T09:49:28.847998678Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+2025-09-15T09:49:28.848002682Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+2025-09-15T09:49:28.848006665Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-15T09:49:28.848010658Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-15T09:49:28.848014628Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-15T09:49:28.848019271Z [err]    File "/app/wsgi.py", line 43, in <module>
+2025-09-15T09:49:28.848023196Z [err]      from gestor import app as application
+2025-09-15T09:49:28.848027003Z [err]    File "/app/gestor.py", line 5534
+2025-09-15T09:49:28.848031486Z [err]      for d in duenos_manual:
+2025-09-15T09:49:28.848035597Z [err]  IndentationError: unexpected indent
+2025-09-15T09:49:28.848041366Z [err]  [2025-09-15 09:49:28 +0000] [4] [INFO] Worker exiting (pid: 4)
+2025-09-15T09:49:28.890912134Z [err]  [2025-09-15 09:49:28 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
+2025-09-15T09:49:28.890924110Z [err]  [2025-09-15 09:49:28 +0000] [1] [ERROR] Shutting down: Master
+2025-09-15T09:49:28.890934495Z [err]  [2025-09-15 09:49:28 +0000] [1] [ERROR] Reason: Worker failed to boot.

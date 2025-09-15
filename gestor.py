@@ -5529,8 +5529,8 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             duenos_manual = ['ricky', 'ferreteria_general']
         
         # Buscar productos manuales que coincidan con el nombre del proveedor Excel
-    proveedor_nombre_original = PROVEEDOR_CONFIG[proveedor_key].get('nombre', proveedor_key)
-    proveedor_nombre_norm = normalizar_nombre(proveedor_nombre_original)
+        proveedor_nombre_original = PROVEEDOR_CONFIG[proveedor_key].get('nombre', proveedor_key)
+        proveedor_nombre_norm = normalizar_nombre(proveedor_nombre_original)
         for d in duenos_manual:
             resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_original, dueno_filtro=d)
             # Si no se encuentra, probar con el nombre normalizado
@@ -5538,7 +5538,6 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
                 resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_norm, dueno_filtro=d)
             if resultados_manuales:
                 resultados.extend(resultados_manuales)
-                
         # Si no hay resultados, probar con variaciones de mayúsculas/minúsculas
         if not resultados:
             print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas y normalizada")
@@ -5938,6 +5937,7 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
     return resultados
 
 def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro=None):
+    resultados = []
     """Buscar en la tabla productos_manual por nombre de proveedor. Permite filtrar por dueño."""
     resultados = []
     try:
