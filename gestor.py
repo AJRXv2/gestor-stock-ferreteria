@@ -5755,54 +5755,16 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         print(traceback.format_exc())
         return []
 
-def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro=None):
-    """Buscar en la tabla productos_manual por nombre de proveedor. Permite filtrar por dueño."""
-    resultados = []
-    try:
-        print(f"[DB DEBUG] Buscando por nombre de proveedor en DB. Término: '{termino_busqueda}', Proveedor: '{nombre_proveedor}', Dueño: {dueno_filtro}")
+    # La línea mal indentada se elimina. Si se requiere esa lógica, debe estar dentro de un bucle o función, por ejemplo:
+    # for idx, row in enumerate(df.iterrows()):
+    #     codigo = row.get('Codigo', '')
+    #     if termino_busqueda.lower() in codigo:
+    #         print(f"[EXCEL DEBUG] ¡ENCONTRADO! Fila {idx}, Código: {row.get('Codigo', '')}, Proveedor: {row.get('Proveedor', '')}, Dueño: {row.get('Dueno', '')}")
         
-        # Construir consulta SQL
-        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(proveedor) = LOWER(?)"
-        params = [nombre_proveedor]
-        
-        if dueno_filtro:
-            query += " AND LOWER(dueno) = LOWER(?)"
-            params.append(dueno_filtro)
-            
-        if termino_busqueda:
-            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
-            if tokens:
-                or_conditions = []
-                for token in tokens:
-                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?))")
-                    params.extend([f"%{token}%", f"%{token}%"])
-                query += f" AND ({' AND '.join(or_conditions)})"
-        
-        # Ejecutar consulta
-        rows = db_query(query, tuple(params), fetch=True)
-        print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
-        
-        # Convertir resultados al formato esperado
-        for row in (rows or []):
-            precio_val, precio_error = parse_price(str(row.get('precio', '')))
-            resultados.append({
-                'codigo': row.get('codigo', ''),
-                'nombre': row.get('nombre', ''),
-                'precio': precio_val,
-                'precio_texto': str(row.get('precio', '')) if precio_error else None,
-                'proveedor': row.get('proveedor', ''),
-                'observaciones': row.get('observaciones', ''),
-                'dueno': row.get('dueno', ''),
-                'es_manual': True
-            })
-            
-    except Exception as e:
-        print(f"[DB ERROR] Error en buscar_en_excel_manual_por_nombre_proveedor: {e}")
-        import traceback
-        print(traceback.format_exc())
-    return resultados
-
-def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
+        # Verificar si está en mayúsculas o minúsculas
+        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre}': {(df['Proveedor'] == proveedor_nombre).sum()} coincidencias")
+        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.upper()}': {(df['Proveedor'] == proveedor_nombre.upper()).sum()} coincidencias")
+        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
         
         # Búsqueda específica: Si buscamos un producto exacto por código, lo buscamos en todo el Excel
         if termino_busqueda and len(termino_busqueda.strip()) >= 3 and not termino_busqueda.strip().isdigit():
