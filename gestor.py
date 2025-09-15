@@ -2588,10 +2588,78 @@ def agregar_producto():
     if termino_excel:
         print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' | solo_ricky: {solo_ricky} | solo_fg: {solo_fg}")
         
-        # Realizar búsqueda en la base de datos PostgreSQL de Railway
-        print(f"🔍 Realizando búsqueda en base de datos: {termino_excel} en {proveedor_excel_filtro}")
-        resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-        print(f"📊 Resultados encontrados: {len(resultados_excel)}")
+        # Si el término es un código numérico y tenemos proveedor específico, usar búsqueda precisa
+        if termino_excel.isdigit() and proveedor_excel_filtro:
+            print(f"🔢 Realizando búsqueda específica de código exacto: {termino_excel} en {proveedor_excel_filtro}")
+            # Buscar el código exacto en el proveedor específico
+            resultados_exactos = buscar_codigo_exacto_en_proveedor(
+                termino_excel, 
+                proveedor_excel_filtro, 
+                solo_ricky=solo_ricky, 
+                solo_fg=solo_fg
+            )
+            
+            if resultados_exactos:
+                print(f"📊 Encontrados {len(resultados_exactos)} resultados exactos")
+                resultados_excel = resultados_exactos
+            else:
+                # Hacer la búsqueda normal y luego filtrar estrictamente
+                print(f"🔍 No hay coincidencias exactas, buscando alternativas...")
+                resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+                
+                # Aplicar filtro extremadamente estricto - solo el código exacto y proveedor
+                resultados_filtrados = []
+                for r in resultados_excel:
+                    r_codigo = str(r.get('codigo', '')).strip()
+                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
+                    r_archivo = str(r.get('archivo', '')).lower()
+                    
+                    # Verificar código exacto
+                    if r_codigo != termino_excel:
+                        continue
+                        
+                    # Verificar que el proveedor coincida
+                    if r_proveedor != proveedor_excel_filtro.lower():
+                        continue
+                        
+                    # Verificar que el nombre del archivo comience con el proveedor
+                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
+                        continue
+                        
+                    resultados_filtrados.append(r)
+                    print(f"✅ Coincidencia estricta: Código {r_codigo} en proveedor {r_proveedor}, archivo {r_archivo}")
+                
+                if resultados_filtrados:
+                    resultados_excel = resultados_filtrados
+                    print(f"📊 Filtrado a {len(resultados_excel)} coincidencias exactas de código")
+        else:
+            # Búsqueda normal para términos de texto o sin proveedor específico
+            resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+            print(f"📊 Resultados encontrados: {len(resultados_excel)}")
+            
+            # Filtrar resultados para eliminar entradas inválidas
+            resultados_excel = [r for r in resultados_excel if r.get('nombre') and not r.get('nombre').startswith('Fila ')]
+            print(f"📊 Resultados después de filtrar entradas inválidas: {len(resultados_excel)}")
+            
+            # Si hay un proveedor seleccionado, aplicar filtro muy estricto
+            if proveedor_excel_filtro:
+                resultados_filtrados = []
+                for r in resultados_excel:
+                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
+                    r_archivo = str(r.get('archivo', '')).lower()
+                    
+                    # Asegurarse que coincida el proveedor 
+                    if r_proveedor != proveedor_excel_filtro.lower():
+                        continue
+                    
+                    # Verificar que el nombre del archivo comience con el proveedor
+                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
+                        print(f"⚠️ Omitiendo resultado de {r_archivo}, no coincide con proveedor {proveedor_excel_filtro.lower()}")
+                        continue
+                        
+                    resultados_filtrados.append(r)
+                
+                resultados_excel = resultados_filtrados
         
         # Aplicar deduplicación para mostrar resultados únicos por producto Y proveedor
         # Agrupar productos por nombre, código Y proveedor para mantener la variedad de proveedores
@@ -5381,68 +5449,125 @@ def debug_stock_item():
 
 # --- Funciones de Búsqueda en Excel ---
 def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
-    """Buscar productos en la base de datos PostgreSQL de Railway en lugar de archivos Excel"""
+    """Buscar productos en archivos Excel de proveedores y productos manuales de la base de datos"""
     resultados = []
-    print(f"🔍 [BUSCAR_DB] Iniciando búsqueda en base de datos: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
+    print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
     
     # Normalizar el proveedor_filtro a minúsculas para comparaciones case-insensitive
     proveedor_filtro = proveedor_filtro.lower() if proveedor_filtro else None
     
-    try:
-        # Construir consulta SQL para buscar en productos_manual
-        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE 1=1"
-        params = []
-        
-        # Aplicar filtros de dueño
+    # 1. Buscar en productos manuales (base de datos)
+    if proveedor_filtro and proveedor_filtro.startswith('manual_'):
+        # Filtro específico de proveedor manual (incluye dueño)
+        try:
+            _, rest = proveedor_filtro.split('manual_', 1)
+            parts = rest.split('_', 1)
+            proveedor_id = int(parts[0])
+            dueno_sel = parts[1] if len(parts) > 1 else None
+            resultados_manuales = buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_sel)
+            resultados.extend(resultados_manuales)
+        except (ValueError, TypeError):
+            pass
+    elif proveedor_filtro and proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
+        # Obtener la clave original del diccionario (preservando mayúsculas)
+        proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
+        # También incluir productos manuales que pertenezcan a ese proveedor Excel
+        # Determinar alcance de dueños según flags
         if solo_ricky and not solo_fg:
-            query += " AND LOWER(dueno) = LOWER(?)"
-            params.append('ricky')
+            duenos_manual = ['ricky']
         elif solo_fg and not solo_ricky:
-            query += " AND LOWER(dueno) = LOWER(?)"
-            params.append('ferreteria_general')
+            duenos_manual = ['ferreteria_general']
+        else:
+            duenos_manual = ['ricky', 'ferreteria_general']
         
-        # Aplicar filtro de proveedor si se especifica
+        # Buscar productos manuales que coincidan con el nombre del proveedor Excel
+        proveedor_nombre_original = PROVEEDOR_CONFIG[proveedor_key].get('nombre', proveedor_key)
+        for d in duenos_manual:
+            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_original, dueno_filtro=d)
+            if resultados_manuales:
+                resultados.extend(resultados_manuales)
+                
+        # Si no hay resultados, probar con variaciones de mayúsculas/minúsculas
+        if not resultados:
+            print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas")
+            proveedor_upper = proveedor_nombre_original.upper()
+            if proveedor_upper != proveedor_nombre_original:
+                for d in duenos_manual:
+                    resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_upper, dueno_filtro=d)
+                    if resultados_manuales:
+                        resultados.extend(resultados_manuales)
+    elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
+        # Si no hay filtro específico de Excel, incluir todos los manuales
+        # Aplicar alcance por dueño si corresponde
+        if solo_ricky and not solo_fg:
+            resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
+            print(f"Búsqueda manual solo para dueño 'ricky': {len(resultados_manuales)} resultados")
+        elif solo_fg and not solo_ricky:
+            resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ferreteria_general')
+            print(f"Búsqueda manual solo para dueño 'ferreteria_general': {len(resultados_manuales)} resultados")
+        else:
+            resultados_manuales = buscar_en_excel_manual(termino_busqueda)
+            print(f"Búsqueda manual para todos los dueños: {len(resultados_manuales)} resultados")
+        
+        if resultados_manuales:
+            print(f"Agregando {len(resultados_manuales)} resultados manuales")
+            resultados.extend(resultados_manuales)
+        else:
+            print("No se encontraron resultados manuales")
+        
+    # 2. Buscar en Excel de proveedores (archivos Excel)
+    if not proveedor_filtro or proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
+        # Verificar si necesitamos buscar en todos o un proveedor específico
         if proveedor_filtro:
-            query += " AND LOWER(proveedor) = LOWER(?)"
-            params.append(proveedor_filtro)
-        
-        # Aplicar término de búsqueda
-        if termino_busqueda:
-            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
-            if tokens:
-                or_conditions = []
-                for token in tokens:
-                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?) OR LOWER(proveedor) LIKE LOWER(?))")
-                    params.extend([f"%{token}%", f"%{token}%", f"%{token}%"])
-                query += f" AND ({' AND '.join(or_conditions)})"
-        
-        # Ejecutar consulta
-        rows = db_query(query, tuple(params), fetch=True)
-        print(f"🔍 [BUSCAR_DB] Resultados encontrados: {len(rows) if rows else 0} productos")
-        
-        # Convertir resultados al formato esperado
-        for row in (rows or []):
-            precio_val, precio_error = parse_price(str(row.get('precio', '')))
-            resultados.append({
-                'codigo': str(row.get('codigo', '') or ''),
-                'nombre': str(row.get('nombre', '') or ''),
-                'precio': precio_val,
-                'precio_texto': str(row.get('precio', '') or ''),
-                'proveedor': str(row.get('proveedor', '') or ''),
-                'observaciones': str(row.get('observaciones', '') or ''),
-                'dueno': str(row.get('dueno', '') or ''),
-                'archivo': 'base_datos',  # Indicar que viene de la base de datos
-                'fuente': 'db'
-            })
-        
-        print(f"🔍 [BUSCAR_DB] Total resultados procesados: {len(resultados)}")
-        
-    except Exception as e:
-        print(f"❌ [BUSCAR_DB] Error en búsqueda de base de datos: {e}")
-        import traceback
-        print(traceback.format_exc())
+            # Verificar si el proveedor está habilitado para el filtro de dueño
+            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
+            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_key, {})
+            proveedor_dueno = proveedor_config.get('dueno', None)
+            
+            # Saltar si no coincide con los filtros de dueño
+            if (solo_ricky and proveedor_dueno != 'ricky') or (solo_fg and proveedor_dueno != 'ferreteria_general'):
+                pass
+            else:
+                proveedores_a_buscar = [proveedor_filtro]
+        else:
+            # Determinar qué proveedores buscar según filtro de dueño
+            if solo_ricky and not solo_fg:
+                proveedores_a_buscar = [p for p, cfg in PROVEEDOR_CONFIG.items() if cfg.get('dueno') == 'ricky']
+            elif solo_fg and not solo_ricky:
+                proveedores_a_buscar = [p for p, cfg in PROVEEDOR_CONFIG.items() if cfg.get('dueno') == 'ferreteria_general']
+            else:
+                proveedores_a_buscar = list(PROVEEDOR_CONFIG.keys())
+                
+        # Realizar búsquedas en los proveedores seleccionados
+        for proveedor in proveedores_a_buscar:
+            resultados_proveedor = buscar_en_excel_proveedor(
+                termino_busqueda, 
+                proveedor,
+                filtro_adicional
+            )
+            resultados.extend(resultados_proveedor)
     
-    return resultados
+    # Primera deduplicación básica - eliminar duplicados exactos
+    # Esta deduplicación es más ligera y se hace a nivel de función
+    resultados_sin_duplicados = []
+    claves_vistas = set()
+    
+    for r in resultados:
+        codigo = str(r.get('codigo', '')).strip()
+        proveedor = str(r.get('proveedor', '')).lower().strip()
+        nombre = str(r.get('nombre', '')).lower().strip()
+        
+        # Crear una clave para eliminar duplicados exactos
+        clave = f"{codigo}|{proveedor}|{nombre}"
+        
+        if clave not in claves_vistas:
+            claves_vistas.add(clave)
+            resultados_sin_duplicados.append(r)
+    
+    # Log cantidad total de resultados
+    print(f"🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: {len(resultados_sin_duplicados)} de {len(resultados)} originales")
+    
+    return resultados_sin_duplicados
 
 def agregar_producto_manual_excel():
     """Agregar producto manual al Excel (no directamente al stock)"""
