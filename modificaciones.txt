@@ -1,0 +1,88 @@
+# Nueva función a agregar en gestor.py antes de la función buscar_en_excel_proveedor (línea ~5453)
+
+def buscar_codigo_exacto_en_proveedor(codigo, proveedor, solo_ricky=False, solo_fg=False):
+    """Busca un código específico en un proveedor específico con criterios muy estrictos"""
+    resultados = []
+    
+    try:
+        if not codigo.isdigit() or not proveedor:
+            return []
+        
+        # Verificar que exista la configuración del proveedor
+        if proveedor not in PROVEEDOR_CONFIG:
+            print(f"[EXCEL] Error: Proveedor '{proveedor}' no configurado")
+            return []
+            
+        # Obtener configuración del proveedor
+        config = PROVEEDOR_CONFIG[proveedor]
+        dueno = config.get('dueno', 'ferreteria_general')
+        
+        # Verificar si el proveedor está habilitado para el filtro de dueño
+        if (solo_ricky and dueno != 'ricky') or (solo_fg and dueno != 'ferreteria_general'):
+            return []
+            
+        # Usar buscar_en_excel_proveedor pero solo para ese proveedor
+        todos_resultados = buscar_en_excel_proveedor(codigo, proveedor)
+        
+        # Filtrar SOLO los que coinciden exactamente con el código buscado
+        resultados = []
+        for r in todos_resultados:
+            r_codigo = str(r.get('codigo', '')).strip()
+            if r_codigo == codigo:
+                resultados.append(r)
+                
+        print(f"[EXCEL] Búsqueda exacta de código '{codigo}' en proveedor '{proveedor}': {len(resultados)} resultados")
+        return resultados
+        
+    except Exception as e:
+        print(f"[EXCEL] Error en buscar_codigo_exacto_en_proveedor: {e}")
+        return []
+
+
+# Código a reemplazar en la ruta /agregar_producto (líneas ~2461-2490)
+
+    # Realizar búsqueda en Excel si hay término
+    if termino_excel:
+        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' | solo_ricky: {solo_ricky} | solo_fg: {solo_fg}")
+        
+        # Si el término es un código numérico y tenemos proveedor específico, usar búsqueda precisa
+        if termino_excel.isdigit() and proveedor_excel_filtro:
+            print(f"🔢 Realizando búsqueda específica de código exacto: {termino_excel} en {proveedor_excel_filtro}")
+            # Buscar el código exacto en el proveedor específico
+            resultados_exactos = buscar_codigo_exacto_en_proveedor(
+                termino_excel, 
+                proveedor_excel_filtro, 
+                solo_ricky=solo_ricky, 
+                solo_fg=solo_fg
+            )
+            
+            if resultados_exactos:
+                print(f"📊 Encontrados {len(resultados_exactos)} resultados exactos")
+                resultados_excel = resultados_exactos
+            else:
+                # Hacer la búsqueda normal y luego filtrar estrictamente
+                print(f"🔍 No hay coincidencias exactas, buscando alternativas...")
+                resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+                
+                # Aplicar filtro extremadamente estricto - solo el código exacto
+                resultados_filtrados = [
+                    r for r in resultados_excel 
+                    if str(r.get('codigo', '')).strip() == termino_excel 
+                    and str(r.get('proveedor', '')).lower().strip() == proveedor_excel_filtro.lower()
+                ]
+                
+                if resultados_filtrados:
+                    resultados_excel = resultados_filtrados
+                    print(f"📊 Filtrado a {len(resultados_excel)} coincidencias exactas de código")
+        else:
+            # Búsqueda normal para términos de texto o sin proveedor específico
+            resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+            print(f"📊 Resultados encontrados: {len(resultados_excel)}")
+            
+            # Filtrar resultados para eliminar entradas inválidas
+            resultados_excel = [r for r in resultados_excel if r.get('nombre') and not r.get('nombre').startswith('Fila ')]
+            
+            # Si hay un proveedor seleccionado, aplicar filtro
+            if proveedor_excel_filtro:
+                resultados_excel = [r for r in resultados_excel if r.get('proveedor', '').lower() == proveedor_excel_filtro.lower()]
+                print(f"📊 Resultados filtrados por proveedor: {len(resultados_excel)}")

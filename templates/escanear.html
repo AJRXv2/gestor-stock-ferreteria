@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Escaneo de Productos{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-upc-scan me-2"></i>Escaneo de Productos</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-barcode me-2"></i>Escanear Código de Barras</h5>
+                </div>
+                <div class="card-body">
+                    <form id="escanerForm" method="post" action="{{ url_for('procesar_escaneo') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="codigo_barras" class="form-label">Código de Barras:</label>
+                            <input type="text" class="form-control form-control-lg" id="codigo_barras" name="codigo_barras" autofocus 
+                                placeholder="Escanee un código o ingrese manualmente...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cantidad" class="form-label">Cantidad a Descontar:</label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" value="1" min="1">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">Procesar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Instrucciones</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Asegúrese de que el cursor esté en el campo de código.</li>
+                        <li>Escanee el código de barras del producto.</li>
+                        <li>Verifique la cantidad a descontar.</li>
+                        <li>Presione Procesar o simplemente ENTER.</li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb me-2"></i>El sistema buscará automáticamente el producto 
+                        por código de barras y actualizará su stock.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3" id="resultadoCard" style="display:none;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Último Escaneo</h5>
+                </div>
+                <div class="card-body" id="resultadoEscaneo">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historial de Escaneos</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha y Hora</th>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Stock Actual</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historialEscaneos">
+                            {% for item in historial %}
+                            <tr>
+                                <td>{{ item.fecha }}</td>
+                                <td>{{ item.codigo }}</td>
+                                <td>{{ item.producto }}</td>
+                                <td>{{ item.cantidad }}</td>
+                                <td>{{ item.stock_actual }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-enfoque en el campo de código de barras
+    document.getElementById('codigo_barras').focus();
+    
+    // Mostrar resultados si hay flash messages
+    {% if resultado %}
+        document.getElementById('resultadoCard').style.display = 'block';
+        document.getElementById('resultadoEscaneo').innerHTML = `
+            <div class="alert alert-{{ resultado.tipo }}">
+                <h5>{{ resultado.titulo }}</h5>
+                <p>{{ resultado.mensaje }}</p>
+            </div>
+        `;
+        // Esconder después de 5 segundos
+        setTimeout(function() {
+            document.getElementById('resultadoCard').style.display = 'none';
+        }, 5000);
+    {% endif %}
+    
+    // Manejar la entrada del escáner
+    const inputCodigo = document.getElementById('codigo_barras');
+    
+    // Muchos escáneres terminan con enter, así que podemos autoenviar el formulario
+    inputCodigo.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('escanerForm').submit();
+        }
+    });
+    
+    // Para escáneres que no envían enter, podemos detectar cuando se detiene la entrada rápida
+    let typingTimer;
+    const doneTypingInterval = 100; // Tiempo en ms después del cual consideramos que terminó el escaneo
+    
+    inputCodigo.addEventListener('keyup', function() {
+        clearTimeout(typingTimer);
+        if (inputCodigo.value) {
+            typingTimer = setTimeout(function() {
+                // Si el código tiene longitud suficiente, asumimos que el escaneo terminó
+                if (inputCodigo.value.length > 5) {
+                    document.getElementById('escanerForm').submit();
+                }
+            }, doneTypingInterval);
+        }
+    });
+});
+</script>
+{% endblock %}

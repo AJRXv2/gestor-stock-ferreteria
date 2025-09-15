@@ -1,0 +1,128 @@
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] obtener_proveedores_por_dueno llamado con dueño: 'ferreteria_general'
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] obtener_proveedores_por_dueno - proveedores encontrados: ['JELUZ', 'MIG', 'SICA', 'Sorbalok']
+🔍 Buscando: 'TERM32A' con filtro proveedor: '' | solo_ricky: False | solo_fg: True
+🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'TERM32A' | Proveedor: '' | Filtro: '' | Solo Ricky: False | Solo FG: True
+[EXCEL DEBUG] Iniciando búsqueda en Excel manual. Término: 'TERM32A', Dueño: ferreteria_general
+[EXCEL DEBUG] Leyendo archivo: /app/listas_excel/productos_manual.xlsx
+[EXCEL DEBUG] DataFrame inicial: 1 filas
+[EXCEL DEBUG] Filtrando por dueño: ferreteria_general
+[EXCEL DEBUG] Después de filtrar por dueño: 1 filas
+[EXCEL DEBUG] Filtrando por término de búsqueda: TERM32A
+[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: 0 filas
+[EXCEL DEBUG] ======= DIAGNÓSTICO: PRODUCTOS DISPONIBLES =======
+[EXCEL DEBUG] No se encontraron productos que coincidan con 'TERM32A'
+[EXCEL DEBUG] Mostrando TODOS los productos disponibles después de filtrar por dueño:
+[EXCEL DEBUG] Fila 0:
+[EXCEL DEBUG]   Codigo: PROD002
+[EXCEL DEBUG]   Proveedor: SICA
+[EXCEL DEBUG]   Nombre: PRODUCTO01
+[EXCEL DEBUG]   Precio: 0
+[EXCEL DEBUG]   Observaciones: nan
+[EXCEL DEBUG]   Dueno: ferreteria_general
+[EXCEL DEBUG] ---
+[EXCEL DEBUG] Prueba manual - Código: 'prod002', Término: 'term32a', ¿Coincide?: False
+[EXCEL DEBUG] Prueba manual - Nombre: 'producto01', Término: 'term32a', ¿Coincide?: False
+[EXCEL DEBUG] ======= FIN DIAGNÓSTICO =======
+[EXCEL DEBUG] Mostrando productos disponibles aunque no coincidan con el término de búsqueda
+[EXCEL DEBUG] Productos disponibles para mostrar en la UI:
+[EXCEL DEBUG] No se encontraron coincidencias exactas para 'TERM32A', mostrando todos los productos disponibles
+[EXCEL DEBUG] Producto añadido: PROD002 - PRODUCTO01 [SIN FILTRO]
+[EXCEL DEBUG] Total resultados (mostrados sin filtro): 1
+Búsqueda manual solo para dueño 'ferreteria_general': 1 resultados
+Agregando 1 resultados manuales
+[EXCEL DEBUG] Iniciando búsqueda para proveedor 'dewalt'
+[EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+[EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+[EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+[EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+[EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+[EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL] Buscando 'TERM32A' en 1 archivos de 'dewalt'
+[EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+[EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+[EXCEL] Búsqueda en proveedor 'dewalt' completada: 0 resultados (de 0 coincidencias)
+[EXCEL DEBUG] Iniciando búsqueda para proveedor 'sica'
+[EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+[EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+[EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+[EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+[EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+[EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL] Buscando 'TERM32A' en 1 archivos de 'sica'
+[EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+[EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+[EXCEL] Búsqueda en proveedor 'sica' completada: 0 resultados (de 0 coincidencias)
+[EXCEL DEBUG] Iniciando búsqueda para proveedor 'sorbalok'
+[EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+[EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+[EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+[EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+[EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+[EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL] Buscando 'TERM32A' en 1 archivos de 'sorbalok'
+[EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+[EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+[EXCEL] Búsqueda en proveedor 'sorbalok' completada: 0 resultados (de 0 coincidencias)
+[EXCEL DEBUG] Iniciando búsqueda para proveedor 'nortedist'
+[EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo_barra', 'codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION', 'producto', 'Producto'], 'precio': ['NORTE SIN IVA', 'NORTE', 'precio', 'Precio'], 'marca': ['marca', 'Marca', 'MARCA'], 'usar_colores': True, 'color_precio': 'FFFF00', 'columnas_precio': ['NORTE SIN IVA', 'NORTE'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+[EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+[EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+[EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+[EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+[EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL] Buscando 'TERM32A' en 1 archivos de 'nortedist'
+[EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+[EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+[EXCEL] Búsqueda en proveedor 'nortedist' completada: 0 resultados (de 0 coincidencias)
+🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: 1 de 1 originales
+📊 Resultados encontrados: 1
+📊 Resultados después de filtrar entradas inválidas: 1
+✅ Deduplicación completada: 1 productos únicos (de 1 resultados originales)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] obtener_proveedores_por_dueno llamado con dueño: 'ferreteria_general'
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] obtener_proveedores_por_dueno - proveedores encontrados: ['JELUZ', 'MIG', 'SICA', 'Sorbalok']
+
+
+
+
+
+
+[EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+[EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+[EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+[EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+[EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL] Buscando 'TERM32A' en 1 archivos de 'nortedist'
+[EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+[EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+[EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+[EXCEL] Búsqueda en proveedor 'nortedist' completada: 0 resultados (de 0 coincidencias)
+🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: 1 de 1 originales
+📊 Resultados encontrados: 1
+📊 Resultados después de filtrar entradas inválidas: 1
+✅ Deduplicación completada: 1 productos únicos (de 1 resultados originales)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] obtener_proveedores_por_dueno llamado con dueño: 'ferreteria_general'
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] obtener_proveedores_por_dueno - proveedores encontrados: ['JELUZ', 'MIG', 'SICA', 'Sorbalok']

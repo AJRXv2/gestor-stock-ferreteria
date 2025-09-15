@@ -106,26 +106,12 @@
                         <input type="date" id="fecha_compra" name="fecha_compra" class="form-control" value="{{ fecha_actual }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="codigo" class="form-label">Código (Opcional)</label>
-                        <input type="text" id="codigo" name="codigo" class="form-control">
+                        <label for="codigo" class="form-label">Código (No editable)</label>
+                        <input type="text" id="codigo" name="codigo" class="form-control" readonly>
                     </div>
                     <div class="mb-3">
-                        <label for="proveedor_select" class="form-label">Proveedor</label>
-                        <div class="input-group">
-                            <select id="proveedor_select" class="form-select">
-                                <option value="">Seleccionar proveedor</option>
-                            </select>
-                            <input type="hidden" id="proveedor" name="proveedor">
-                            <input type="hidden" id="dueno_proveedor" name="dueno_nuevo_proveedor">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="dueno_select" class="form-label">Dueño</label>
-                        <select id="dueno_select" class="form-select" required>
-                            <option value="">Seleccionar dueño</option>
-                            <option value="ricky">Ricky</option>
-                            <option value="ferreteria_general">Ferretería General</option>
-                        </select>
+                        <label for="proveedor" class="form-label">Proveedor (No editable)</label>
+                        <input type="text" id="proveedor" name="proveedor" class="form-control" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="nombre" class="form-label">Nombre del Producto</label>
@@ -467,35 +453,24 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleAvisoStock();
     }
     
-    // Inicializar selector de dueño y proveedores
-    const duenoSelect = document.getElementById('dueno_select');
-    const proveedorSelect = document.getElementById('proveedor_select');
-    const proveedorInput = document.getElementById('proveedor');
-    const duenoInput = document.getElementById('dueno_proveedor');
-    
-    if (duenoSelect && proveedorSelect) {
-        // Establecer valor por defecto
-        duenoSelect.value = 'ferreteria_general';
-        duenoInput.value = 'ferreteria_general';
-        
-        // Cargar proveedores iniciales
-        cargarProveedores(proveedorSelect, 'ferreteria_general');
-        
-        // Manejar cambio de dueño
-        duenoSelect.addEventListener('change', function() {
-            const dueno = duenoSelect.value;
-            duenoInput.value = dueno;
-            cargarProveedores(proveedorSelect, dueno);
-        });
-        
-        // Manejar selección de proveedor
-        proveedorSelect.addEventListener('change', function() {
-            proveedorInput.value = proveedorSelect.value;
-        });
-    }
     // Exclusividad de filtros en búsqueda Excel
     const provExcelR = document.getElementById('prov_excel_ricky');
     const provExcelF = document.getElementById('prov_excel_fg');
+    
+    function onChangeFiltroExcel() {
+        if (this === provExcelR && provExcelR.value) { 
+            provExcelF.value = ''; 
+            // Cuando se selecciona un proveedor de Ricky, desmarcar "solo FG" y marcar "solo Ricky"
+            document.getElementById('solo_ricky').checked = true;
+            document.getElementById('solo_fg').checked = false;
+        }
+        else if (this === provExcelF && provExcelF.value) { 
+            provExcelR.value = ''; 
+            // Cuando se selecciona un proveedor de FG, desmarcar "solo Ricky" y marcar "solo FG"
+            document.getElementById('solo_ricky').checked = false;
+            document.getElementById('solo_fg').checked = true;
+        }
+    }
     function onChangeFiltroExcel() {
         if (this === provExcelR && provExcelR.value) { provExcelF.value = ''; }
         else if (this === provExcelF && provExcelF.value) { provExcelR.value = ''; }
@@ -511,6 +486,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (cbR) cbR.addEventListener('change', onScopeChange);
     if (cbF) cbF.addEventListener('change', onScopeChange);
+    
+    // Agregar listeners para los selectores de proveedores Excel
+    if (provExcelR) provExcelR.addEventListener('change', onChangeFiltroExcel);
+    if (provExcelF) provExcelF.addEventListener('change', onChangeFiltroExcel);
+    
     // Sincronizar selects de proveedores (solo uno activo) y oculto que viaja en el form
     const selR = document.getElementById('sel_prov_ricky');
     const selF = document.getElementById('sel_prov_fg');

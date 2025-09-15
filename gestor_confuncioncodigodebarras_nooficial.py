@@ -300,14 +300,6 @@ PROVEEDOR_CONFIG = {
         'columnas_precio': ['NORTE SIN IVA', 'NORTE'],
         'dueno': 'ferreteria_general',
         'folder': 'ferreteria_general'
-    },
-    'jeluz': {
-        'fila_encabezado': 0,
-        'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'],
-        'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'],
-        'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'],
-        'dueno': 'ferreteria_general',
-        'folder': 'ferreteria_general'
     }
 }
 
@@ -516,11 +508,6 @@ def _prepare_sql(query: str, use_postgres: bool) -> str:
     q = _adapt_sql_for_postgres(query)
     q = _convert_placeholders(q)
     return q
-
-# Alias para get_db_connection para compatibilidad con diagnósticos
-def db_connect():
-    """Alias para get_db_connection para compatibilidad con scripts de diagnóstico."""
-    return get_db_connection()
 
 def db_query(query, params=(), fetch=False):
     """Ejecutar consulta en la base de datos (PostgreSQL o SQLite).
@@ -2450,136 +2437,22 @@ def agregar_producto():
     
     # Obtener parámetros de búsqueda en Excel
     termino_excel = request.args.get('busqueda_excel', '')
+    proveedor_excel_filtro = request.args.get('proveedor_excel', '')
     proveedor_excel_ricky = request.args.get('proveedor_excel_ricky', '')
     proveedor_excel_fg = request.args.get('proveedor_excel_fg', '')
-    
-    # Usar exclusivamente uno de los selectores como filtro de proveedor
-    if proveedor_excel_ricky:
-        proveedor_excel_filtro = proveedor_excel_ricky
-        solo_ricky = True
-        solo_fg = False
-    elif proveedor_excel_fg:
-        proveedor_excel_filtro = proveedor_excel_fg
-        solo_ricky = False
-        solo_fg = True
-    else:
-        proveedor_excel_filtro = ''
-        
-        # Si no se seleccionaron cajas de verificación, no aplicar filtros exclusivos
-        # Esto permite la búsqueda en todos los proveedores de ambos dueños
-        solo_ricky = True if request.args.get('solo_ricky') else False
-        solo_fg = True if request.args.get('solo_fg') else False
-        
-        # Si ambas cajas están desmarcadas, buscar en todos los proveedores
-        if not solo_ricky and not solo_fg:
-            solo_ricky = False
-            solo_fg = False
-            
+    if not proveedor_excel_filtro:
+        proveedor_excel_filtro = proveedor_excel_ricky or proveedor_excel_fg or ''
     filtro_excel = request.args.get('filtro_excel', '')
+    solo_ricky = True if request.args.get('solo_ricky') else False
+    solo_fg = True if request.args.get('solo_fg') else False
     resultados_excel = []
     
     # Realizar búsqueda en Excel si hay término
     if termino_excel:
-        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' | solo_ricky: {solo_ricky} | solo_fg: {solo_fg}")
-        
-        # Si el término es un código numérico y tenemos proveedor específico, usar búsqueda precisa
-        if termino_excel.isdigit() and proveedor_excel_filtro:
-            print(f"🔢 Realizando búsqueda específica de código exacto: {termino_excel} en {proveedor_excel_filtro}")
-            # Buscar el código exacto en el proveedor específico
-            resultados_exactos = buscar_codigo_exacto_en_proveedor(
-                termino_excel, 
-                proveedor_excel_filtro, 
-                solo_ricky=solo_ricky, 
-                solo_fg=solo_fg
-            )
-            
-            if resultados_exactos:
-                print(f"📊 Encontrados {len(resultados_exactos)} resultados exactos")
-                resultados_excel = resultados_exactos
-            else:
-                # Hacer la búsqueda normal y luego filtrar estrictamente
-                print(f"🔍 No hay coincidencias exactas, buscando alternativas...")
-                resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-                
-                # Aplicar filtro extremadamente estricto - solo el código exacto y proveedor
-                resultados_filtrados = []
-                for r in resultados_excel:
-                    r_codigo = str(r.get('codigo', '')).strip()
-                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
-                    r_archivo = str(r.get('archivo', '')).lower()
-                    
-                    # Verificar código exacto
-                    if r_codigo != termino_excel:
-                        continue
-                        
-                    # Verificar que el proveedor coincida
-                    if r_proveedor != proveedor_excel_filtro.lower():
-                        continue
-                        
-                    # Verificar que el nombre del archivo comience con el proveedor
-                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
-                        continue
-                        
-                    resultados_filtrados.append(r)
-                    print(f"✅ Coincidencia estricta: Código {r_codigo} en proveedor {r_proveedor}, archivo {r_archivo}")
-                
-                if resultados_filtrados:
-                    resultados_excel = resultados_filtrados
-                    print(f"📊 Filtrado a {len(resultados_excel)} coincidencias exactas de código")
-        else:
-            # Búsqueda normal para términos de texto o sin proveedor específico
-            resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
-            print(f"📊 Resultados encontrados: {len(resultados_excel)}")
-            
-            # Filtrar resultados para eliminar entradas inválidas
-            resultados_excel = [r for r in resultados_excel if r.get('nombre') and not r.get('nombre').startswith('Fila ')]
-            print(f"📊 Resultados después de filtrar entradas inválidas: {len(resultados_excel)}")
-            
-            # Si hay un proveedor seleccionado, aplicar filtro muy estricto
-            if proveedor_excel_filtro:
-                resultados_filtrados = []
-                for r in resultados_excel:
-                    r_proveedor = str(r.get('proveedor', '')).lower().strip()
-                    r_archivo = str(r.get('archivo', '')).lower()
-                    
-                    # Asegurarse que coincida el proveedor 
-                    if r_proveedor != proveedor_excel_filtro.lower():
-                        continue
-                    
-                    # Verificar que el nombre del archivo comience con el proveedor
-                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
-                        print(f"⚠️ Omitiendo resultado de {r_archivo}, no coincide con proveedor {proveedor_excel_filtro.lower()}")
-                        continue
-                        
-                    resultados_filtrados.append(r)
-                
-                resultados_excel = resultados_filtrados
-                print(f"📊 Resultados estrictamente filtrados por proveedor: {len(resultados_excel)}")
-        
-        # Aplicar deduplicación para mostrar resultados únicos por producto Y proveedor
-        # Agrupar productos por nombre, código Y proveedor para mantener la variedad de proveedores
-        productos_unicos = {}
-        
-        # Criterio de deduplicación: considerar código, nombre del producto Y proveedor
-        # Mantener diferentes proveedores para el mismo producto
-        for r in resultados_excel:
-            codigo = str(r.get('codigo', '')).strip()
-            nombre = str(r.get('nombre', '')).lower().strip()
-            proveedor = str(r.get('proveedor', '')).lower().strip()
-            
-            # Clave única basada en código, nombre del producto y proveedor
-            clave_producto = f"{codigo}|{nombre}|{proveedor}"
-            
-            # Almacenar un resultado por cada combinación única de producto/proveedor
-            if clave_producto not in productos_unicos:
-                productos_unicos[clave_producto] = r
-        
-        # Convertir el diccionario en lista final de resultados
-        resultados_previos = len(resultados_excel)
-        resultados_excel = list(productos_unicos.values())
-        
-        # Log simple sin mostrar datos detallados
-        print(f"✅ Deduplicación completada: {len(resultados_excel)} productos únicos (de {resultados_previos} resultados originales)")
+        print(f"🔍 Buscando: '{termino_excel}' con filtro proveedor: '{proveedor_excel_filtro}' y filtro adicional: '{filtro_excel}'")
+        # Pasar flags de alcance (solo_ricky / solo_fg) a la búsqueda
+        resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+        print(f"📊 Resultados encontrados: {len(resultados_excel)}")
     
     # Obtener proveedores manuales para el selector
     proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
@@ -5157,8 +5030,6 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
     """Buscar productos en archivos Excel de proveedores y productos manuales"""
     resultados = []
     print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
-    # Normalizar el proveedor_filtro a minúsculas para comparaciones case-insensitive
-    proveedor_filtro = proveedor_filtro.lower() if proveedor_filtro else None
     
     # 1. Buscar en productos manuales
     if proveedor_filtro and proveedor_filtro.startswith('manual_'):
@@ -5172,9 +5043,7 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             resultados.extend(resultados_manuales)
         except (ValueError, TypeError):
             pass
-    elif proveedor_filtro and proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
-        # Obtener la clave original del diccionario (preservando mayúsculas)
-        proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
+    elif proveedor_filtro and proveedor_filtro in PROVEEDOR_CONFIG:
         # Nuevo: también incluir productos manuales que pertenezcan a ese proveedor Excel
         # Determinar alcance de dueños según flags
         if solo_ricky and not solo_fg:
@@ -5183,51 +5052,27 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             duenos_manual = ['ferreteria_general']
         else:
             duenos_manual = ['ricky', 'ferreteria_general']
-        
-        # Buscar tanto por el nombre del proveedor en Excel como por posibles variaciones en mayúsculas/minúsculas
-        proveedor_nombre_original = proveedor_filtro
-        
-        # Intentar primero con el nombre exacto del proveedor
         for d in duenos_manual:
-            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_original, dueno_filtro=d)
+            resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_filtro, dueno_filtro=d)
             if resultados_manuales:
                 resultados.extend(resultados_manuales)
-                
-        # Si no hay resultados, probar con variaciones de mayúsculas/minúsculas
-        if not resultados:
-            print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas")
-            proveedor_upper = proveedor_nombre_original.upper()
-            if proveedor_upper != proveedor_nombre_original:
-                for d in duenos_manual:
-                    resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_upper, dueno_filtro=d)
-                    if resultados_manuales:
-                        resultados.extend(resultados_manuales)
     elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
         # Si no hay filtro específico de Excel, incluir todos los manuales
         # Aplicar alcance por dueño si corresponde
         if solo_ricky and not solo_fg:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
-            print(f"Búsqueda manual solo para dueño 'ricky': {len(resultados_manuales)} resultados")
         elif solo_fg and not solo_ricky:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ferreteria_general')
-            print(f"Búsqueda manual solo para dueño 'ferreteria_general': {len(resultados_manuales)} resultados")
         else:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda)
-            print(f"Búsqueda manual para todos los dueños: {len(resultados_manuales)} resultados")
-        
-        if resultados_manuales:
-            print(f"Agregando {len(resultados_manuales)} resultados manuales")
-            resultados.extend(resultados_manuales)
-        else:
-            print("No se encontraron resultados manuales")
+        resultados.extend(resultados_manuales)
         
     # 2. Buscar en Excel de proveedores
-    if not proveedor_filtro or proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
+    if not proveedor_filtro or proveedor_filtro in PROVEEDOR_CONFIG:
         # Verificar si necesitamos buscar en todos o un proveedor específico
         if proveedor_filtro:
             # Verificar si el proveedor está habilitado para el filtro de dueño
-            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
-            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_key, {})
+            proveedor_config = PROVEEDOR_CONFIG.get(proveedor_filtro, {})
             proveedor_dueno = proveedor_config.get('dueno', None)
             
             # Saltar si no coincide con los filtros de dueño
@@ -5253,27 +5098,10 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             )
             resultados.extend(resultados_proveedor)
     
-    # Primera deduplicación básica - eliminar duplicados exactos
-    # Esta deduplicación es más ligera y se hace a nivel de función
-    resultados_sin_duplicados = []
-    claves_vistas = set()
-    
-    for r in resultados:
-        codigo = str(r.get('codigo', '')).strip()
-        proveedor = str(r.get('proveedor', '')).lower().strip()
-        nombre = str(r.get('nombre', '')).lower().strip()
-        
-        # Crear una clave para eliminar duplicados exactos
-        clave = f"{codigo}|{proveedor}|{nombre}"
-        
-        if clave not in claves_vistas:
-            claves_vistas.add(clave)
-            resultados_sin_duplicados.append(r)
-    
     # Log cantidad total de resultados
-    print(f"🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: {len(resultados_sin_duplicados)} de {len(resultados)} originales")
+    print(f"🔍 [BUSCAR_EXCEL] Total de resultados: {len(resultados)}")
     
-    return resultados_sin_duplicados
+    return resultados
 
 def agregar_producto_manual_excel():
     """Agregar producto manual al Excel (no directamente al stock)"""
@@ -5443,116 +5271,30 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
     resultados = []
     
     try:
-        print(f"[EXCEL DEBUG] Iniciando búsqueda en Excel manual para proveedor_id={proveedor_id} y dueno_filtro={dueno_filtro}")
-        
         if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            print(f"[EXCEL ERROR] No se encontró el archivo de productos manuales: {MANUAL_PRODUCTS_FILE}")
             return resultados
         
-        print(f"[EXCEL DEBUG] Leyendo archivo: {MANUAL_PRODUCTS_FILE}")
         df = pd.read_excel(MANUAL_PRODUCTS_FILE)
         # Normalizar nombres de columnas por si existen acentos
         df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
         
-        print(f"[EXCEL DEBUG] DataFrame inicial: {len(df)} filas")
         if df.empty:
-            print("[EXCEL ERROR] El DataFrame está vacío")
             return resultados
-        
-        # DIAGNÓSTICO TOTAL: Mostrar todas las filas del Excel al inicio
-        print("[EXCEL DIAGNÓSTICO TOTAL] ===== CONTENIDO COMPLETO DEL EXCEL =====")
-        try:
-            for idx, row in df.iterrows():
-                print(f"[EXCEL DIAGNÓSTICO] Fila {idx}:")
-                for col in df.columns:
-                    print(f"[EXCEL DIAGNÓSTICO]   {col}: {row[col]}")
-                print("[EXCEL DIAGNÓSTICO] ---")
-        except Exception as e:
-            print(f"[EXCEL ERROR] Error al mostrar diagnóstico total: {e}")
-        print("[EXCEL DIAGNÓSTICO TOTAL] ===== FIN CONTENIDO COMPLETO =====")
         
         # Obtener nombre del proveedor
         proveedor_info = db_query("SELECT nombre FROM proveedores_manual WHERE id = ?", (proveedor_id,), fetch=True)
         if not proveedor_info:
-            print(f"[EXCEL ERROR] No se encontró información para el proveedor con ID {proveedor_id}")
-            # CAMBIO: Si no encontramos el proveedor, continuamos sin filtrar por proveedor
-            all_results = buscar_en_excel_manual(termino_busqueda, dueno_filtro)
-            print(f"[EXCEL DEBUG] Como no se encontró el proveedor, se devuelven todos los resultados: {len(all_results)}")
-            return all_results
+            return resultados
         
         proveedor_nombre = proveedor_info[0]['nombre']
-        print(f"[EXCEL DEBUG] Nombre del proveedor ID {proveedor_id}: '{proveedor_nombre}'")
         
-        # Imprimir todos los proveedores disponibles en el Excel para diagnóstico
-        print(f"[EXCEL DEBUG] Proveedores disponibles en Excel: {df['Proveedor'].unique().tolist()}")
-        
-        # Añadir diagnóstico para buscar específicamente productos con el código buscado
-        if termino_busqueda:
-            print(f"[EXCEL DEBUG] Buscando productos con código '{termino_busqueda}' en todo el Excel:")
-            for idx, row in df.iterrows():
-                codigo = str(row.get('Codigo', '')).lower()
-                if termino_busqueda.lower() in codigo:
-                    print(f"[EXCEL DEBUG] ¡ENCONTRADO! Fila {idx}, Código: {row.get('Codigo', '')}, Proveedor: {row.get('Proveedor', '')}, Dueño: {row.get('Dueno', '')}")
-        
-        # Verificar si está en mayúsculas o minúsculas
-        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre}': {(df['Proveedor'] == proveedor_nombre).sum()} coincidencias")
-        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.upper()}': {(df['Proveedor'] == proveedor_nombre.upper()).sum()} coincidencias")
-        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
-        
-        # Búsqueda específica: Si buscamos un producto exacto por código, lo buscamos en todo el Excel
-        if termino_busqueda and len(termino_busqueda.strip()) >= 3 and not termino_busqueda.strip().isdigit():
-            exact_matches = df[df['Codigo'].astype(str).str.lower() == termino_busqueda.lower()]
-            if len(exact_matches) > 0:
-                print(f"[EXCEL DEBUG] ¡ENCONTRAMOS CÓDIGO EXACTO! '{termino_busqueda}' - {len(exact_matches)} coincidencias")
-                for _, row in exact_matches.iterrows():
-                    precio_val, precio_error = parse_price(row.get('Precio', ''))
-                    resultado = {
-                        'codigo': row.get('Codigo', ''),
-                        'nombre': row.get('Nombre', ''),
-                        'precio': precio_val,
-                        'precio_texto': str(row.get('Precio', '')) if precio_error else None,
-                        'proveedor': row.get('Proveedor', ''),
-                        'observaciones': row.get('Observaciones', ''),
-                        'dueno': row.get('Dueno', ''),
-                        'es_manual': True,
-                        'matchExacto': True
-                    }
-                    resultados.append(resultado)
-        
-        # Usar una búsqueda más flexible que incluya coincidencias parciales y comparaciones insensibles a mayúsculas/minúsculas
-        # Esta es una búsqueda más agresiva que la original
-        filtered_df = df[df['Proveedor'].astype(str).str.lower().str.contains(proveedor_nombre.lower(), na=False)]
-        print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}' (búsqueda flexible): {len(filtered_df)} filas")
-        
-        # Si no hay resultados después de filtrar por proveedor pero hay un filtro de dueño,
-        # ignoramos el filtro de proveedor y solo filtramos por dueño
-        if len(filtered_df) == 0:
-            print(f"[EXCEL DEBUG] No se encontraron productos para el proveedor '{proveedor_nombre}' - ignorando filtro de proveedor")
-            # CAMBIO: Usamos el DataFrame original sin filtrar por proveedor siempre que no hay resultados
-            df_for_dueno = df
-            # Si hay término de búsqueda, buscamos específicamente ese término
-            if termino_busqueda:
-                print(f"[EXCEL DEBUG] Buscando específicamente el término '{termino_busqueda}' en todo el Excel:")
-                for idx, row in df.iterrows():
-                    codigo = str(row.get('Codigo', '')).lower()
-                    nombre = str(row.get('Nombre', '')).lower()
-                    if termino_busqueda.lower() in codigo or termino_busqueda.lower() in nombre:
-                        print(f"[EXCEL DEBUG] ¡ENCONTRADO SIN FILTRO DE PROVEEDOR! Fila {idx}, Código: {row.get('Codigo', '')}, Nombre: {row.get('Nombre', '')}")
-        else:
-            # Si encontramos productos con el proveedor, continuamos normalmente
-            df_for_dueno = filtered_df
-        
-        # Aplicamos el filtro de dueño si existe
+        # Filtrar por proveedor específico - y por dueño si se especifica
+        df = df[df['Proveedor'].astype(str).str.contains(proveedor_nombre, case=False, na=False)]
         if dueno_filtro:
-            print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
-            df = df_for_dueno[df_for_dueno['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-            print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
-        else:
-            df = df_for_dueno
+            df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
         
         # Filtrar por término de búsqueda si existe (soporta combinaciones "palabra1 palabra2")
-        if termino_busqueda and len(resultados) == 0:  # Solo filtrar si no tenemos resultados exactos
-            print(f"[EXCEL DEBUG] Filtrando por término de búsqueda: {termino_busqueda}")
+        if termino_busqueda:
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
                 mask_all = pd.Series(True, index=df.index)
@@ -5564,39 +5306,6 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
                     )
                     mask_all &= mask_tok
                 df = df[mask_all]
-                print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(df)} filas")
-        
-        # Si después de todo esto no hay resultados, pero hay un término de búsqueda,
-        # volvemos a buscar en todo el Excel sin filtro de proveedor
-        if len(df) == 0 and len(resultados) == 0 and termino_busqueda:
-            print(f"[EXCEL DEBUG] No se encontraron resultados - buscando en todo el Excel sin filtros")
-            all_df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-            # Normalizar nombres de columnas
-            all_df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-            
-            # Filtrar solo por término de búsqueda
-            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
-            if tokens:
-                mask_all = pd.Series(True, index=all_df.index)
-                for tok in tokens:
-                    mask_tok = (
-                        all_df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
-                        all_df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
-                        all_df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
-                    )
-                    mask_all &= mask_tok
-                all_df = all_df[mask_all]
-                print(f"[EXCEL DEBUG] Resultados sin filtro de proveedor: {len(all_df)} filas")
-                
-                # Filtrar por dueño si existe
-                if dueno_filtro:
-                    all_df = all_df[all_df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-                    print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(all_df)} filas")
-                
-                # Usar estos resultados
-                df = all_df
-        
-        print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
         
         # Convertir a lista de diccionarios
         for _, row in df.iterrows():
@@ -5625,37 +5334,20 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
     """
     resultados = []
     try:
-        print(f"[EXCEL DEBUG] Iniciando búsqueda en Excel manual por nombre de proveedor: '{nombre_proveedor}', dueño: {dueno_filtro}")
-        
         if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            print(f"[EXCEL ERROR] No se encontró el archivo: {MANUAL_PRODUCTS_FILE}")
             return resultados
-            
         df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-        print(f"[EXCEL DEBUG] DataFrame inicial: {len(df)} filas")
-        
         df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
         if df.empty:
-            print("[EXCEL ERROR] El DataFrame está vacío")
             return resultados
-            
         # Filtrar por nombre de proveedor (coincidencia parcial / case-insensitive)
-        print(f"[EXCEL DEBUG] Filtrando por nombre de proveedor: '{nombre_proveedor}'")
         df = df[df['Proveedor'].astype(str).str.contains(str(nombre_proveedor), case=False, na=False)]
-        print(f"[EXCEL DEBUG] Después de filtrar por proveedor: {len(df)} filas")
-        
         if dueno_filtro:
-            print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-            print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
-            
         if df.empty:
-            print("[EXCEL DEBUG] No hay resultados después de filtrar por proveedor/dueño")
             return resultados
-            
         # Aplicar término de búsqueda (tokens AND)
         if termino_busqueda:
-            print(f"[EXCEL DEBUG] Filtrando por término de búsqueda: {termino_busqueda}")
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
                 mask_all = pd.Series(True, index=df.index)
@@ -5667,7 +5359,6 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
                     )
                     mask_all &= tok_mask
                 df = df[mask_all]
-                print(f"[EXCEL DEBUG] Después de filtrar por términos de búsqueda: {len(df)} filas")
         for _, row in df.iterrows():
             precio_val, precio_error = parse_price(row.get('Precio', ''))
             resultados.append({
@@ -5681,37 +5372,22 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
                 'es_manual': True
             })
     except Exception as e:
-        print(f"[EXCEL ERROR] Error en buscar_en_excel_manual_por_nombre_proveedor: {e}")
-        import traceback
-        print(traceback.format_exc())
+        print(f"Error en buscar_en_excel_manual_por_nombre_proveedor: {e}")
     return resultados
 
 def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
     """Buscar en productos_manual.xlsx sin proveedor específico. Permite filtrar por dueño."""
     resultados = []
     try:
-        print(f"[EXCEL DEBUG] Iniciando búsqueda en Excel manual. Término: '{termino_busqueda}', Dueño: {dueno_filtro}")
-        
         if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            print(f"[EXCEL ERROR] Archivo de productos manuales no encontrado: {MANUAL_PRODUCTS_FILE}")
             return resultados
-            
-        print(f"[EXCEL DEBUG] Leyendo archivo: {MANUAL_PRODUCTS_FILE}")
         df = pd.read_excel(MANUAL_PRODUCTS_FILE)
         df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-        
-        print(f"[EXCEL DEBUG] DataFrame inicial: {len(df)} filas")
         if df.empty:
-            print("[EXCEL ERROR] El archivo de productos manuales está vacío")
             return resultados
-            
         if dueno_filtro:
-            print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
             df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-            print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
-            
         if termino_busqueda:
-            print(f"[EXCEL DEBUG] Filtrando por término de búsqueda: {termino_busqueda}")
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
                 mask_all = pd.Series(True, index=df.index)
@@ -5722,75 +5398,7 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                         df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
                     )
                     mask_all &= tok_mask
-                
-                filtered_by_term = df[mask_all]
-                print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(filtered_by_term)} filas")
-                
-                # Si no hay resultados después de filtrar por término, mostramos todos los productos disponibles
-                if len(filtered_by_term) == 0:
-                    print("[EXCEL DEBUG] ======= DIAGNÓSTICO: PRODUCTOS DISPONIBLES =======")
-                    print(f"[EXCEL DEBUG] No se encontraron productos que coincidan con '{termino_busqueda}'")
-                    print("[EXCEL DEBUG] Mostrando TODOS los productos disponibles después de filtrar por dueño:")
-                    try:
-                        # Mostrar cada fila individualmente para garantizar que se vea en los logs
-                        for idx, row in df.iterrows():
-                            print(f"[EXCEL DEBUG] Fila {idx}:")
-                            for col in df.columns:
-                                print(f"[EXCEL DEBUG]   {col}: {row[col]}")
-                            print("[EXCEL DEBUG] ---")
-                            
-                            # Intentar una búsqueda manual por si hay problemas de formato
-                            if termino_busqueda and isinstance(termino_busqueda, str):
-                                codigo_str = str(row.get('Codigo', '')).lower()
-                                nombre_str = str(row.get('Nombre', '')).lower()
-                                term_lower = termino_busqueda.lower()
-                                print(f"[EXCEL DEBUG] Prueba manual - Código: '{codigo_str}', Término: '{term_lower}', ¿Coincide?: {term_lower in codigo_str}")
-                                print(f"[EXCEL DEBUG] Prueba manual - Nombre: '{nombre_str}', Término: '{term_lower}', ¿Coincide?: {term_lower in nombre_str}")
-                                
-                    except Exception as e:
-                        print(f"[EXCEL DEBUG] Error al mostrar filas: {e}")
-                    print("[EXCEL DEBUG] ======= FIN DIAGNÓSTICO =======")
-                    
-            # Alternativa más agresiva: mostrar SIEMPRE los productos disponibles
-        print("[EXCEL DEBUG] Mostrando productos disponibles aunque no coincidan con el término de búsqueda")
-        print("[EXCEL DEBUG] Productos disponibles para mostrar en la UI:")
-        
-        # Guardar el DataFrame filtrado original
-        filtered_empty = filtered_by_term.empty
-        
-        # Si no hay resultados de búsqueda pero hay productos para este dueño, mostrarlos todos
-        if filtered_empty and len(df) > 0:
-            print(f"[EXCEL DEBUG] No se encontraron coincidencias exactas para '{termino_busqueda}', mostrando todos los productos disponibles")
-            
-            # DESACTIVAR ESTA LÍNEA PARA VOLVER AL COMPORTAMIENTO NORMAL
-            # Mostrar todos los productos disponibles para este dueño, ignorando el filtro de término
-            df_result = df  # Usar todos los productos disponibles
-            
-            # Crear resultados para cada producto
-            for _, row in df_result.iterrows():
-                precio_val, precio_error = parse_price(row.get('Precio', ''))
-                resultado = {
-                    'codigo': row.get('Codigo', ''),
-                    'nombre': row.get('Nombre', '') + " [SIN FILTRO]",  # Marcar que no coincide con el filtro
-                    'precio': precio_val,
-                    'precio_texto': str(row.get('Precio', '')) if precio_error else None,
-                    'proveedor': row.get('Proveedor', ''),
-                    'observaciones': row.get('Observaciones', ''),
-                    'dueno': row.get('Dueno', ''),
-                    'es_manual': True
-                }
-                resultados.append(resultado)
-                print(f"[EXCEL DEBUG] Producto añadido: {resultado['codigo']} - {resultado['nombre']}")
-            
-            # Devolver resultados directamente sin seguir procesando
-            print(f"[EXCEL DEBUG] Total resultados (mostrados sin filtro): {len(resultados)}")
-            return resultados
-        else:
-            # Continuar con el comportamiento normal si hay resultados o no hay productos disponibles
-            df = filtered_by_term
-            
-        print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
-        
+                df = df[mask_all]
         for _, row in df.iterrows():
             precio_val, precio_error = parse_price(row.get('Precio', ''))
             resultados.append({
@@ -5804,35 +5412,22 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                 'es_manual': True
             })
     except Exception as e:
-        print(f"[EXCEL ERROR] Error en buscar_en_excel_manual: {e}")
-        import traceback
-        print(traceback.format_exc())
+        print(f"Error en buscar_en_excel_manual: {e}")
     return resultados
-    
+
 def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None):
     """Buscar productos en archivos Excel del proveedor especificado"""
     resultados = []
-    claves_vistas = set()  # Conjunto para controlar duplicados
-    
     try:
         print(f"[EXCEL DEBUG] Iniciando búsqueda para proveedor '{proveedor}'")
         
-        # Verificar que exista la configuración del proveedor (case-insensitive)
-        proveedor_lower = proveedor.lower() if proveedor else ''
-        
-        # Verificar primero con la clave exacta
-        if proveedor in PROVEEDOR_CONFIG:
-            proveedor_key = proveedor
-        # Si no existe, buscar de forma case-insensitive
-        else:
-            proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_lower), None)
-            
-        if not proveedor_key:
+        # Verificar que exista la configuración del proveedor
+        if proveedor not in PROVEEDOR_CONFIG:
             print(f"[EXCEL] Error: Proveedor '{proveedor}' no configurado")
             return []
         
         # Obtener configuración del proveedor
-        config = PROVEEDOR_CONFIG[proveedor_key]
+        config = PROVEEDOR_CONFIG[proveedor]
         print(f"[EXCEL DEBUG] Configuración del proveedor: {config}")
         
         excel_folder = config.get('folder', proveedor)
@@ -5900,75 +5495,40 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                     
                     # Buscar en cada fila
                     for row_idx, row in enumerate(filas, 1):
-                        # Guardamos valores originales y convertimos a minúsculas solo para búsqueda
-                        row_values_orig = [str(cell.value) if cell.value is not None else '' for cell in row]
-                        row_values_lower = [val.lower() for val in row_values_orig]
-                        row_text_lower = ' '.join(row_values_lower)
+                        row_values = [str(cell.value).lower() if cell.value is not None else '' for cell in row]
+                        row_text = ' '.join(row_values)
                         
-                        # Verificar si el término está específicamente en código o nombre
-                        codigo_lower = row_values_lower[0] if len(row_values_lower) > 0 else ''
-                        nombre_lower = row_values_lower[1] if len(row_values_lower) > 1 else ''
-                        
-                        # Hacer un filtrado más estricto
-                        match_found = False
-                        # Si el término parece un código (solo números), buscar coincidencia exacta en código
-                        if termino_busqueda.isdigit():
-                            # Coincidencia exacta con el código
-                            if termino_busqueda == codigo_lower:
-                                match_found = True
-                                print(f"[EXCEL] ✅ Coincidencia exacta de código: {termino_busqueda} == {codigo_lower}")
-                            # Si no coincide exactamente, buscar como parte del código (solo si tiene espacios)
-                            elif codigo_lower and termino_busqueda in codigo_lower.split():
-                                match_found = True
-                                print(f"[EXCEL] ✅ Coincidencia en parte del código: {termino_busqueda} en {codigo_lower}")
-                        # Si no es un código, buscar en cualquier parte de la fila
-                        else:
-                            if termino_busqueda in row_text_lower:
-                                match_found = True
-                                print(f"[EXCEL] ✅ Coincidencia de texto: {termino_busqueda} en fila")
-                        
-                        if not match_found:
-                            continue
-                            
-                        # Aplicar filtro adicional si existe
-                        if filtro_adicional and filtro_adicional.lower() not in row_text_lower:
-                            continue
-                            
-                        # Extraer datos de la fila
-                        codigo = row_values_orig[0] if len(row_values_orig) > 0 else ''
-                        nombre = row_values_orig[1] if len(row_values_orig) > 1 else ''
-                        precio = 0.0
-                        
-                        # Intentar extraer precio
-                        if len(row_values_orig) > 2:
-                            try:
-                                precio_text = row_values_orig[2].replace('.', '').replace(',', '.')
-                                precio = float(precio_text) if precio_text else 0.0
-                            except (ValueError, TypeError):
-                                precio = 0.0
-                            
-                            # Crear clave única para evitar duplicados
-                            clave = f"{codigo}_{proveedor.lower()}_{nombre_archivo}_{ws_name}_{row_idx}"
-                            
-                            # Verificar si ya hemos procesado este resultado exacto
-                            if clave in claves_vistas:
-                                print(f"[EXCEL] ⚠️ Omitiendo duplicado para código {codigo} en {nombre_archivo}")
+                        # Verificar si el término está en esta fila
+                        if termino_busqueda in row_text:
+                            # Aplicar filtro adicional si existe
+                            if filtro_adicional and filtro_adicional.lower() not in row_text:
                                 continue
                                 
-                            claves_vistas.add(clave)
+                            # Extraer datos de la fila
+                            codigo = row_values[0] if len(row_values) > 0 else ''
+                            nombre = row_values[1] if len(row_values) > 1 else ''
+                            precio = 0.0
+                            
+                            # Intentar extraer precio
+                            if len(row_values) > 2:
+                                try:
+                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
+                                    precio = float(precio_text) if precio_text else 0.0
+                                except (ValueError, TypeError):
+                                    precio = 0.0
                             
                             # Crear resultado
                             resultado = {
                                 'codigo': codigo,
                                 'nombre': nombre if nombre else f"Fila {row_idx}",
                                 'precio': precio,
-                                'proveedor': proveedor.title(),
+                                'proveedor': proveedor,
                                 'archivo': nombre_archivo,
                                 'hoja': ws_name,
                                 'fila': row_idx,
                                 'tipo': 'excel',
                                 'dueno': dueno,
-                                'row_text': row_text_lower
+                                'row_text': row_text
                             }
                             resultados.append(resultado)
                 
@@ -5978,125 +5538,8 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                 
     except Exception as e:
         print(f"[EXCEL] Error general en buscar_en_excel_proveedor: {e}")
-    
-    print(f"[EXCEL] Búsqueda en proveedor '{proveedor}' completada: {len(resultados)} resultados (de {len(claves_vistas)} coincidencias)")
+        
     return resultados
-
-def buscar_codigo_exacto_en_proveedor(codigo, proveedor, solo_ricky=False, solo_fg=False):
-    """Busca un código específico en un proveedor específico con criterios muy estrictos"""
-    resultados = []
-    claves_vistas = set()  # Conjunto para controlar duplicados
-    
-    try:
-        print(f"🎯 [EXCEL] Iniciando búsqueda exacta de código '{codigo}' en proveedor '{proveedor}'")
-        if not codigo.isdigit() or not proveedor:
-            print(f"⚠️ [EXCEL] Código no numérico o proveedor vacío")
-            return []
-        
-        # Verificar que exista la configuración del proveedor
-        if proveedor not in PROVEEDOR_CONFIG:
-            print(f"⚠️ [EXCEL] Error: Proveedor '{proveedor}' no configurado")
-            return []
-            
-        # Obtener configuración del proveedor
-        config = PROVEEDOR_CONFIG[proveedor]
-        dueno = config.get('dueno', 'ferreteria_general')
-        print(f"🔍 [EXCEL] Dueño del proveedor: {dueno}")
-        
-        # Verificar si el proveedor está habilitado para el filtro de dueño
-        if (solo_ricky and dueno != 'ricky') or (solo_fg and dueno != 'ferreteria_general'):
-            print(f"⚠️ [EXCEL] Proveedor no coincide con filtro de dueño")
-            return []
-        
-        # Directorio base para archivos del proveedor
-        directorio_base = os.path.join('listas_excel', config.get('folder', proveedor))
-        print(f"📁 [EXCEL] Buscando en directorio: {directorio_base}")
-        
-        if not os.path.exists(directorio_base):
-            print(f"⚠️ [EXCEL] Directorio no existe: {directorio_base}")
-            return []
-            
-        # Buscar en todos los archivos Excel disponibles
-        archivos_excel = []
-        for root, _, files in os.walk(directorio_base):
-            for file in files:
-                if file.endswith('.xlsx') or file.endswith('.xls'):
-                    ruta_completa = os.path.join(root, file)
-                    archivos_excel.append(ruta_completa)
-                    
-        print(f"📊 [EXCEL] Encontrados {len(archivos_excel)} archivos para analizar")
-        
-        # Buscar el código exacto en cada archivo
-        for archivo in archivos_excel:
-            try:
-                from openpyxl import load_workbook
-                wb = load_workbook(archivo, read_only=True, data_only=True)
-                
-                for ws_name in wb.sheetnames:
-                    ws = wb[ws_name]
-                    filas = list(ws.rows)
-                    
-                    for row_idx, row in enumerate(filas, 1):
-                        # Obtener valores de celda
-                        row_values = [str(cell.value) if cell.value is not None else '' for cell in row]
-                        if len(row_values) == 0:
-                            continue
-                        
-                        # Obtener código y verificar coincidencia exacta
-                        fila_codigo = row_values[0].strip() if len(row_values) > 0 else ''
-                        if fila_codigo == codigo:
-                            print(f"✅ [EXCEL] Coincidencia exacta encontrada en {os.path.basename(archivo)}, hoja {ws_name}, fila {row_idx}")
-                            
-                            # Extraer datos
-                            nombre = row_values[1] if len(row_values) > 1 else f"Fila {row_idx}"
-                            precio = 0.0
-                            
-                            if len(row_values) > 2:
-                                try:
-                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
-                                    precio = float(precio_text) if precio_text else 0.0
-                                except (ValueError, TypeError):
-                                    precio = 0.0
-                                    
-                            # Verificar que el archivo corresponda realmente al proveedor buscado
-                            archivo_base = os.path.basename(archivo).lower()
-                            if not archivo_base.startswith(proveedor.lower()):
-                                print(f"⚠️ [EXCEL] Omitiendo resultado de {archivo_base}, no coincide con proveedor {proveedor.lower()}")
-                                continue
-                                
-                            # Crear clave única para evitar duplicados
-                            clave = f"{codigo}_{proveedor.lower()}_{archivo_base}_{ws_name}_{row_idx}"
-                            
-                            # Verificar si ya hemos procesado este resultado exacto
-                            if clave in claves_vistas:
-                                print(f"⚠️ [EXCEL] Omitiendo duplicado para código {codigo} en {archivo_base}")
-                                continue
-                                
-                            claves_vistas.add(clave)
-                            
-                            # Crear resultado
-                            resultado = {
-                                'codigo': codigo,
-                                'nombre': nombre,
-                                'precio': precio,
-                                'proveedor': proveedor.title(),
-                                'archivo': os.path.basename(archivo),
-                                'hoja': ws_name,
-                                'fila': row_idx,
-                                'tipo': 'excel',
-                                'dueno': dueno,
-                                'coincidencia_exacta': True
-                            }
-                            resultados.append(resultado)
-            except Exception as e:
-                print(f"⚠️ [EXCEL] Error al procesar archivo {archivo}: {e}")
-                
-        print(f"🎯 [EXCEL] Búsqueda exacta completada: {len(resultados)} resultados (de {len(claves_vistas)} coincidencias)")
-        return resultados
-        
-    except Exception as e:
-        print(f"❌ [EXCEL] Error en buscar_codigo_exacto_en_proveedor: {e}")
-        return []
 
 def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, proveedor_key, dueno='ricky'):
     """Procesar un archivo Excel específico"""
@@ -7014,130 +6457,6 @@ def procesar_escaneo():
         }
     
     return redirect(url_for('escanear'))
-
-# Importar el blueprint de diagnóstico Railway
-try:
-    from diagnostico_railway import diagnostico_railway_bp
-    app.register_blueprint(diagnostico_railway_bp)
-    print("[INFO] Blueprint de diagnóstico Railway registrado correctamente")
-except ImportError as e:
-    print(f"[WARN] No se pudo importar el blueprint de diagnóstico Railway: {e}")
-
-# Importar el blueprint de diagnóstico de búsqueda
-try:
-    from diagnostico_busqueda import diagnostico_busqueda_bp
-    app.register_blueprint(diagnostico_busqueda_bp)
-    print("[INFO] Blueprint de diagnóstico de búsqueda registrado correctamente")
-except ImportError as e:
-    print(f"[WARN] No se pudo importar el blueprint de diagnóstico de búsqueda: {e}")
-
-@app.route('/api/fix_railway_db', methods=['POST'])
-def fix_railway_db():
-    """Endpoint para ejecutar la migración de la base de datos en Railway.
-    
-    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
-    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
-    """
-    try:
-        # Verificar si estamos en Railway con PostgreSQL
-        if not _is_postgres_configured():
-            return jsonify({
-                'success': False,
-                'message': 'Este endpoint solo funciona en entornos con PostgreSQL (Railway)'
-            }), 400
-        
-        # Verificar token de seguridad
-        expected_token = os.environ.get('MIGRATION_TOKEN')
-        if not expected_token:
-            return jsonify({
-                'success': False, 
-                'message': 'No se ha configurado MIGRATION_TOKEN en las variables de entorno'
-            }), 500
-        
-        provided_token = request.headers.get('X-Migration-Token') or request.form.get('token')
-        if not provided_token or provided_token != expected_token:
-            return jsonify({
-                'success': False,
-                'message': 'Token de migración inválido o no proporcionado'
-            }), 403
-        
-        # Ejecutar la migración
-        from fix_railway_pg import execute_migration
-        result = execute_migration()
-        
-        if result:
-            return jsonify({
-                'success': True,
-                'message': 'Migración aplicada correctamente'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Error al aplicar la migración. Revise los logs del servidor.'
-            }), 500
-    
-    except Exception as e:
-        print(f"[ERROR] Error en el endpoint de migración: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
-
-@app.route('/api/fix_railway_proveedores_case', methods=['POST'])
-def fix_railway_proveedores_case():
-    """Endpoint para normalizar nombres de proveedores en la base de datos de Railway.
-    
-    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
-    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
-    """
-    try:
-        # Verificar si estamos en Railway con PostgreSQL
-        if not _is_postgres_configured():
-            return jsonify({
-                'success': False,
-                'message': 'Este endpoint solo funciona en entornos con PostgreSQL (Railway)'
-            }), 400
-        
-        # Verificar token de seguridad
-        expected_token = os.environ.get('MIGRATION_TOKEN')
-        if not expected_token:
-            return jsonify({
-                'success': False, 
-                'message': 'No se ha configurado MIGRATION_TOKEN en las variables de entorno'
-            }), 500
-        
-        provided_token = request.headers.get('X-Migration-Token') or request.form.get('token')
-        if not provided_token or provided_token != expected_token:
-            return jsonify({
-                'success': False,
-                'message': 'Token de migración inválido o no proporcionado'
-            }), 403
-        
-        # Ejecutar la normalización de proveedores
-        from fix_railway_proveedores_case import normalizar_proveedores
-        result = normalizar_proveedores()
-        
-        if result:
-            return jsonify({
-                'success': True,
-                'message': 'Normalización de proveedores aplicada correctamente'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Error al normalizar proveedores. Revise los logs del servidor.'
-            }), 500
-    
-    except Exception as e:
-        print(f"[ERROR] Error en el endpoint de normalización de proveedores: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': f'Error inesperado: {str(e)}'
-        }), 500
 
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")
