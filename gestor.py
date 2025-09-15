@@ -7061,6 +7061,53 @@ try:
 except ImportError as e:
     print(f"[WARN] No se pudo importar el blueprint de diagnóstico de búsqueda: {e}")
 
+@app.route('/api/clean_railway_db', methods=['POST'])
+@login_required
+def api_clean_railway_db():
+    """Endpoint para limpiar la base de datos PostgreSQL en Railway.
+    
+    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
+    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
+    """
+    # Verificar si es entorno PostgreSQL
+    if not _is_postgres_configured():
+        return jsonify({
+            "success": False,
+            "mensaje": "Este endpoint solo funciona con PostgreSQL en Railway."
+        })
+    
+    # Verificar token de seguridad
+    migration_token = os.environ.get('MIGRATION_TOKEN', 'default_migration_token')
+    
+    # Obtener token de la solicitud (header o form data)
+    token = request.headers.get('X-Migration-Token')
+    if not token:
+        token = request.form.get('token')
+    
+    # Verificar token (excepto en desarrollo local)
+    if token != migration_token and 'DATABASE_URL' in os.environ:
+        return jsonify({
+            "success": False,
+            "mensaje": "Token de migración inválido"
+        })
+    
+    # Importar y ejecutar la función de limpieza
+    try:
+        from clean_railway_db import clean_railway_db
+        resultado = clean_railway_db()
+        return jsonify(resultado)
+    except ImportError:
+        return jsonify({
+            "success": False,
+            "mensaje": "No se encontró el módulo clean_railway_db.py"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "mensaje": "Error al ejecutar la limpieza de la base de datos."
+        })
+
 @app.route('/api/fix_railway_db', methods=['POST'])
 def fix_railway_db():
     """Endpoint para ejecutar la migración de la base de datos en Railway.
