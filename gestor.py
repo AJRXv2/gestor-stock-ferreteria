@@ -795,6 +795,44 @@ def canonicalize_proveedor_name(nombre: str) -> str:
     n = re.sub(r'\s+', ' ', n)
     return n
 
+def agregar_producto_db_manual(codigo, proveedor, nombre, precio, observaciones, dueno):
+    """Agregar producto a la base de datos de productos manuales"""
+    try:
+        # Asegurar que las tablas necesarias existen
+        ensure_productos_manual_columns()
+        
+        # Verificar si el producto ya existe (por código y dueño)
+        if codigo:
+            existing = db_query(
+                "SELECT id FROM productos_manual WHERE LOWER(codigo) = LOWER(?) AND dueno = ?", 
+                (codigo, dueno), 
+                fetch=True
+            )
+            if existing:
+                print(f"Producto con código '{codigo}' ya existe para {dueno}, actualizando...")
+                # Actualizar producto existente
+                db_query(
+                    """UPDATE productos_manual 
+                       SET nombre = ?, precio = ?, proveedor = ?, observaciones = ? 
+                       WHERE LOWER(codigo) = LOWER(?) AND dueno = ?""",
+                    (nombre, precio, proveedor, observaciones, codigo, dueno)
+                )
+                return True
+        
+        # Insertar nuevo producto
+        db_query(
+            """INSERT INTO productos_manual (codigo, nombre, precio, proveedor, observaciones, dueno) 
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (codigo, nombre, precio, proveedor, observaciones, dueno)
+        )
+        
+        print(f"Producto '{nombre}' agregado a la base de datos para {dueno}")
+        return True
+        
+    except Exception as e:
+        print(f"Error al agregar producto a la base de datos: {e}")
+        return False
+
 def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observaciones, dueno):
     """Agregar producto al Excel de productos manuales"""
     try:
@@ -4044,10 +4082,13 @@ def agregar_producto_manual():
             flash('Debe seleccionar un proveedor existente o crear uno nuevo con dueño.', 'danger')
             return redirect(url_for('agregar_producto'))
         
-        # Agregar al Excel de productos manuales
-        result = agregar_producto_excel_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno)
+        # Agregar a la base de datos de productos manuales
+        result_db = agregar_producto_db_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno)
         
-        if result:
+        # También agregar al Excel para compatibilidad con código legacy
+        result_excel = agregar_producto_excel_manual(codigo, proveedor_nombre, nombre, precio, observaciones, dueno)
+        
+        if result_db:
             flash(f'Producto "{nombre}" agregado al catálogo manual de {DUENOS_CONFIG[dueno]["nombre"]}.', 'success')
         else:
             flash('Error al agregar el producto al catálogo manual.', 'danger')
