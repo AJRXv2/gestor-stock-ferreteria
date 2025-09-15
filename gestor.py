@@ -7927,9 +7927,6 @@ def diagnosticar_proveedores_railway():
     """
     # Log de depuración: mostrar el valor recibido y los valores en la tabla
     try:
-        # Si nombre_proveedor está definido en el contexto, mostrarlo
-        if 'nombre_proveedor' in locals():
-            print(f"[DEBUG] Valor recibido en proveedor_filtro: '{nombre_proveedor}'")
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("SELECT DISTINCT proveedor FROM productos_manual")
