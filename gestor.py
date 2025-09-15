@@ -2639,8 +2639,18 @@ def agregar_producto():
             resultados_excel = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
             print(f"📊 Resultados encontrados: {len(resultados_excel)}")
             
-            # Filtrar resultados para eliminar entradas inválidas
-            resultados_excel = [r for r in resultados_excel if r.get('nombre') and not r.get('nombre').startswith('Fila ')]
+            # Filtrar resultados para eliminar entradas inválidas, con debug
+            resultados_filtrados_debug = []
+            for r in resultados_excel:
+                nombre = r.get('nombre')
+                if not nombre:
+                    print(f"[DEPURACIÓN] Filtrado: sin nombre. codigo={r.get('codigo')} proveedor={r.get('proveedor')} es_manual={r.get('es_manual')}")
+                    continue
+                if nombre.startswith('Fila '):
+                    print(f"[DEPURACIÓN] Filtrado: nombre inicia con 'Fila '. codigo={r.get('codigo')} proveedor={r.get('proveedor')} es_manual={r.get('es_manual')}")
+                    continue
+                resultados_filtrados_debug.append(r)
+            resultados_excel = resultados_filtrados_debug
             print(f"📊 Resultados después de filtrar entradas inválidas: {len(resultados_excel)}")
             
             # Si hay un proveedor seleccionado, aplicar filtro muy estricto

@@ -1,336 +1,342 @@
-2025-09-15T11:44:46.000000000Z [inf]  Starting Container
-2025-09-15T11:44:47.713760643Z [err]  [2025-09-15 11:44:46 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T11:44:47.713767751Z [err]  [2025-09-15 11:44:46 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T11:44:47.713778292Z [err]  [2025-09-15 11:44:46 +0000] [1] [INFO] Using worker: sync
-2025-09-15T11:44:47.713787262Z [err]  [2025-09-15 11:44:46 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T11:44:47.713794455Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T11:44:47.713801385Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T11:44:47.713808457Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T11:44:47.713815786Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T11:44:47.713823839Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T11:44:47.713834160Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T11:44:47.713841007Z [inf]  Motor: PostgreSQL
-2025-09-15T11:44:47.713848598Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T11:44:47.713854555Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T11:44:47.713860046Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T11:44:47.713865430Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T11:44:47.713871204Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T11:44:47.713877013Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T11:44:47.713884017Z [inf]  🔄 Cargando dependencias...
-2025-09-15T11:44:47.713890626Z [inf]  ✅ Flask-WTF importado correctamente
-2025-09-15T11:44:47.713896124Z [inf]  ✅ Werkzeug y functools importados correctamente
-2025-09-15T11:44:47.713902022Z [inf]  ✅ pdfplumber disponible para lectura de facturas PDF
-2025-09-15T11:44:47.730352296Z [inf]  [INFO] Blueprint de diagnóstico Railway registrado correctamente
-2025-09-15T11:44:47.730359400Z [inf]  [INFO] Blueprint de diagnóstico de búsqueda registrado correctamente
-2025-09-15T11:45:07.712630400Z [inf]  
-2025-09-15T11:45:07.712637521Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712643924Z [inf]  
-2025-09-15T11:45:07.712650538Z [inf]  
-2025-09-15T11:45:07.712656468Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712662891Z [inf]  
-2025-09-15T11:45:07.712668214Z [inf]  
-2025-09-15T11:45:07.712672690Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712681316Z [inf]  
-2025-09-15T11:45:07.712685476Z [inf]  
-2025-09-15T11:45:07.712690377Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712695132Z [inf]  
-2025-09-15T11:45:07.712699105Z [inf]  
-2025-09-15T11:45:07.712703308Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712707165Z [inf]  
-2025-09-15T11:45:07.712712804Z [inf]  
-2025-09-15T11:45:07.712717511Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712721284Z [inf]  
-2025-09-15T11:45:07.712724922Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
-2025-09-15T11:45:07.712728578Z [inf]  
-2025-09-15T11:45:07.712733241Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:07.712737341Z [inf]  
-2025-09-15T11:45:12.807495502Z [inf]  🔍 Buscando: 'CARBG7202' con filtro proveedor: '' | solo_ricky: False | solo_fg: False
-2025-09-15T11:45:12.807503754Z [inf]  🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'CARBG7202' | Proveedor: '' | Filtro: '' | Solo Ricky: False | Solo FG: False
-2025-09-15T11:45:12.807510262Z [inf]  [DB DEBUG] Iniciando búsqueda en DB manual. Término: 'CARBG7202', Dueño: None
-2025-09-15T11:45:12.879117188Z [inf]  
-2025-09-15T11:45:12.879127129Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:12.879134236Z [inf]  
-2025-09-15T11:45:12.879140649Z [inf]  [DB DEBUG] Resultados: 1 productos
-2025-09-15T11:45:12.879149764Z [inf]  Búsqueda manual para todos los dueños: 1 resultados
-2025-09-15T11:45:12.879156657Z [inf]  Agregando 1 resultados manuales
-2025-09-15T11:45:12.879171946Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'brementools'
-2025-09-15T11:45:12.879178111Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 5, 'codigo': ['codigo', 'Código', 'CODIGO'], 'producto': ['producto', 'Producto', 'PRODUCTO'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
-2025-09-15T11:45:12.879185079Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
-2025-09-15T11:45:12.879191051Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
-2025-09-15T11:45:12.879197930Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
-2025-09-15T11:45:12.879204960Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
-2025-09-15T11:45:12.879211189Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:12.879217456Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:12.879224801Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:12.879231730Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:12.879238119Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:12.879245113Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'brementools'
-2025-09-15T11:45:12.879252001Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
-2025-09-15T11:45:12.879258290Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:12.989207321Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
-2025-09-15T11:45:13.128115262Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
-2025-09-15T11:45:13.128129677Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:13.165715978Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
-2025-09-15T11:45:13.471110964Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
-2025-09-15T11:45:13.471119396Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:13.510827998Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
-2025-09-15T11:45:13.647921001Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
-2025-09-15T11:45:13.647928460Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:13.695818685Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
-2025-09-15T11:45:14.060960253Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
-2025-09-15T11:45:14.060971357Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:14.153607660Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
-2025-09-15T11:45:15.359953704Z [inf]  [EXCEL] Búsqueda en proveedor 'brementools' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:15.359968297Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'crossmaster'
-2025-09-15T11:45:15.359976098Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 11, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
-2025-09-15T11:45:15.359983876Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
-2025-09-15T11:45:15.359993495Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
-2025-09-15T11:45:15.360000576Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
-2025-09-15T11:45:15.360007089Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
-2025-09-15T11:45:15.360012179Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:15.360020684Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:15.360028575Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:15.360037753Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:15.360044325Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:15.360050519Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'crossmaster'
-2025-09-15T11:45:15.360056880Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
-2025-09-15T11:45:15.360063622Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:15.423764037Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
-2025-09-15T11:45:15.577481004Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
-2025-09-15T11:45:15.577487989Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:15.616015054Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
-2025-09-15T11:45:15.849782504Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
-2025-09-15T11:45:15.849793036Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:15.916036652Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
-2025-09-15T11:45:16.101625593Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
-2025-09-15T11:45:16.101631716Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:16.175722273Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
-2025-09-15T11:45:16.449555824Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
-2025-09-15T11:45:16.449560429Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:16.602563848Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
-2025-09-15T11:45:17.452941349Z [inf]  [EXCEL] Búsqueda en proveedor 'crossmaster' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:17.452946141Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'berger'
-2025-09-15T11:45:17.452950384Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['cod', 'COD', 'codigo', 'Codigo'], 'producto': ['detalle', 'DETALLE', 'producto', 'Producto'], 'precio': ['P.VENTA', 'precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
-2025-09-15T11:45:17.452954033Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
-2025-09-15T11:45:17.452958402Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
-2025-09-15T11:45:17.452962506Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
-2025-09-15T11:45:17.452972979Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
-2025-09-15T11:45:17.452977719Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:17.452983210Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:17.452987643Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:17.452995572Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:17.452999363Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:17.453002833Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'berger'
-2025-09-15T11:45:17.453007110Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
-2025-09-15T11:45:17.453012297Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:17.513004280Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
-2025-09-15T11:45:17.680737453Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
-2025-09-15T11:45:17.680749166Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:17.715686733Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
-2025-09-15T11:45:17.934701214Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
-2025-09-15T11:45:17.934710392Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:17.989260797Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
-2025-09-15T11:45:18.089672164Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
-2025-09-15T11:45:18.089679397Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:18.177771649Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
-2025-09-15T11:45:18.454222208Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
-2025-09-15T11:45:18.454232414Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:18.527246764Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
-2025-09-15T11:45:19.421582275Z [inf]  [EXCEL] Búsqueda en proveedor 'berger' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:19.421588978Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'chiesa'
-2025-09-15T11:45:19.421593819Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 1, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['descripción', 'Descripción', 'descripcion', 'Descripcion'], 'precio': ['precio', 'Precio', 'PRECIO', 'Pr.Unit', 'pr.unit', 'PR.UNIT'], 'dueno': 'ricky', 'folder': 'ricky'}
-2025-09-15T11:45:19.421598199Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
-2025-09-15T11:45:19.421603077Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
-2025-09-15T11:45:19.421608090Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
-2025-09-15T11:45:19.421612677Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
-2025-09-15T11:45:19.421618647Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:19.421625847Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:19.421632047Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:19.421638123Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:19.421643817Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:19.421649150Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'chiesa'
-2025-09-15T11:45:19.421656661Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
-2025-09-15T11:45:19.421663201Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:19.469827929Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
-2025-09-15T11:45:19.576611001Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
-2025-09-15T11:45:19.576621351Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:19.618736829Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
-2025-09-15T11:45:19.869624898Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
-2025-09-15T11:45:19.869629543Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:19.928990827Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
-2025-09-15T11:45:20.018821863Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
-2025-09-15T11:45:20.018831874Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:20.150069548Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
-2025-09-15T11:45:20.380856089Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
-2025-09-15T11:45:20.380863520Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:20.509559924Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
-2025-09-15T11:45:21.312071428Z [inf]  [EXCEL] Búsqueda en proveedor 'chiesa' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:21.312079053Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'cachan'
-2025-09-15T11:45:21.312085602Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['nombre', 'Nombre', 'NOMBRE'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
-2025-09-15T11:45:21.312093938Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
-2025-09-15T11:45:21.312102740Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
-2025-09-15T11:45:21.312109221Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
-2025-09-15T11:45:21.312116020Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
-2025-09-15T11:45:21.312126268Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:21.312132279Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:21.312138841Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:21.312145686Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:21.312151885Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:21.312157809Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'cachan'
-2025-09-15T11:45:21.312194676Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
-2025-09-15T11:45:21.312206771Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
-2025-09-15T11:45:21.360710873Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
-2025-09-15T11:45:21.543861536Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
-2025-09-15T11:45:21.543869494Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
-2025-09-15T11:45:21.583782456Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
-2025-09-15T11:45:21.834686938Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
-2025-09-15T11:45:21.834693791Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
-2025-09-15T11:45:21.888669505Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
-2025-09-15T11:45:21.984116524Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
-2025-09-15T11:45:21.984125156Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
-2025-09-15T11:45:22.094681413Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
-2025-09-15T11:45:22.399852008Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
-2025-09-15T11:45:22.399857664Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
-2025-09-15T11:45:22.480110339Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
-2025-09-15T11:45:23.314681094Z [inf]  [EXCEL] Búsqueda en proveedor 'cachan' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:23.314690459Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'dewalt'
-2025-09-15T11:45:23.314695147Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
-2025-09-15T11:45:23.314710665Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
-2025-09-15T11:45:23.314719131Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
-2025-09-15T11:45:23.314723386Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
-2025-09-15T11:45:23.314727447Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
-2025-09-15T11:45:23.314733361Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.314738031Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.314743091Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'dewalt'
-2025-09-15T11:45:23.314747708Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
-2025-09-15T11:45:23.314751982Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.386528247Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
-2025-09-15T11:45:23.479536474Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.479540550Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.479545256Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
-2025-09-15T11:45:23.479549116Z [inf]  [EXCEL] Búsqueda en proveedor 'dewalt' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:23.479553829Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'sica'
-2025-09-15T11:45:23.479558782Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
-2025-09-15T11:45:23.479564183Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
-2025-09-15T11:45:23.479568859Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
-2025-09-15T11:45:23.479573576Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
-2025-09-15T11:45:23.479577771Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
-2025-09-15T11:45:23.479582435Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.479587146Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.479593042Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'sica'
-2025-09-15T11:45:23.479597544Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
-2025-09-15T11:45:23.479602468Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.521531174Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
-2025-09-15T11:45:23.680762988Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.680771535Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.680777444Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
-2025-09-15T11:45:23.680783143Z [inf]  [EXCEL] Búsqueda en proveedor 'sica' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:23.680790984Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'sorbalok'
-2025-09-15T11:45:23.680798458Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
-2025-09-15T11:45:23.680805304Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
-2025-09-15T11:45:23.680811126Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
-2025-09-15T11:45:23.680816703Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
-2025-09-15T11:45:23.680822237Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
-2025-09-15T11:45:23.680827336Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.680842959Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.680848936Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'sorbalok'
-2025-09-15T11:45:23.680854235Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
-2025-09-15T11:45:23.680860674Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.736498148Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
-2025-09-15T11:45:23.840898239Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.840903798Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.840908572Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
-2025-09-15T11:45:23.840912703Z [inf]  [EXCEL] Búsqueda en proveedor 'sorbalok' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:23.842137178Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'nortedist'
-2025-09-15T11:45:23.842145079Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo_barra', 'codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION', 'producto', 'Producto'], 'precio': ['NORTE SIN IVA', 'NORTE', 'precio', 'Precio'], 'marca': ['marca', 'Marca', 'MARCA'], 'usar_colores': True, 'color_precio': 'FFFF00', 'columnas_precio': ['NORTE SIN IVA', 'NORTE'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
-2025-09-15T11:45:23.842150307Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
-2025-09-15T11:45:23.842156421Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
-2025-09-15T11:45:23.842164129Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
-2025-09-15T11:45:23.842168884Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
-2025-09-15T11:45:23.842172708Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.842176756Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:23.842180902Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'nortedist'
-2025-09-15T11:45:23.842191694Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
-2025-09-15T11:45:23.842196291Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:23.896523207Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
-2025-09-15T11:45:24.062490240Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
-2025-09-15T11:45:24.062498197Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:24.062503566Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
-2025-09-15T11:45:24.062510920Z [inf]  [EXCEL] Búsqueda en proveedor 'nortedist' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:24.066176840Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'jeluz'
-2025-09-15T11:45:24.066185048Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
-2025-09-15T11:45:24.066192276Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
-2025-09-15T11:45:24.066198683Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
-2025-09-15T11:45:24.066204140Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
-2025-09-15T11:45:24.066208753Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
-2025-09-15T11:45:24.066212745Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:24.066218294Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:24.066222864Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'jeluz'
-2025-09-15T11:45:24.066226996Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
-2025-09-15T11:45:24.066231393Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
-2025-09-15T11:45:24.120315967Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
-2025-09-15T11:45:24.255799245Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
-2025-09-15T11:45:24.255808167Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
-2025-09-15T11:45:24.255814855Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
-2025-09-15T11:45:24.255821397Z [inf]  [EXCEL] Búsqueda en proveedor 'jeluz' completada: 0 resultados (de 0 coincidencias)
-2025-09-15T11:45:24.255827500Z [inf]  🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: 1 de 1 originales
-2025-09-15T11:45:24.255833975Z [inf]  📊 Resultados encontrados: 1
-2025-09-15T11:45:24.255840438Z [inf]  📊 Resultados después de filtrar entradas inválidas: 1
-2025-09-15T11:45:24.255847182Z [inf]  ✅ Deduplicación completada: 1 productos únicos (de 1 resultados originales)
-2025-09-15T11:45:24.292501443Z [inf]  
-2025-09-15T11:45:24.292513081Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:24.292554984Z [inf]  
-2025-09-15T11:45:24.311435208Z [inf]  
-2025-09-15T11:45:24.311444262Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:24.311449560Z [inf]  
-2025-09-15T11:45:24.324328741Z [inf]  
-2025-09-15T11:45:24.324337251Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:24.324346529Z [inf]  
-2025-09-15T11:45:24.337496101Z [inf]  
-2025-09-15T11:45:24.337503252Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:24.337511514Z [inf]  
-2025-09-15T11:45:24.355126245Z [inf]  
-2025-09-15T11:45:24.355135963Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:24.355143713Z [inf]  
-2025-09-15T11:45:24.355150408Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
-2025-09-15T11:45:24.364129101Z [inf]  
-2025-09-15T11:45:24.364140991Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:24.364149923Z [inf]  
-2025-09-15T11:45:30.824952610Z [inf]  🔍 Buscando: 'CARBG7202' con filtro proveedor: 'manual_11_ricky' | solo_ricky: True | solo_fg: False
-2025-09-15T11:45:30.824959686Z [inf]  🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'CARBG7202' | Proveedor: 'manual_11_ricky' | Filtro: '' | Solo Ricky: True | Solo FG: False
-2025-09-15T11:45:30.824967335Z [inf]  🔍 [MANUAL] Buscando en proveedor manual ID 11 para dueño ricky
-2025-09-15T11:45:30.824975948Z [inf]  [DB DEBUG] Buscando por ID de proveedor. Término: 'CARBG7202', Proveedor ID: 11, Dueño: ricky
-2025-09-15T11:45:30.897275727Z [inf]  
-2025-09-15T11:45:30.897287031Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.897293597Z [inf]  
-2025-09-15T11:45:30.897297963Z [inf]  [DB DEBUG] Buscando por nombre de proveedor en DB. Término: 'CARBG7202', Proveedor: 'Chiesa' normalizado: 'chiesa', Dueño: ricky
-2025-09-15T11:45:30.897302635Z [inf]  [DB DEBUG] SQL: SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(TRIM(proveedor)) = LOWER(TRIM(?)) AND LOWER(TRIM(dueno)) = LOWER(TRIM(?)) AND ((LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?)))
-2025-09-15T11:45:30.897309329Z [inf]  [DB DEBUG] Params: ['chiesa', 'ricky', '%CARBG7202%', '%CARBG7202%']
-2025-09-15T11:45:30.904762800Z [inf]  
-2025-09-15T11:45:30.904773192Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.904780398Z [inf]  
-2025-09-15T11:45:30.904786734Z [inf]  [DB DEBUG] Resultados: 1 productos
-2025-09-15T11:45:30.904793344Z [inf]  🔍 [MANUAL] Encontrados 1 resultados manuales
-2025-09-15T11:45:30.904798702Z [inf]  🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: 1 de 1 originales
-2025-09-15T11:45:30.904803218Z [inf]  📊 Resultados encontrados: 1
-2025-09-15T11:45:30.904807019Z [inf]  📊 Resultados después de filtrar entradas inválidas: 1
-2025-09-15T11:45:30.904813204Z [inf]  ✅ Deduplicación completada: 0 productos únicos (de 0 resultados originales)
-2025-09-15T11:45:30.922094160Z [inf]  
-2025-09-15T11:45:30.922101827Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.922107289Z [inf]  
-2025-09-15T11:45:30.926379318Z [inf]  
-2025-09-15T11:45:30.926385394Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.926390797Z [inf]  
-2025-09-15T11:45:30.945056582Z [inf]  
-2025-09-15T11:45:30.945064214Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.945071719Z [inf]  
-2025-09-15T11:45:30.954184311Z [inf]  
-2025-09-15T11:45:30.954191698Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.954196408Z [inf]  
-2025-09-15T11:45:30.962995203Z [inf]  
-2025-09-15T11:45:30.963002613Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.963008833Z [inf]  
-2025-09-15T11:45:30.966290931Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
-2025-09-15T11:45:30.979140592Z [inf]  
-2025-09-15T11:45:30.979147933Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
-2025-09-15T11:45:30.979152183Z [inf]  
+2025-09-15T12:33:25.000000000Z [inf]  Starting Container
+2025-09-15T12:33:26.150909939Z [err]  [2025-09-15 12:33:25 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T12:33:26.150914272Z [err]  [2025-09-15 12:33:25 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T12:33:26.150918978Z [err]  [2025-09-15 12:33:25 +0000] [1] [INFO] Using worker: sync
+2025-09-15T12:33:26.150923215Z [err]  [2025-09-15 12:33:25 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T12:33:26.150927095Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T12:33:26.150932126Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T12:33:26.150936052Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T12:33:26.150940943Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T12:33:26.150944894Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T12:33:26.150948821Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T12:33:26.150953029Z [inf]  Motor: PostgreSQL
+2025-09-15T12:33:26.150957433Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T12:33:26.150961087Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T12:33:26.150964911Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T12:33:26.150969726Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T12:33:26.150973960Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T12:33:26.150978355Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T12:33:26.150982377Z [inf]  🔄 Cargando dependencias...
+2025-09-15T12:33:26.784826665Z [inf]  ✅ Flask-WTF importado correctamente
+2025-09-15T12:33:26.784831429Z [inf]  ✅ Werkzeug y functools importados correctamente
+2025-09-15T12:33:26.784836282Z [inf]  ✅ pdfplumber disponible para lectura de facturas PDF
+2025-09-15T12:33:26.784840111Z [inf]  [INFO] Blueprint de diagnóstico Railway registrado correctamente
+2025-09-15T12:33:26.784843786Z [inf]  [INFO] Blueprint de diagnóstico de búsqueda registrado correctamente
+2025-09-15T12:35:47.020411527Z [inf]  
+2025-09-15T12:35:47.020417410Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020422036Z [inf]  
+2025-09-15T12:35:47.020426029Z [inf]  
+2025-09-15T12:35:47.020431311Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020438773Z [inf]  
+2025-09-15T12:35:47.020444213Z [inf]  
+2025-09-15T12:35:47.020450914Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020456232Z [inf]  
+2025-09-15T12:35:47.020461729Z [inf]  
+2025-09-15T12:35:47.020467168Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020471808Z [inf]  
+2025-09-15T12:35:47.020475733Z [inf]  
+2025-09-15T12:35:47.020481911Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020486604Z [inf]  
+2025-09-15T12:35:47.020490237Z [inf]  
+2025-09-15T12:35:47.020494733Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020498313Z [inf]  
+2025-09-15T12:35:47.020503640Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
+2025-09-15T12:35:47.020508967Z [inf]  [DEBUG] resultados_excel count: 0 - mostrando 0 entradas:
+2025-09-15T12:35:47.020514220Z [inf]  
+2025-09-15T12:35:47.020519093Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:47.020523997Z [inf]  
+2025-09-15T12:35:51.957937077Z [inf]  🔍 Buscando: 'CARBG7202' con filtro proveedor: '' | solo_ricky: False | solo_fg: False
+2025-09-15T12:35:51.957946762Z [inf]  🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'CARBG7202' | Proveedor: '' | Filtro: '' | Solo Ricky: False | Solo FG: False
+2025-09-15T12:35:51.957954269Z [inf]  [DB DEBUG] Iniciando búsqueda en DB manual. Término: 'CARBG7202', Dueño: None
+2025-09-15T12:35:52.030642027Z [inf]  
+2025-09-15T12:35:52.030651051Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:35:52.030659599Z [inf]  
+2025-09-15T12:35:52.030666220Z [inf]  [DB DEBUG] Resultados: 1 productos
+2025-09-15T12:35:52.030674734Z [inf]  [DB DEBUG] sample row 0: {'id': 4, 'nombre': 'Carbon G720', 'codigo': 'CARBG7202', 'precio': 0.0, 'proveedor': 'Chiesa', 'observaciones': '', 'dueno': 'ricky'}
+2025-09-15T12:35:52.030686768Z [inf]  Búsqueda manual para todos los dueños: 1 resultados
+2025-09-15T12:35:52.030694283Z [inf]  Agregando 1 resultados manuales
+2025-09-15T12:35:52.030700644Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'brementools'
+2025-09-15T12:35:52.030707269Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 5, 'codigo': ['codigo', 'Código', 'CODIGO'], 'producto': ['producto', 'Producto', 'PRODUCTO'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T12:35:52.030718043Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T12:35:52.030726400Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T12:35:52.030734969Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T12:35:52.030741794Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T12:35:52.030748181Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:52.030754191Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:52.030760561Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:52.030766211Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:52.030772634Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:52.030778250Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'brementools'
+2025-09-15T12:35:52.030785074Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T12:35:52.030791241Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:52.099565792Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T12:35:52.270219942Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T12:35:52.270227705Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:52.347234213Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T12:35:52.669311239Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T12:35:52.669317304Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:52.705611819Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T12:35:52.864467295Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T12:35:52.864473881Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:52.899389251Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T12:35:53.006783957Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T12:35:53.006793486Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:53.085974300Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T12:35:53.843773464Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T12:35:53.843786333Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:53.843841113Z [inf]  [EXCEL] Búsqueda en proveedor 'brementools' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:35:53.843847155Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'crossmaster'
+2025-09-15T12:35:53.843853814Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 11, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T12:35:53.843863216Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T12:35:53.843870111Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T12:35:53.843876551Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T12:35:53.844936572Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:53.844943969Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:53.844950765Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:53.844956654Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:53.844962361Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'crossmaster'
+2025-09-15T12:35:53.844968363Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T12:35:53.844975849Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:53.844981276Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T12:35:54.024346886Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T12:35:54.024353645Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:54.096799700Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T12:35:54.396327210Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T12:35:54.396334122Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:54.431911234Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T12:35:54.501019870Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T12:35:54.501024316Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:54.580214756Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T12:35:54.654433438Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T12:35:54.654437728Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:54.795706360Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T12:35:55.498273601Z [inf]  [EXCEL] Búsqueda en proveedor 'crossmaster' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:35:55.498284268Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'berger'
+2025-09-15T12:35:55.498292506Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['cod', 'COD', 'codigo', 'Codigo'], 'producto': ['detalle', 'DETALLE', 'producto', 'Producto'], 'precio': ['P.VENTA', 'precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T12:35:55.498299277Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T12:35:55.498305917Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T12:35:55.498312615Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T12:35:55.498319052Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T12:35:55.498326749Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:55.498336346Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:55.498343879Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:55.498353015Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:55.498360209Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:55.498368622Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'berger'
+2025-09-15T12:35:55.498375865Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T12:35:55.498382338Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:55.577509144Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T12:35:55.717626393Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T12:35:55.717634673Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:55.779599692Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T12:35:56.074394893Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T12:35:56.074398810Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:56.114320707Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T12:35:56.202403329Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T12:35:56.202408233Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:56.278272474Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T12:35:56.375303842Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T12:35:56.375312059Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:56.430352410Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T12:35:57.102078097Z [inf]  [EXCEL] Búsqueda en proveedor 'berger' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:35:57.102087824Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'chiesa'
+2025-09-15T12:35:57.102094457Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 1, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['descripción', 'Descripción', 'descripcion', 'Descripcion'], 'precio': ['precio', 'Precio', 'PRECIO', 'Pr.Unit', 'pr.unit', 'PR.UNIT'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T12:35:57.102102164Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T12:35:57.102108478Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T12:35:57.102114660Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T12:35:57.102120899Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T12:35:57.102125481Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:57.102131379Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:57.102137657Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:57.102142351Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:57.102149494Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:57.102153919Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'chiesa'
+2025-09-15T12:35:57.102158421Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T12:35:57.102163108Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:57.138097124Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T12:35:57.306694257Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T12:35:57.306699271Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:57.377687984Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T12:35:57.611925190Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T12:35:57.611934745Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:57.658408452Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T12:35:57.730387460Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T12:35:57.730391265Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:57.772691700Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T12:35:57.868765505Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T12:35:57.868771151Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:57.981089626Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T12:35:58.553376865Z [inf]  [EXCEL] Búsqueda en proveedor 'chiesa' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:35:58.553386455Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'cachan'
+2025-09-15T12:35:58.553392614Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['nombre', 'Nombre', 'NOMBRE'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T12:35:58.553400790Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T12:35:58.553406486Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T12:35:58.553413191Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T12:35:58.553420044Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T12:35:58.553426092Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:58.553431575Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:58.553437659Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:58.553444512Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:58.553450668Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:58.553457026Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'cachan'
+2025-09-15T12:35:58.553462578Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T12:35:58.553473436Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T12:35:58.599396791Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T12:35:58.761694734Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T12:35:58.761699302Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T12:35:58.829419263Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T12:35:59.076855410Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T12:35:59.076870449Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T12:35:59.111848300Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T12:35:59.183070053Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T12:35:59.183079925Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T12:35:59.317636810Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T12:35:59.358975668Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T12:35:59.358985000Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T12:35:59.416479172Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T12:36:00.045129572Z [inf]  [EXCEL] Búsqueda en proveedor 'cachan' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:36:00.045135386Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'dewalt'
+2025-09-15T12:36:00.045140169Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T12:36:00.045144565Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T12:36:00.045149192Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T12:36:00.045153064Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T12:36:00.045157325Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T12:36:00.045161770Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.045165642Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.045169563Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'dewalt'
+2025-09-15T12:36:00.045173663Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T12:36:00.045177709Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.093798282Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T12:36:00.205716997Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.205726138Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.205732935Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T12:36:00.205739977Z [inf]  [EXCEL] Búsqueda en proveedor 'dewalt' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:36:00.205746480Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'sica'
+2025-09-15T12:36:00.205753087Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T12:36:00.205758828Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T12:36:00.205766821Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T12:36:00.205782453Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T12:36:00.205791296Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T12:36:00.205796802Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.205803354Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.205809208Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'sica'
+2025-09-15T12:36:00.205814950Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T12:36:00.205822750Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.268596510Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T12:36:00.435332466Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.435337382Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.435342860Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T12:36:00.435348056Z [inf]  [EXCEL] Búsqueda en proveedor 'sica' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:36:00.435353426Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'sorbalok'
+2025-09-15T12:36:00.435357990Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T12:36:00.435362827Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T12:36:00.435369122Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T12:36:00.435374045Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T12:36:00.435379998Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T12:36:00.435385195Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.435390734Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.435396292Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'sorbalok'
+2025-09-15T12:36:00.435401644Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T12:36:00.435413855Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.471241727Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T12:36:00.610679611Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.610685517Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.610692076Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T12:36:00.610697807Z [inf]  [EXCEL] Búsqueda en proveedor 'sorbalok' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:36:00.610705565Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'nortedist'
+2025-09-15T12:36:00.610712724Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo_barra', 'codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION', 'producto', 'Producto'], 'precio': ['NORTE SIN IVA', 'NORTE', 'precio', 'Precio'], 'marca': ['marca', 'Marca', 'MARCA'], 'usar_colores': True, 'color_precio': 'FFFF00', 'columnas_precio': ['NORTE SIN IVA', 'NORTE'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T12:36:00.610718610Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T12:36:00.610722469Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T12:36:00.610726622Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T12:36:00.610730238Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T12:36:00.610734887Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.610739480Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.610743972Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'nortedist'
+2025-09-15T12:36:00.610748006Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T12:36:00.610752209Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.618544600Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T12:36:00.778153477Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.778161301Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.778168228Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T12:36:00.778174894Z [inf]  [EXCEL] Búsqueda en proveedor 'nortedist' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:36:00.781719252Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'jeluz'
+2025-09-15T12:36:00.781726090Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T12:36:00.781731790Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T12:36:00.781737686Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T12:36:00.781743396Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T12:36:00.781749417Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T12:36:00.781754531Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.781759234Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.781765082Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'jeluz'
+2025-09-15T12:36:00.781771437Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T12:36:00.781776888Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T12:36:00.835832294Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T12:36:00.943700930Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.943708209Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T12:36:00.943714327Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T12:36:00.943719526Z [inf]  [EXCEL] Búsqueda en proveedor 'jeluz' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T12:36:00.947805638Z [inf]  📊 Resultados encontrados: 0
+2025-09-15T12:36:00.947811074Z [inf]  📊 Resultados después de filtrar entradas inválidas: 0
+2025-09-15T12:36:00.947816720Z [inf]  ✅ Deduplicación completada: 0 productos únicos (de 0 resultados originales)
+2025-09-15T12:36:00.947821490Z [inf]  [DEBUG] manuals_after count: 0
+2025-09-15T12:36:01.016644845Z [inf]  
+2025-09-15T12:36:01.016656437Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:01.016666597Z [inf]  
+2025-09-15T12:36:01.035232861Z [inf]  
+2025-09-15T12:36:01.035237921Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:01.035242689Z [inf]  
+2025-09-15T12:36:01.053901940Z [inf]  
+2025-09-15T12:36:01.053910797Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:01.053917247Z [inf]  
+2025-09-15T12:36:01.058035285Z [inf]  
+2025-09-15T12:36:01.058041521Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:01.058047838Z [inf]  
+2025-09-15T12:36:01.076731008Z [inf]  
+2025-09-15T12:36:01.076736188Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:01.076741065Z [inf]  
+2025-09-15T12:36:01.076747368Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
+2025-09-15T12:36:01.076753683Z [inf]  [DEBUG] resultados_excel count: 0 - mostrando 0 entradas:
+2025-09-15T12:36:01.084136261Z [inf]  
+2025-09-15T12:36:01.084144015Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:01.084148870Z [inf]  
+2025-09-15T12:36:08.780491676Z [inf]  🔍 Buscando: 'CARBG7202' con filtro proveedor: 'manual_11_ricky' | solo_ricky: True | solo_fg: False
+2025-09-15T12:36:08.780495698Z [inf]  🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'CARBG7202' | Proveedor: 'manual_11_ricky' | Filtro: '' | Solo Ricky: True | Solo FG: False
+2025-09-15T12:36:08.780499530Z [inf]  🔍 [MANUAL] Buscando en proveedor manual ID 11 para dueño ricky
+2025-09-15T12:36:08.780503060Z [inf]  [DB DEBUG] Buscando por ID de proveedor. Término: 'CARBG7202', Proveedor ID: 11, Dueño: ricky
+2025-09-15T12:36:08.849827427Z [inf]  
+2025-09-15T12:36:08.849831826Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.849835938Z [inf]  
+2025-09-15T12:36:08.849840582Z [inf]  [DB DEBUG] Buscando por nombre de proveedor en DB. Término: 'CARBG7202', Proveedor: 'Chiesa' normalizado: 'chiesa', Dueño: ricky
+2025-09-15T12:36:08.849845303Z [inf]  [DB DEBUG] SQL: SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(TRIM(proveedor)) = LOWER(TRIM(?)) AND LOWER(TRIM(dueno)) = LOWER(TRIM(?)) AND ((LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?)))
+2025-09-15T12:36:08.849850129Z [inf]  [DB DEBUG] Params: ['chiesa', 'ricky', '%CARBG7202%', '%CARBG7202%']
+2025-09-15T12:36:08.867112651Z [inf]  
+2025-09-15T12:36:08.867120035Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.867126639Z [inf]  
+2025-09-15T12:36:08.867132734Z [inf]  [DB DEBUG] Resultados: 1 productos
+2025-09-15T12:36:08.867143164Z [inf]  [DB DEBUG] sample row 0: {'id': 4, 'nombre': 'Carbon G720', 'codigo': 'CARBG7202', 'precio': 0.0, 'proveedor': 'Chiesa', 'observaciones': '', 'dueno': 'ricky'}
+2025-09-15T12:36:08.867150678Z [inf]  🔍 [MANUAL] Encontrados 1 resultados manuales
+2025-09-15T12:36:08.867156421Z [inf]  🔍 [MANUAL] sample manual[0]: {'codigo': 'CARBG7202', 'nombre': 'Carbon G720', 'precio': 0.0, 'precio_texto': None, 'proveedor': 'Chiesa', 'observaciones': '', 'dueno': 'ricky', 'es_manual': True}
+2025-09-15T12:36:08.867163362Z [inf]  📊 Resultados encontrados: 0
+2025-09-15T12:36:08.867169531Z [inf]  📊 Resultados después de filtrar entradas inválidas: 0
+2025-09-15T12:36:08.867175381Z [inf]  ✅ Deduplicación completada: 0 productos únicos (de 0 resultados originales)
+2025-09-15T12:36:08.867182666Z [inf]  [DEBUG] manuals_after count: 0
+2025-09-15T12:36:08.875699342Z [inf]  
+2025-09-15T12:36:08.875708575Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.875715253Z [inf]  
+2025-09-15T12:36:08.893505095Z [inf]  
+2025-09-15T12:36:08.893514171Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.893520660Z [inf]  
+2025-09-15T12:36:08.901883059Z [inf]  
+2025-09-15T12:36:08.901908340Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.901915607Z [inf]  
+2025-09-15T12:36:08.910349804Z [inf]  
+2025-09-15T12:36:08.910358169Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.910363448Z [inf]  
+2025-09-15T12:36:08.928508853Z [inf]  
+2025-09-15T12:36:08.928517594Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.928523991Z [inf]  
+2025-09-15T12:36:08.928529376Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
+2025-09-15T12:36:08.928534116Z [inf]  [DEBUG] resultados_excel count: 0 - mostrando 0 entradas:
+2025-09-15T12:36:08.940572069Z [inf]  
+2025-09-15T12:36:08.940578504Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T12:36:08.940582971Z [inf]  
