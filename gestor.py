@@ -5939,18 +5939,15 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
 def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro=None):
     resultados = []
     """Buscar en la tabla productos_manual por nombre de proveedor. Permite filtrar por dueño."""
-    resultados = []
     try:
-        print(f"[DB DEBUG] Buscando por nombre de proveedor en DB. Término: '{termino_busqueda}', Proveedor: '{nombre_proveedor}', Dueño: {dueno_filtro}")
-        
-        # Construir consulta SQL
-        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(proveedor) = LOWER(?)"
-        params = [nombre_proveedor]
-        
+        proveedor_norm = _normalizar_nombre_proveedor(nombre_proveedor)
+        print(f"[DB DEBUG] Buscando por nombre de proveedor en DB. Término: '{termino_busqueda}', Proveedor: '{nombre_proveedor}' normalizado: '{proveedor_norm}', Dueño: {dueno_filtro}")
+        # Construir consulta SQL robusta
+        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(TRIM(proveedor)) = LOWER(TRIM(?))"
+        params = [proveedor_norm]
         if dueno_filtro:
-            query += " AND LOWER(dueno) = LOWER(?)"
+            query += " AND LOWER(TRIM(dueno)) = LOWER(TRIM(?))"
             params.append(dueno_filtro)
-            
         if termino_busqueda:
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
@@ -5959,12 +5956,10 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
                     or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?))")
                     params.extend([f"%{token}%", f"%{token}%"])
                 query += f" AND ({' AND '.join(or_conditions)})"
-        
-        # Ejecutar consulta
+        print(f"[DB DEBUG] SQL: {query}")
+        print(f"[DB DEBUG] Params: {params}")
         rows = db_query(query, tuple(params), fetch=True)
         print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
-        
-        # Convertir resultados al formato esperado
         for row in (rows or []):
             precio_val, precio_error = parse_price(str(row.get('precio', '')))
             resultados.append({
