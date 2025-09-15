@@ -7163,9 +7163,13 @@ def limpiar_base_datos_railway(codigo_secreto):
                 {'<ul>' + ''.join([f'<li>{tabla}</li>' for tabla in resultado.get('tablas_limpiadas', [])]) + '</ul>' if resultado.get('tablas_limpiadas') else ''}
                 
                 {'<h2>Registros eliminados:</h2>' if resultado.get('registros_eliminados') else ''}
-                {'<table><tr><th>Tabla</th><th>Antes</th><th>Después</th><th>Eliminados</th></tr>' + 
-                ''.join([f'<tr><td>{tabla}</td><td>{info.get("before", 0)}</td><td>{info.get("after", 0)}</td><td>{info.get("deleted", 0)}</td></tr>' 
-                for tabla, info in resultado.get('registros_eliminados', {}).items()]) + '</table>' if resultado.get('registros_eliminados') else ''}
+                {'<table><tr><th>Tabla</th><th>Estado</th><th>Antes</th><th>Después</th><th>Eliminados</th></tr>' + 
+                ''.join([
+                    f'<tr><td>{tabla}</td><td>{"Limpiada" if info.get("exists", True) else "No existe"}</td><td>{info.get("before", 0)}</td><td>{info.get("after", 0)}</td><td>{info.get("deleted", 0)}</td></tr>' 
+                    if "error" not in info else 
+                    f'<tr><td>{tabla}</td><td style="color:red;">Error: {info.get("error", "Desconocido")}</td><td colspan="3">-</td></tr>'
+                    for tabla, info in resultado.get('registros_eliminados', {}).items()
+                ]) + '</table>' if resultado.get('registros_eliminados') else ''}
                 
                 <p><a href="/">Volver a la página principal</a></p>
             </div>

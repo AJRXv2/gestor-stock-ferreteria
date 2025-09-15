@@ -52,31 +52,68 @@ def clean_railway_db():
                 "productos_manual",  # Productos manuales
                 "stock",             # Productos en stock
                 "stock_history",     # Historial de stock
-                "carrito",           # Productos en carrito
-                "notificaciones"     # Notificaciones relacionadas con productos
+                "carrito"            # Productos en carrito
+                # Omitimos "notificaciones" porque la tabla no existe
             ]
             
             records_deleted = {}
             
             for table in tables_to_clean:
-                # Contar registros antes de eliminar para informar
-                cur.execute(f"SELECT COUNT(*) FROM {table}")
-                count_before = cur.fetchone()[0]
-                
-                # Eliminar los registros
-                cur.execute(f"DELETE FROM {table}")
-                
-                # Contar registros después para confirmar
-                cur.execute(f"SELECT COUNT(*) FROM {table}")
-                count_after = cur.fetchone()[0]
-                
-                records_deleted[table] = {
-                    "before": count_before,
-                    "after": count_after,
-                    "deleted": count_before - count_after
-                }
-                
-                print(f"Tabla '{table}' limpiada: {count_before} registros eliminados.")
+                try:
+                    # Verificar si la tabla existe antes de intentar eliminar registros
+                    if dsn.startswith('postgresql'):
+                        # Consulta para PostgreSQL
+                        cur.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables 
+                                WHERE table_name = %s
+                            );
+                        """, (table,))
+                    else:
+                        # Consulta para SQLite
+                        cur.execute(f"""
+                            SELECT COUNT(name) FROM sqlite_master 
+                            WHERE type='table' AND name='{table}';
+                        """)
+                    
+                    table_exists = cur.fetchone()[0]
+                    
+                    if not table_exists:
+                        print(f"Tabla '{table}' no existe, omitiendo.")
+                        records_deleted[table] = {
+                            "before": 0,
+                            "after": 0,
+                            "deleted": 0,
+                            "exists": False
+                        }
+                        continue
+                    
+                    # Contar registros antes de eliminar para informar
+                    cur.execute(f"SELECT COUNT(*) FROM {table}")
+                    count_before = cur.fetchone()[0]
+                    
+                    # Eliminar los registros
+                    cur.execute(f"DELETE FROM {table}")
+                    
+                    # Contar registros después para confirmar
+                    cur.execute(f"SELECT COUNT(*) FROM {table}")
+                    count_after = cur.fetchone()[0]
+                    
+                    records_deleted[table] = {
+                        "before": count_before,
+                        "after": count_after,
+                        "deleted": count_before - count_after,
+                        "exists": True
+                    }
+                    
+                    print(f"Tabla '{table}' limpiada: {count_before} registros eliminados.")
+                    
+                except Exception as e:
+                    print(f"Error limpiando tabla '{table}': {e}")
+                    records_deleted[table] = {
+                        "error": str(e),
+                        "exists": False
+                    }
             
             # Importante: NO eliminar estas tablas:
             # - proveedores_manual: contiene los proveedores
