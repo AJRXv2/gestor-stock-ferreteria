@@ -7108,6 +7108,79 @@ def api_clean_railway_db():
             "mensaje": "Error al ejecutar la limpieza de la base de datos."
         })
 
+# Endpoint público para limpiar la base de datos sin necesidad de consola
+# Este endpoint usa un código secreto en la URL para mayor seguridad
+@app.route('/limpiar_base_datos_railway/<string:codigo_secreto>', methods=['GET'])
+def limpiar_base_datos_railway(codigo_secreto):
+    """Endpoint público que limpia la base de datos PostgreSQL en Railway.
+    Se accede directamente desde el navegador con un código secreto en la URL.
+    """
+    # Código secreto fijo para facilitar su uso
+    CODIGO_SECRETO_LIMPIEZA = "CleanRailwayDB2025"
+    
+    # Verificar código secreto
+    if codigo_secreto != CODIGO_SECRETO_LIMPIEZA:
+        return jsonify({
+            "success": False,
+            "mensaje": "Código secreto inválido"
+        })
+    
+    # Verificar si es entorno PostgreSQL
+    if not _is_postgres_configured():
+        return jsonify({
+            "success": False,
+            "mensaje": "Este endpoint solo funciona con PostgreSQL en Railway."
+        })
+    
+    # Importar y ejecutar la función de limpieza
+    try:
+        from clean_railway_db import clean_railway_db
+        resultado = clean_railway_db()
+        
+        # Crear una respuesta HTML para mostrar en el navegador
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Base de datos limpiada</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
+                .success {{ color: green; }}
+                .error {{ color: red; }}
+                .container {{ max-width: 800px; margin: 0 auto; }}
+                table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                th {{ background-color: #f2f2f2; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1 class="{'success' if resultado.get('success') else 'error'}">
+                    {resultado.get('mensaje', 'Operación completada')}
+                </h1>
+                
+                {'<h2>Tablas limpiadas:</h2>' if resultado.get('tablas_limpiadas') else ''}
+                {'<ul>' + ''.join([f'<li>{tabla}</li>' for tabla in resultado.get('tablas_limpiadas', [])]) + '</ul>' if resultado.get('tablas_limpiadas') else ''}
+                
+                {'<h2>Registros eliminados:</h2>' if resultado.get('registros_eliminados') else ''}
+                {'<table><tr><th>Tabla</th><th>Antes</th><th>Después</th><th>Eliminados</th></tr>' + 
+                ''.join([f'<tr><td>{tabla}</td><td>{info.get("before", 0)}</td><td>{info.get("after", 0)}</td><td>{info.get("deleted", 0)}</td></tr>' 
+                for tabla, info in resultado.get('registros_eliminados', {}).items()]) + '</table>' if resultado.get('registros_eliminados') else ''}
+                
+                <p><a href="/">Volver a la página principal</a></p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Devolver respuesta HTML
+        return html_response
+        
+    except ImportError:
+        return "Error: No se encontró el módulo clean_railway_db.py"
+    except Exception as e:
+        return f"Error al ejecutar la limpieza de la base de datos: {str(e)}"
+
 @app.route('/api/fix_railway_db', methods=['POST'])
 def fix_railway_db():
     """Endpoint para ejecutar la migración de la base de datos en Railway.
