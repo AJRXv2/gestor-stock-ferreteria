@@ -1,204 +1,42 @@
-{
-  "ambiente": "PostgreSQL",
-  "errores": [
-    "Error en buscar_en_todas_tablas: connection already closed",
-    "No se pudo obtener la estructura de proveedores_manual",
-    "No se pudieron obtener datos de proveedores_manual",
-    "Error al verificar estructura de tabla: 'bool' object is not iterable"
-  ],
-  "fecha": "2025-09-15 02:06:29",
-  "parametros": {
-    "proveedor": "jeluz",
-    "termino": "cable"
-  },
-  "proveedor_config": {
-    "claves": [
-      "brementools",
-      "crossmaster",
-      "berger",
-      "chiesa",
-      "cachan",
-      "dewalt",
-      "sica",
-      "sorbalok",
-      "nortedist",
-      "jeluz"
-    ],
-    "claves_lower": [
-      "brementools",
-      "crossmaster",
-      "berger",
-      "chiesa",
-      "cachan",
-      "dewalt",
-      "sica",
-      "sorbalok",
-      "nortedist",
-      "jeluz"
-    ],
-    "encontrado": {
-      "clave_original": "jeluz",
-      "columna_codigo": "",
-      "columna_descripcion": "",
-      "columna_precio": "",
-      "columnas": [],
-      "excel_sheet_name": "",
-      "nombre_mostrar": "",
-      "tiene_excel": false
-    },
-    "existe_proveedor": true,
-    "existe_proveedor_case_insensitive": true
-  },
-  "pruebas": {
-    "bd_exacta": {
-      "parametros": [
-        "jeluz"
-      ],
-      "query": "SELECT COUNT(*) as total FROM productos_manual WHERE proveedor = %s",
-      "resultados": 0
-    },
-    "bd_lower": {
-      "parametros": [
-        "jeluz"
-      ],
-      "query": "SELECT COUNT(*) as total FROM productos_manual WHERE LOWER(proveedor) = LOWER(%s)",
-      "resultados": 0
-    },
-    "excel_lower": {
-      "muestra": [
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN101",
-          "dueno": "ferreteria_general",
-          "fila": 381,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 1,5 MM X 100 MTS",
-          "precio": 4913395,
-          "proveedor": "Jeluz",
-          "row_text": "cen101 cable unip. normalizado 1,5 mm x 100 mts 49133.95 0 41615.63 cables normalizados",
-          "tipo": "excel"
-        },
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN102",
-          "dueno": "ferreteria_general",
-          "fila": 382,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 2,5 MM. X 100 MTS",
-          "precio": 7330976,
-          "proveedor": "Jeluz",
-          "row_text": "cen102 cable unip. normalizado 2,5 mm. x 100 mts 73309.76 0 62092.12 cables normalizados",
-          "tipo": "excel"
-        },
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN104",
-          "dueno": "ferreteria_general",
-          "fila": 383,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 4 MM. X 100 MTS",
-          "precio": 12824324,
-          "proveedor": "Jeluz",
-          "row_text": "cen104 cable unip. normalizado 4 mm. x 100 mts 128243.24 0 108619.85 cables normalizados",
-          "tipo": "excel"
-        }
-      ],
-      "parametros": {
-        "proveedor": "jeluz",
-        "termino": "cable"
-      },
-      "resultados": 102
-    },
-    "excel_original": {
-      "muestra": [
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN101",
-          "dueno": "ferreteria_general",
-          "fila": 381,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 1,5 MM X 100 MTS",
-          "precio": 4913395,
-          "proveedor": "Jeluz",
-          "row_text": "cen101 cable unip. normalizado 1,5 mm x 100 mts 49133.95 0 41615.63 cables normalizados",
-          "tipo": "excel"
-        },
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN102",
-          "dueno": "ferreteria_general",
-          "fila": 382,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 2,5 MM. X 100 MTS",
-          "precio": 7330976,
-          "proveedor": "Jeluz",
-          "row_text": "cen102 cable unip. normalizado 2,5 mm. x 100 mts 73309.76 0 62092.12 cables normalizados",
-          "tipo": "excel"
-        },
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN104",
-          "dueno": "ferreteria_general",
-          "fila": 383,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 4 MM. X 100 MTS",
-          "precio": 12824324,
-          "proveedor": "Jeluz",
-          "row_text": "cen104 cable unip. normalizado 4 mm. x 100 mts 128243.24 0 108619.85 cables normalizados",
-          "tipo": "excel"
-        }
-      ],
-      "parametros": {
-        "proveedor": "jeluz",
-        "termino": "cable"
-      },
-      "resultados": 102
-    },
-    "excel_upper": {
-      "muestra": [
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN101",
-          "dueno": "ferreteria_general",
-          "fila": 381,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 1,5 MM X 100 MTS",
-          "precio": 4913395,
-          "proveedor": "Jeluz",
-          "row_text": "cen101 cable unip. normalizado 1,5 mm x 100 mts 49133.95 0 41615.63 cables normalizados",
-          "tipo": "excel"
-        },
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN102",
-          "dueno": "ferreteria_general",
-          "fila": 382,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 2,5 MM. X 100 MTS",
-          "precio": 7330976,
-          "proveedor": "Jeluz",
-          "row_text": "cen102 cable unip. normalizado 2,5 mm. x 100 mts 73309.76 0 62092.12 cables normalizados",
-          "tipo": "excel"
-        },
-        {
-          "archivo": "NorteDist-092025.xlsx",
-          "codigo": "CEN104",
-          "dueno": "ferreteria_general",
-          "fila": 383,
-          "hoja": "LP_10_09_2025",
-          "nombre": "CABLE UNIP. NORMALIZADO 4 MM. X 100 MTS",
-          "precio": 12824324,
-          "proveedor": "Jeluz",
-          "row_text": "cen104 cable unip. normalizado 4 mm. x 100 mts 128243.24 0 108619.85 cables normalizados",
-          "tipo": "excel"
-        }
-      ],
-      "parametros": {
-        "proveedor": "JELUZ",
-        "termino": "cable"
-      },
-      "resultados": 102
-    }
-  },
-  "timestamp": 1757901989.61675
-}
+Starting Container
+[2025-09-15 05:21:20 +0000] [1] [INFO] Starting gunicorn 21.2.0
+[2025-09-15 05:21:20 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2025-09-15 05:21:20 +0000] [1] [INFO] Using worker: sync
+[2025-09-15 05:21:20 +0000] [4] [INFO] Booting worker with pid: 4
+Ejecutando migraciones de base de datos...
+[INFO] Tabla schema_migrations verificada o creada
+No hay migraciones pendientes que aplicar.
+Migraciones aplicadas con éxito
+Ejecutando diagnóstico de base de datos...
+=== DIAGNÓSTICO DE BASE DE DATOS ===
+Motor: PostgreSQL
+Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos
+[OK] Todas las tablas requeridas existen
+[OK] Tabla productos_manual tiene todas las columnas requeridas
+[OK] Tabla proveedores_manual tiene todas las columnas requeridas
+[OK] Tabla stock tiene todas las columnas requeridas
+=== DIAGNÓSTICO COMPLETADO ===
+🔄 Cargando dependencias...
+✅ Flask-WTF importado correctamente
+✅ Werkzeug y functools importados correctamente
+✅ pdfplumber disponible para lectura de facturas PDF
+[INFO] Blueprint de diagnóstico Railway registrado correctamente
+[INFO] Blueprint de diagnóstico de búsqueda registrado correctamente
+Tabla 'productos_manual' limpiada: 0 registros eliminados.
+Tabla 'stock' limpiada: 51 registros eliminados.
+Tabla 'stock_history' limpiada: 51 registros eliminados.
+Tabla 'carrito' limpiada: 0 registros eliminados.
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+Error en la consulta a la base de datos: relation "notificaciones" does not exist
+LINE 1: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS N...
+                                  ^
+SQL original: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=?) AND leida=0
+SQL ejecutado: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=%s) AND leida=0
+Params: (1,)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+Error en la consulta a la base de datos: relation "notificaciones" does not exist
+LINE 1: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS N...
+                                  ^
+SQL original: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=?) AND leida=0
+SQL ejecutado: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=%s) AND leida=0
+Params: (1,)

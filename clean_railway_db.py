@@ -10,7 +10,29 @@ import psycopg2
 from datetime import datetime
 
 def clean_railway_db():
-    """Limpia la base de datos PostgreSQL en Railway."""
+    """Limpia la base de datos PostgreSQL en Railway.
+    
+    Esta función ejecuta la limpieza mejorada en el script limpiar_tablas_railway.py,
+    que incluye la eliminación directa de productos problemáticos específicos.
+    """
+    try:
+        # Importar la función mejorada de limpieza
+        from limpiar_tablas_railway import limpiar_tablas_railway
+        
+        # Ejecutar la limpieza mejorada
+        resultado = limpiar_tablas_railway()
+        
+        # Si la importación y ejecución funciona, devolver el resultado
+        return resultado
+    except ImportError:
+        # Si no se puede importar el módulo mejorado, usar la implementación original
+        print("No se pudo importar limpiar_tablas_railway.py, usando implementación original")
+        return _clean_railway_db_original()
+
+def _clean_railway_db_original():
+    """Implementación original de la limpieza de la base de datos.
+    Se usa como fallback si no se puede importar el módulo mejorado.
+    """
     # Verificar si estamos en Railway (PostgreSQL)
     if not os.environ.get('DATABASE_URL') and not os.path.exists('railway.json'):
         print("Este script debe ejecutarse en Railway con PostgreSQL configurado.")
@@ -55,6 +77,33 @@ def clean_railway_db():
                 "carrito"            # Productos en carrito
                 # Omitimos "notificaciones" porque la tabla no existe
             ]
+            
+            # Imprimir contenido actual de stock para diagnóstico
+            try:
+                print("Verificando contenido actual de la tabla stock:")
+                cur.execute("SELECT id, codigo, producto, proveedor FROM stock LIMIT 10")
+                stock_items = cur.fetchall()
+                for item in stock_items:
+                    print(f"Item en stock: {item}")
+            except Exception as e:
+                print(f"Error al consultar tabla stock: {e}")
+                
+            # Forzar eliminación directa de los productos problemáticos
+            problem_products = [
+                {"codigo": "PROD002", "nombre": "PRODUCTO01"},
+                {"codigo": "TERM50A", "nombre": "TERMICA 50a"},
+                {"codigo": "TERM32A", "nombre": "TERMICA 32A"}
+            ]
+            
+            for product in problem_products:
+                try:
+                    # Eliminar por código
+                    cur.execute("DELETE FROM stock WHERE LOWER(codigo) = LOWER(%s)", (product["codigo"],))
+                    # Eliminar por nombre
+                    cur.execute("DELETE FROM stock WHERE LOWER(producto) = LOWER(%s)", (product["nombre"],))
+                    print(f"Eliminación forzada de producto: {product['nombre']} ({product['codigo']})")
+                except Exception as e:
+                    print(f"Error en eliminación forzada: {e}")
             
             records_deleted = {}
             

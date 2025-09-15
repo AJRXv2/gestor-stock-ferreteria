@@ -7185,6 +7185,112 @@ def limpiar_base_datos_railway(codigo_secreto):
     except Exception as e:
         return f"Error al ejecutar la limpieza de la base de datos: {str(e)}"
 
+# Endpoint para realizar diagnóstico de productos persistentes
+@app.route('/diagnostico_productos/<string:codigo_secreto>', methods=['GET'])
+def diagnostico_productos(codigo_secreto):
+    """Endpoint público que ejecuta el diagnóstico de productos persistentes.
+    Se accede directamente desde el navegador con un código secreto en la URL.
+    Puede recibir el parámetro 'clean=true' para eliminar los productos problemáticos.
+    """
+    # Código secreto fijo para facilitar su uso
+    CODIGO_SECRETO_DIAGNOSTICO = "DiagRailwayDB2025"
+    
+    # Verificar código secreto
+    if codigo_secreto != CODIGO_SECRETO_DIAGNOSTICO:
+        return jsonify({
+            "success": False,
+            "mensaje": "Código secreto inválido"
+        })
+    
+    # Verificar si se solicitó limpieza
+    clean_option = request.args.get('clean', 'false').lower() == 'true'
+    
+    # Ejecutar diagnóstico
+    try:
+        import io
+        import sys
+        from contextlib import redirect_stdout
+        
+        # Capturar la salida del diagnóstico
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            from diagnostico_productos import run_diagnostics
+            run_diagnostics(clean_products=clean_option)
+        
+        output = buffer.getvalue()
+        
+        # Verificar si hay un archivo de resultados JSON
+        import os
+        import json
+        json_results = {}
+        if os.path.exists('diagnostico_productos_resultado.json'):
+            try:
+                with open('diagnostico_productos_resultado.json', 'r', encoding='utf-8') as f:
+                    json_results = json.load(f)
+            except Exception as e:
+                output += f"\nError al leer el archivo JSON de resultados: {e}"
+        
+        # Crear una respuesta HTML para mostrar en el navegador
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Diagnóstico de productos persistentes</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
+                .success {{ color: green; }}
+                .error {{ color: red; }}
+                .container {{ max-width: 900px; margin: 0 auto; }}
+                pre {{ background-color: #f5f5f5; padding: 15px; overflow-x: auto; white-space: pre-wrap; }}
+                table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                th {{ background-color: #f2f2f2; }}
+                .actions {{ margin-top: 20px; }}
+                .actions a {{ display: inline-block; padding: 10px 15px; background-color: #4CAF50; color: white; 
+                              text-decoration: none; margin-right: 10px; border-radius: 4px; }}
+                .actions a.danger {{ background-color: #f44336; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Diagnóstico de productos persistentes</h1>
+                
+                <div class="actions">
+                    <a href="/">Volver a la página principal</a>
+                    <a href="/diagnostico_productos/{CODIGO_SECRETO_DIAGNOSTICO}?clean=true" class="danger">
+                        Ejecutar con eliminación de productos
+                    </a>
+                </div>
+                
+                <h2>Resultados del diagnóstico</h2>
+                <pre>{output}</pre>
+                
+                {'<h2>Resumen del diagnóstico</h2>' if json_results else ''}
+                {'<table>' +
+                '<tr><th>Categoría</th><th>Productos encontrados</th></tr>' +
+                f'<tr><td>Base de datos</td><td>{"Sí" if json_results.get("resultados_db") else "No"}</td></tr>' +
+                f'<tr><td>Archivos Excel</td><td>{"Sí" if json_results.get("resultados_excel") else "No"}</td></tr>' +
+                f'<tr><td>Productos eliminados</td><td>{"Sí" if json_results.get("productos_eliminados") else "No"}</td></tr>' +
+                '</table>' if json_results else ''}
+                
+                <div class="actions">
+                    <a href="/limpiar_base_datos_railway/CleanRailwayDB2025">
+                        Ejecutar limpieza completa de la base de datos
+                    </a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html_response
+        
+    except ImportError as e:
+        return f"Error: No se encontró el módulo necesario: {e}"
+    except Exception as e:
+        import traceback
+        return f"Error al ejecutar el diagnóstico: {str(e)}<br><pre>{traceback.format_exc()}</pre>"
+
 @app.route('/api/fix_railway_db', methods=['POST'])
 def fix_railway_db():
     """Endpoint para ejecutar la migración de la base de datos en Railway.
