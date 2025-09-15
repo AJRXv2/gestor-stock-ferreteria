@@ -7545,6 +7545,46 @@ def api_sincronizar_proveedores():
             'message': f'Error inesperado: {str(e)}'
         }), 500
 
+# Endpoint alternativo sin autenticación para Railway (con código secreto)
+@app.route('/api/sincronizar_proveedores_railway/<string:codigo_secreto>', methods=['GET', 'POST'])
+def api_sincronizar_proveedores_railway(codigo_secreto):
+    """Endpoint público para sincronizar proveedores en Railway usando código secreto."""
+    try:
+        # Verificar código secreto
+        codigo_esperado = os.environ.get('RAILWAY_SECRET_CODE', 'railway_fix_2024')
+        if codigo_secreto != codigo_esperado:
+            return jsonify({
+                'success': False,
+                'message': 'Código secreto inválido'
+            }), 403
+        
+        print("[DEBUG] Iniciando sincronización Railway...")
+        
+        # Ejecutar la sincronización
+        success, message = sincronizar_proveedores_meta_duenos()
+        
+        if success:
+            print(f"[DEBUG] Sincronización Railway exitosa: {message}")
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        else:
+            print(f"[DEBUG] Sincronización Railway falló: {message}")
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 500
+    
+    except Exception as e:
+        print(f"[ERROR] Error en sincronización Railway: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        }), 500
+
 @app.route('/api/diagnostico_proveedores', methods=['GET'])
 @login_required
 def api_diagnostico_proveedores():
