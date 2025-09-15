@@ -1307,6 +1307,44 @@ def init_db():
         except Exception:
             pass
         
+        # Crear tabla proveedores_duenos para relaciones muchos-a-muchos
+        try:
+            cursor.execute(_adapt_sql_for_postgres('''
+                CREATE TABLE IF NOT EXISTS proveedores_duenos (
+                    id SERIAL PRIMARY KEY,
+                    proveedor_id INTEGER NOT NULL,
+                    dueno TEXT NOT NULL,
+                    UNIQUE(proveedor_id, dueno),
+                    FOREIGN KEY (proveedor_id) REFERENCES proveedores_manual(id) ON DELETE CASCADE
+                )
+            '''))
+            # Crear índices para mejorar rendimiento
+            try:
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_proveedor_id ON proveedores_duenos(proveedor_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_dueno ON proveedores_duenos(dueno)")
+            except Exception:
+                pass
+            
+            # Migrar datos desde proveedores_meta si no existen en proveedores_duenos
+            if use_postgres:
+                cursor.execute("""
+                    INSERT INTO proveedores_duenos (proveedor_id, dueno)
+                    SELECT pm.id, meta.dueno 
+                    FROM proveedores_meta meta
+                    JOIN proveedores_manual pm ON pm.nombre = meta.nombre
+                    ON CONFLICT (proveedor_id, dueno) DO NOTHING
+                """)
+            else:
+                cursor.execute("""
+                    INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno)
+                    SELECT pm.id, meta.dueno 
+                    FROM proveedores_meta meta
+                    JOIN proveedores_manual pm ON pm.nombre = meta.nombre
+                """)
+                
+        except Exception as e:
+            print(f"[WARN] Error creando tabla proveedores_duenos: {e}")
+        
         conn.commit()
         # Índices para acelerar filtros de historial (creación idempotente)
         try:
@@ -2942,27 +2980,99 @@ def agregar_proveedor():
 
 
 # Helper reutilizable para insertar / asociar proveedor a uno o varios dueños
+def sincronizar_proveedores_meta_duenos():
+    """
+    Sincroniza las tablas proveedores_meta y proveedores_duenos.
+    Esta función debe ejecutarse cada vez que se modifican proveedores para mantener consistencia.
+    """
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return False, "No se pudo conectar a la base de datos"
+        
+        cursor = conn.cursor()
+        use_postgres = _is_postgres_configured()
+        
+        # Sincronizar desde proveedores_duenos hacia proveedores_meta
+        if use_postgres:
+            cursor.execute("""
+                INSERT INTO proveedores_meta (nombre, dueno)
+                SELECT pm.nombre, pd.dueno 
+                FROM proveedores_duenos pd
+                JOIN proveedores_manual pm ON pm.id = pd.proveedor_id
+                ON CONFLICT (nombre, dueno) DO NOTHING
+            """)
+        else:
+            cursor.execute("""
+                INSERT OR IGNORE INTO proveedores_meta (nombre, dueno)
+                SELECT pm.nombre, pd.dueno 
+                FROM proveedores_duenos pd
+                JOIN proveedores_manual pm ON pm.id = pd.proveedor_id
+            """)
+        
+        # Sincronizar desde proveedores_meta hacia proveedores_duenos
+        if use_postgres:
+            cursor.execute("""
+                INSERT INTO proveedores_duenos (proveedor_id, dueno)
+                SELECT pm.id, meta.dueno 
+                FROM proveedores_meta meta
+                JOIN proveedores_manual pm ON pm.nombre = meta.nombre
+                ON CONFLICT (proveedor_id, dueno) DO NOTHING
+            """)
+        else:
+            cursor.execute("""
+                INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno)
+                SELECT pm.id, meta.dueno 
+                FROM proveedores_meta meta
+                JOIN proveedores_manual pm ON pm.nombre = meta.nombre
+            """)
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True, "Sincronización completada exitosamente"
+        
+    except Exception as e:
+        return False, f"Error en sincronización: {str(e)}"
+
 def _upsert_proveedor(nombre: str, dueno_param: str):
     """Crea el proveedor si no existe y asegura mappings según dueno_param ('ricky','ferreteria_general','ambos').
-       Devuelve (nombre_guardado, nuevo_flag, agregados(list_dueños_nuevos))."""
+       Devuelve (nombre_guardado, nuevo_flag, agregados(list_dueños_nuevos)).
+       Mantiene sincronizadas las tablas proveedores_meta y proveedores_duenos."""
     nombre_guardado = nombre
-    existente = db_query("SELECT nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
+    existente = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre,), fetch=True)
     if not existente:
         db_query("INSERT INTO proveedores_manual (nombre) VALUES (?)", (nombre_guardado,))
+        # Obtener el ID del proveedor recién creado
+        proveedor_data = db_query("SELECT id, nombre FROM proveedores_manual WHERE LOWER(nombre)=LOWER(?) LIMIT 1", (nombre_guardado,), fetch=True)
+        proveedor_id = proveedor_data[0]['id'] if proveedor_data else None
         nuevo_flag = True
     else:
         nombre_guardado = existente[0]['nombre']
+        proveedor_id = existente[0]['id']
         nuevo_flag = False
+    
     if dueno_param == 'ambos':
         destinos = ['ricky', 'ferreteria_general']
     else:
         destinos = ['ricky'] if dueno_param == 'ricky' else ['ferreteria_general']
+    
     agregados = []
     for d in destinos:
-        ok = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
+        # Actualizar proveedores_meta
+        ok_meta = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
+        
+        # Actualizar proveedores_duenos (tabla principal para consultas)
+        if proveedor_id:
+            ok_duenos = db_query("INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)", (proveedor_id, d))
+        
+        # Eliminar de ocultos
         db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", (nombre_guardado, d))
-        if ok:
+        
+        if ok_meta:
             agregados.append(d)
+    
     return nombre_guardado, nuevo_flag, agregados, destinos
 
 
@@ -7398,6 +7508,114 @@ def fix_railway_proveedores_case():
             'success': False,
             'message': f'Error inesperado: {str(e)}'
         }), 500
+
+@app.route('/api/sincronizar_proveedores', methods=['POST'])
+@login_required
+def api_sincronizar_proveedores():
+    """Endpoint para sincronizar las tablas proveedores_meta y proveedores_duenos.
+    
+    Soluciona el problema de proveedores que no aparecen en el formulario
+    de agregar productos en Railway.
+    """
+    try:
+        print("[DEBUG] Iniciando sincronización de proveedores...")
+        
+        # Ejecutar la sincronización
+        success, message = sincronizar_proveedores_meta_duenos()
+        
+        if success:
+            print(f"[DEBUG] Sincronización exitosa: {message}")
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        else:
+            print(f"[DEBUG] Sincronización falló: {message}")
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 500
+    
+    except Exception as e:
+        print(f"[ERROR] Error en sincronización de proveedores: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        }), 500
+
+@app.route('/api/diagnostico_proveedores', methods=['GET'])
+@login_required
+def api_diagnostico_proveedores():
+    """Endpoint para diagnosticar el estado de las tablas de proveedores."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({
+                'success': False,
+                'message': 'No se pudo conectar a la base de datos'
+            }), 500
+        
+        cursor = conn.cursor()
+        
+        # Contar proveedores en cada tabla
+        diagnostico = {}
+        
+        # proveedores_manual
+        cursor.execute("SELECT COUNT(*) FROM proveedores_manual")
+        diagnostico['proveedores_manual_count'] = cursor.fetchone()[0]
+        
+        # proveedores_meta
+        cursor.execute("SELECT COUNT(*) FROM proveedores_meta")
+        diagnostico['proveedores_meta_count'] = cursor.fetchone()[0]
+        
+        # proveedores_duenos
+        try:
+            cursor.execute("SELECT COUNT(*) FROM proveedores_duenos")
+            diagnostico['proveedores_duenos_count'] = cursor.fetchone()[0]
+            diagnostico['proveedores_duenos_exists'] = True
+        except Exception:
+            diagnostico['proveedores_duenos_count'] = 0
+            diagnostico['proveedores_duenos_exists'] = False
+        
+        # Obtener distribución por dueño en cada tabla
+        try:
+            cursor.execute("SELECT dueno, COUNT(*) FROM proveedores_meta GROUP BY dueno")
+            diagnostico['meta_por_dueno'] = dict(cursor.fetchall())
+        except Exception:
+            diagnostico['meta_por_dueno'] = {}
+        
+        try:
+            cursor.execute("""
+                SELECT pd.dueno, COUNT(*) 
+                FROM proveedores_duenos pd
+                GROUP BY pd.dueno
+            """)
+            diagnostico['duenos_por_dueno'] = dict(cursor.fetchall())
+        except Exception:
+            diagnostico['duenos_por_dueno'] = {}
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'diagnostico': diagnostico
+        })
+    
+    except Exception as e:
+        print(f"[ERROR] Error en diagnóstico: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }), 500
+
+@app.route('/admin/proveedores')
+@login_required
+def admin_proveedores():
+    """Página de administración para diagnosticar y corregir problemas con proveedores."""
+    return render_template('admin_proveedores.html')
 
 # Ruta para corregir problemas de visibilidad de proveedores en Railway
 @app.route('/admin/corregir_proveedores', methods=['GET', 'POST'])
