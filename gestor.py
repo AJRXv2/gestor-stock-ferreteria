@@ -2739,9 +2739,8 @@ def agregar_producto():
         dueno_val = row['dueno']
         if (base.lower(), dueno_val) in ocultos_pairs:
             continue
-        # Evitar duplicar Ricky si ya existe como proveedor Excel nativo
-        if dueno_val == 'ricky' and base.lower() in PROVEEDOR_CONFIG:
-            continue
+        # Permitir tanto Excel como Manual para el mismo proveedor
+        # (comentado: if dueno_val == 'ricky' and base.lower() in PROVEEDOR_CONFIG: continue)
         dueno_display = 'Ricky' if dueno_val == 'ricky' else 'Ferretería General'
         item = { 'key': f"manual_{row['id']}_{dueno_val}", 'nombre': f"{base} (Manual - {dueno_display})" }
         if dueno_val == 'ricky':
