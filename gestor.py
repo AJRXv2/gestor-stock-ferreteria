@@ -4511,19 +4511,38 @@ def obtener_proveedores_por_dueno():
         
         print(f"[DEBUG] obtener_proveedores_por_dueno llamado con dueño: '{dueno}'")
         
-        # Usar la nueva tabla proveedores_duenos para obtener proveedores
-        proveedores = db_query(
-            """
-            SELECT DISTINCT p.nombre 
-            FROM proveedores_manual p
-            JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
-            WHERE pd.dueno = ?
-            ORDER BY p.nombre
-            """, 
-            (dueno,), fetch=True
-        )
+        # Detectar si es PostgreSQL y usar la sintaxis correcta
+        use_postgres = _is_postgres_configured()
+        print(f"[DEBUG] Usando PostgreSQL: {use_postgres}")
         
-        resultado = [p['nombre'] for p in proveedores]
+        if use_postgres:
+            # Usar sintaxis PostgreSQL explícitamente
+            proveedores = db_query(
+                """
+                SELECT DISTINCT p.nombre 
+                FROM proveedores_manual p
+                JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+                WHERE pd.dueno = %s
+                ORDER BY p.nombre
+                """, 
+                (dueno,), fetch=True
+            )
+        else:
+            # Usar sintaxis SQLite
+            proveedores = db_query(
+                """
+                SELECT DISTINCT p.nombre 
+                FROM proveedores_manual p
+                JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+                WHERE pd.dueno = ?
+                ORDER BY p.nombre
+                """, 
+                (dueno,), fetch=True
+            )
+        
+        print(f"[DEBUG] Consulta ejecutada. Resultados: {proveedores}")
+        
+        resultado = [p['nombre'] for p in proveedores] if proveedores else []
         print(f"[DEBUG] obtener_proveedores_por_dueno - proveedores encontrados: {resultado}")
         
         return jsonify({
@@ -4533,7 +4552,60 @@ def obtener_proveedores_por_dueno():
         
     except Exception as e:
         print(f"Error en obtener_proveedores_por_dueno: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'msg': f'Error: {str(e)}'})
+
+# Endpoint de debug para verificar estado de las tablas
+@app.route('/debug_proveedores_duenos/<string:dueno>')
+def debug_proveedores_duenos_publico(dueno):
+    """Endpoint público para debuggear proveedores_duenos sin autenticación"""
+    try:
+        print(f"[DEBUG_PUBLIC] Debugging proveedores para dueño: '{dueno}'")
+        
+        # Verificar si la tabla existe
+        try:
+            count_duenos = db_query("SELECT COUNT(*) as count FROM proveedores_duenos", fetch=True)
+            print(f"[DEBUG_PUBLIC] Total registros en proveedores_duenos: {count_duenos[0]['count'] if count_duenos else 0}")
+        except Exception as e:
+            print(f"[DEBUG_PUBLIC] Error accediendo proveedores_duenos: {e}")
+            return jsonify({'error': f'Tabla proveedores_duenos no existe: {e}'})
+        
+        # Verificar registros para el dueño específico
+        try:
+            use_postgres = _is_postgres_configured()
+            print(f"[DEBUG_PUBLIC] Usando PostgreSQL: {use_postgres}")
+            
+            if use_postgres:
+                registros_dueno = db_query(
+                    "SELECT pd.proveedor_id, pd.dueno, pm.nombre FROM proveedores_duenos pd JOIN proveedores_manual pm ON pm.id = pd.proveedor_id WHERE pd.dueno = %s", 
+                    (dueno,), fetch=True
+                )
+            else:
+                registros_dueno = db_query(
+                    "SELECT pd.proveedor_id, pd.dueno, pm.nombre FROM proveedores_duenos pd JOIN proveedores_manual pm ON pm.id = pd.proveedor_id WHERE pd.dueno = ?", 
+                    (dueno,), fetch=True
+                )
+            
+            print(f"[DEBUG_PUBLIC] Registros para {dueno}: {registros_dueno}")
+            
+            return jsonify({
+                'dueno': dueno,
+                'postgres': use_postgres,
+                'total_registros_duenos': count_duenos[0]['count'] if count_duenos else 0,
+                'registros_para_dueno': registros_dueno,
+                'proveedores_nombres': [r['nombre'] for r in registros_dueno] if registros_dueno else []
+            })
+            
+        except Exception as e:
+            print(f"[DEBUG_PUBLIC] Error en consulta específica: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Error en consulta: {e}'})
+            
+    except Exception as e:
+        print(f"[DEBUG_PUBLIC] Error general: {e}")
+        return jsonify({'error': f'Error general: {e}'})
 
 @app.route('/obtener_proveedores_por_dueno_test', methods=['POST'])
 @csrf.exempt  # Eximir este endpoint de protección CSRF para pruebas
