@@ -1,0 +1,78 @@
+Reglas que DEBEN cumplirse:
+Un proveedor solo puede usarse para un dueño si está explícitamente agregado para ese dueño
+No se deben crear proveedores automáticamente desde el editor de productos
+El menú desplegable debe mostrar solo proveedores válidos para el dueño seleccionado
+Nuevos proveedores deben tener un dueño específico, nunca dueno: None
+
+Flujo correcto esperado:
+Usuario va a "Gestionar Proveedores"
+Agrega proveedor para dueño específico (Ricky o Ferretería General)
+Usuario va a "Gestionar Productos Manuales"
+Solo puede seleccionar proveedores que están agregados para el dueño correspondiente
+No puede crear proveedores nuevos desde el editor de agregar producto manual en seccion Agregar Productos ni en Editar Productos en la seccion
+Gestionar Productos Manuales
+
+
+Archivos con cambios realizados:
+gestor.py
+Nueva ruta: /obtener_proveedores_por_dueno (líneas 4095-4118)
+Modificada función gestionar_manual_actualizar_ajax (líneas 4512-4532)
+Modificada función agregar_proveedor (líneas 2691-2695)
+Modificada función agregar_producto_manual (líneas 3602-3614)
+templates/eliminar_manual.html
+Cambiado input de texto por select desplegable
+Agregada función JavaScript cargarProveedores()
+Agregados logs de debugging
+templates/proveedores.html
+Agregado campo hidden dueno para formulario de Ferretería General
+templates/agregar.html
+Modificado JavaScript para manejar selección de proveedores
+
+ INTENTOS DE SOLUCIÓN REALIZADOS
+Solución 1: Validación Estricta
+✅ Deshabilitada función inferir_dueno_proveedor_si_unico
+✅ Modificada lógica de validación en gestionar_manual_actualizar_ajax
+❌ Resultado: Aún permite proveedores con dueno: None
+Solución 2: Menú Desplegable
+✅ Agregada nueva ruta AJAX /obtener_proveedores_por_dueno
+✅ Modificado HTML para usar select en lugar de input de texto
+✅ Agregado JavaScript para cargar proveedores dinámicamente
+❌ Resultado: El menú desplegable no aparece o no funciona
+Solución 3: Corrección de Formularios
+✅ Agregado campo hidden dueno en templates/proveedores.html
+✅ Modificado JavaScript en templates/agregar.html
+❌ Resultado: Nuevos proveedores siguen creándose con dueno: None
+Solución 4: Corrección Manual de Datos
+✅ Actualizados proveedores específicos en base de datos
+❌ Resultado: El problema persiste para nuevos proveedores
+
+
+🚨 ESTADO ACTUAL
+Problemas que PERSISTEN:
+❌ Menú desplegable no aparece en el editor de productos
+❌ Nuevos proveedores se crean con dueno: None
+❌ Validación inconsistente en transferencias de productos
+❌ Sistema permite usar proveedores sin dueño específico
+
+Lo que SÍ funciona:
+✅ Servidor Flask se ejecuta correctamente
+✅ Base de datos responde a consultas
+✅ Logs de debugging muestran información detallada
+✅ Algunas validaciones funcionan correctamente (casos específicos)
+
+Prioridad 1 (CRÍTICA):
+Arreglar el menú desplegable que no aparece en el editor
+Prevenir creación de proveedores con dueno: None
+Prioridad 2 (ALTA):
+Validación estricta en todas las transferencias de productos
+Corrección de formularios para enviar datos correctos
+Prioridad 3 (MEDIA):
+Limpieza de datos existentes con dueno: None
+Testing exhaustivo de todos los casos de uso
+
+Versiones y dependencias:
+Python: 3.13.7
+Flask: Versión no especificada
+Base de datos: SQLite
+Sistema operativo: Windows 11
+
