@@ -4,11 +4,6 @@
 ###############################################
 
 # --- Persistencia y bases de datos locales ---
-*.db
-*.db.bak
-*.sqlite3
-*.sqlite3.bak
-*.sqlite
 
 # Backups y directorios históricos
 backup*/
@@ -52,7 +47,6 @@ rescate_desde_roto.csv
 
 # Excel y datos manuales
 # Ignorar solo productos_manual.xlsx pero mantener otras listas de precios importantes
-listas_excel/productos_manual.xlsx
 
 # Explícitamente NO ignorar estas carpetas importantes con listas de precios
 !listas_excel/
