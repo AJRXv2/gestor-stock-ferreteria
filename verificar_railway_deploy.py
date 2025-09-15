@@ -54,3 +54,4 @@ def verificar_railway_deploy():
 
 if __name__ == "__main__":
     verificar_railway_deploy()
+

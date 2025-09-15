@@ -86,3 +86,4 @@ def diagnostico_railway_exacto():
 
 if __name__ == "__main__":
     diagnostico_railway_exacto()
+

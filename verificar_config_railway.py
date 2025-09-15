@@ -46,3 +46,4 @@ def verificar_config():
 
 if __name__ == "__main__":
     verificar_config()
+

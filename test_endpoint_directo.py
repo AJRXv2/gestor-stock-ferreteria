@@ -57,3 +57,4 @@ def test_endpoint_directo():
 
 if __name__ == "__main__":
     test_endpoint_directo()
+
