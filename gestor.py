@@ -5486,12 +5486,20 @@ def debug_stock_item():
 
 # --- Funciones de Búsqueda en Excel ---
 def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
+    def normalizar_nombre(nombre):
+        import unicodedata
+        if not nombre:
+            return ''
+        base = ' '.join(str(nombre).strip().split())
+        nfkd = unicodedata.normalize('NFKD', base)
+        sin_acentos = ''.join(ch for ch in nfkd if not unicodedata.combining(ch))
+        return sin_acentos.lower()
     """Buscar productos en archivos Excel de proveedores y productos manuales de la base de datos"""
     resultados = []
     print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
     
     # Normalizar el proveedor_filtro a minúsculas para comparaciones case-insensitive
-    proveedor_filtro = proveedor_filtro.lower() if proveedor_filtro else None
+    proveedor_filtro_norm = normalizar_nombre(proveedor_filtro) if proveedor_filtro else None
     
     # 1. Buscar en productos manuales (base de datos)
     if proveedor_filtro and proveedor_filtro.startswith('manual_'):
@@ -5508,9 +5516,9 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
         except (ValueError, TypeError) as e:
             print(f"❌ [MANUAL] Error procesando filtro manual: {e}")
             pass
-    elif proveedor_filtro and proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
+    elif proveedor_filtro and proveedor_filtro_norm in [normalizar_nombre(k) for k in PROVEEDOR_CONFIG.keys()]:
         # Obtener la clave original del diccionario (preservando mayúsculas)
-        proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if k.lower() == proveedor_filtro), proveedor_filtro)
+        proveedor_key = next((k for k in PROVEEDOR_CONFIG.keys() if normalizar_nombre(k) == proveedor_filtro_norm), proveedor_filtro)
         # También incluir productos manuales que pertenezcan a ese proveedor Excel
         # Determinar alcance de dueños según flags
         if solo_ricky and not solo_fg:
@@ -5521,21 +5529,27 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             duenos_manual = ['ricky', 'ferreteria_general']
         
         # Buscar productos manuales que coincidan con el nombre del proveedor Excel
-        proveedor_nombre_original = PROVEEDOR_CONFIG[proveedor_key].get('nombre', proveedor_key)
+    proveedor_nombre_original = PROVEEDOR_CONFIG[proveedor_key].get('nombre', proveedor_key)
+    proveedor_nombre_norm = normalizar_nombre(proveedor_nombre_original)
         for d in duenos_manual:
             resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_original, dueno_filtro=d)
+            # Si no se encuentra, probar con el nombre normalizado
+            if not resultados_manuales:
+                resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_nombre_norm, dueno_filtro=d)
             if resultados_manuales:
                 resultados.extend(resultados_manuales)
                 
         # Si no hay resultados, probar con variaciones de mayúsculas/minúsculas
         if not resultados:
-            print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas")
+            print(f"[EXCEL DEBUG] No se encontraron resultados con el nombre exacto '{proveedor_nombre_original}', probando con versión en mayúsculas y normalizada")
             proveedor_upper = proveedor_nombre_original.upper()
-            if proveedor_upper != proveedor_nombre_original:
-                for d in duenos_manual:
-                    resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_upper, dueno_filtro=d)
-                    if resultados_manuales:
-                        resultados.extend(resultados_manuales)
+            proveedor_norm_upper = proveedor_nombre_norm.upper()
+            for d in duenos_manual:
+                resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_upper, dueno_filtro=d)
+                if not resultados_manuales:
+                    resultados_manuales = buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, proveedor_norm_upper, dueno_filtro=d)
+                if resultados_manuales:
+                    resultados.extend(resultados_manuales)
     elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
         # Si no hay filtro específico de Excel, incluir todos los manuales
         # Aplicar alcance por dueño si corresponde
