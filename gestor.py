@@ -7585,6 +7585,65 @@ def api_sincronizar_proveedores_railway(codigo_secreto):
             'message': f'Error inesperado: {str(e)}'
         }), 500
 
+@app.route('/fix_railway_simple/<string:codigo_secreto>', methods=['GET'])
+def fix_railway_simple(codigo_secreto):
+    """Endpoint público simple para crear solo la tabla proveedores_duenos sin migrar datos."""
+    try:
+        # Verificar código secreto
+        codigo_esperado = os.environ.get('RAILWAY_SECRET_CODE', 'railway_fix_2024')
+        if codigo_secreto != codigo_esperado:
+            return jsonify({
+                'success': False,
+                'message': 'Código secreto inválido'
+            }), 403
+        
+        print("[DEBUG] Ejecutando fix simple para Railway...")
+        
+        if not _is_postgres_configured():
+            return jsonify({
+                'success': False,
+                'message': 'Este endpoint solo funciona con PostgreSQL (Railway)'
+            }), 400
+        
+        # Solo crear la tabla, SIN migración de datos
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS proveedores_duenos (
+            id SERIAL PRIMARY KEY,
+            proveedor_id INTEGER NOT NULL,
+            dueno TEXT NOT NULL,
+            CONSTRAINT proveedores_duenos_unique UNIQUE (proveedor_id, dueno),
+            CONSTRAINT fk_proveedor FOREIGN KEY (proveedor_id) REFERENCES proveedores_manual(id) ON DELETE CASCADE
+        )
+        """
+        
+        success = db_query(create_table_sql)
+        if not success:
+            return jsonify({
+                'success': False,
+                'message': 'Error creando tabla proveedores_duenos'
+            }), 500
+        
+        # Crear índices
+        indices = [
+            "CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_proveedor_id ON proveedores_duenos(proveedor_id)",
+            "CREATE INDEX IF NOT EXISTS idx_proveedores_duenos_dueno ON proveedores_duenos(dueno)"
+        ]
+        
+        for indice in indices:
+            db_query(indice)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Tabla proveedores_duenos creada exitosamente. Los nuevos proveedores manuales ahora funcionarán correctamente.'
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error en fix simple: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        }), 500
+
 @app.route('/api/diagnostico_proveedores', methods=['GET'])
 @login_required
 def api_diagnostico_proveedores():
