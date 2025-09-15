@@ -47,10 +47,22 @@ log_*.txt
 historial_con_id_*.csv
 stock_pre_import_*.csv
 rescate_desde_roto.csv
+# Archivos temporales de Excel
+~$*.xlsx
 
-# Excel y datos manuales (descomenta si quieres versionar alguno)
-listas_excel/
-*.xlsx
+# Excel y datos manuales
+# Ignorar solo productos_manual.xlsx pero mantener otras listas de precios importantes
+listas_excel/productos_manual.xlsx
+
+# Explícitamente NO ignorar estas carpetas importantes con listas de precios
+!listas_excel/
+!listas_excel/ferreteria_general/
+!listas_excel/ricky/
+!listas_excel/ferreteria_general/*.xlsx
+!listas_excel/ricky/*.xlsx
+
+# No ignoramos todos los Excel porque hay listas de precios importantes
+# *.xlsx
 
 # Sistema
 .DS_Store
