@@ -5605,21 +5605,7 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
     resultados_sin_duplicados = []
     claves_vistas = set()
     
-    for r in resultados:
-        codigo = str(r.get('codigo', '')).strip()
-        proveedor = str(r.get('proveedor', '')).lower().strip()
-        nombre = str(r.get('nombre', '')).lower().strip()
-        
-        # Crear una clave para eliminar duplicados exactos
-        clave = f"{codigo}|{proveedor}|{nombre}"
-        
-        if clave not in claves_vistas:
-            claves_vistas.add(clave)
-            resultados_sin_duplicados.append(r)
-    
-    # Log cantidad total de resultados
-    print(f"🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: {len(resultados_sin_duplicados)} de {len(resultados)} originales")
-    
+    # ...existing code...
     return resultados_sin_duplicados
 
 def agregar_producto_manual_excel():
