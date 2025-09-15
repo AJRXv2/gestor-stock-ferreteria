@@ -7925,20 +7925,22 @@ def diagnosticar_proveedores_railway():
     Returns:
         dict: Un diccionario con los resultados del diagnóstico
     """
-        # Log de depuración: mostrar el valor recibido y los valores en la tabla
-        try:
+    # Log de depuración: mostrar el valor recibido y los valores en la tabla
+    try:
+        # Si nombre_proveedor está definido en el contexto, mostrarlo
+        if 'nombre_proveedor' in locals():
             print(f"[DEBUG] Valor recibido en proveedor_filtro: '{nombre_proveedor}'")
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT DISTINCT proveedor FROM productos_manual")
-            proveedores_en_bd = cur.fetchall()
-            print(f"[DEBUG] Proveedores en productos_manual:")
-            for p in proveedores_en_bd:
-                print(f"  - '{p[0]}'")
-            cur.close()
-            conn.close()
-        except Exception as e:
-            print(f"[DEBUG] Error al obtener proveedores de productos_manual: {e}")
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT proveedor FROM productos_manual")
+        proveedores_en_bd = cur.fetchall()
+        print(f"[DEBUG] Proveedores en productos_manual:")
+        for p in proveedores_en_bd:
+            print(f"  - '{p[0]}'")
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"[DEBUG] Error al obtener proveedores de productos_manual: {e}")
     resultados = {
         'proveedores_total': 0,
         'proveedores_sin_dueno': [],
