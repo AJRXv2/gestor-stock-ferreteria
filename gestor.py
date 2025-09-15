@@ -2679,7 +2679,24 @@ def agregar_producto():
     # 2) Manuales por dueño (desde mappings activos)
     ocultos_rows = db_query("SELECT LOWER(nombre) as nombre, dueno FROM proveedores_ocultos", fetch=True) or []
     ocultos_pairs = {(o['nombre'], o['dueno']) for o in ocultos_rows}
-    mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre, m.dueno", fetch=True) or []
+    
+    # Usar proveedores_duenos como fuente principal, fallback a proveedores_meta
+    try:
+        mappings = db_query("""
+            SELECT pm.id, pm.nombre, pd.dueno 
+            FROM proveedores_manual pm 
+            JOIN proveedores_duenos pd ON pm.id = pd.proveedor_id 
+            ORDER BY pm.nombre, pd.dueno
+        """, fetch=True) or []
+        print(f"[DEBUG] Usando proveedores_duenos: {len(mappings)} mappings encontrados")
+    except Exception as e:
+        print(f"[DEBUG] proveedores_duenos no disponible, usando proveedores_meta fallback: {e}")
+        try:
+            mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre, m.dueno", fetch=True) or []
+            print(f"[DEBUG] Usando proveedores_meta fallback: {len(mappings)} mappings encontrados")
+        except Exception as e2:
+            print(f"[DEBUG] Ambas tablas fallan, usando lista vacía: {e2}")
+            mappings = []
     for row in mappings:
         base = (row['nombre'] or '').strip()
         dueno_val = row['dueno']
@@ -3060,17 +3077,27 @@ def _upsert_proveedor(nombre: str, dueno_param: str):
     
     agregados = []
     for d in destinos:
-        # Actualizar proveedores_meta
-        ok_meta = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
-        
-        # Actualizar proveedores_duenos (tabla principal para consultas)
+        # Actualizar proveedores_duenos (tabla principal para consultas) - PRIORITARIO
         if proveedor_id:
             ok_duenos = db_query("INSERT OR IGNORE INTO proveedores_duenos (proveedor_id, dueno) VALUES (?, ?)", (proveedor_id, d))
+            print(f"[DEBUG] Proveedor '{nombre_guardado}' asociado a dueño '{d}' en proveedores_duenos")
         
-        # Eliminar de ocultos
-        db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", (nombre_guardado, d))
+        # Actualizar proveedores_meta (solo si la tabla existe)
+        try:
+            ok_meta = db_query("INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)", (nombre_guardado, d))
+            print(f"[DEBUG] Proveedor '{nombre_guardado}' asociado a dueño '{d}' en proveedores_meta (legacy)")
+        except Exception as e:
+            print(f"[DEBUG] No se pudo actualizar proveedores_meta (tabla puede no existir): {e}")
+            ok_meta = True  # No fallar por esto
         
-        if ok_meta:
+        # Eliminar de ocultos (si la tabla existe)
+        try:
+            db_query("DELETE FROM proveedores_ocultos WHERE LOWER(nombre)=LOWER(?) AND (dueno IS NULL OR dueno=?)", (nombre_guardado, d))
+        except Exception as e:
+            print(f"[DEBUG] No se pudo actualizar proveedores_ocultos: {e}")
+        
+        # Considerar exitoso si al menos proveedores_duenos funcionó
+        if proveedor_id and ok_duenos:
             agregados.append(d)
     
     return nombre_guardado, nuevo_flag, agregados, destinos
@@ -3919,7 +3946,23 @@ def eliminar_todo_historial():
 def eliminar_manual():
     """Ruta para gestionar productos manuales"""
     # Preparar listas de proveedores por dueño para la UI
-    mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre", fetch=True) or []
+    try:
+        mappings = db_query("""
+            SELECT pm.id, pm.nombre, pd.dueno 
+            FROM proveedores_manual pm 
+            JOIN proveedores_duenos pd ON pm.id = pd.proveedor_id 
+            ORDER BY pm.nombre
+        """, fetch=True) or []
+        print(f"[DEBUG] eliminar_manual usando proveedores_duenos: {len(mappings)} mappings")
+    except Exception as e:
+        print(f"[DEBUG] eliminar_manual fallback a proveedores_meta: {e}")
+        try:
+            mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre", fetch=True) or []
+            print(f"[DEBUG] eliminar_manual usando proveedores_meta: {len(mappings)} mappings")
+        except Exception as e2:
+            print(f"[DEBUG] eliminar_manual ambas tablas fallan: {e2}")
+            mappings = []
+    
     proveedores_ricky = []
     proveedores_fg = []
     for row in mappings:
@@ -7711,6 +7754,89 @@ def fix_railway_simple(codigo_secreto):
         
     except Exception as e:
         print(f"[ERROR] Error en fix simple: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        }), 500
+
+@app.route('/init_railway_db/<string:codigo_secreto>', methods=['GET'])
+def init_railway_db(codigo_secreto):
+    """Endpoint para forzar la inicialización completa de la base de datos en Railway."""
+    try:
+        # Verificar código secreto
+        codigo_esperado = os.environ.get('RAILWAY_SECRET_CODE', 'railway_fix_2024')
+        if codigo_secreto != codigo_esperado:
+            return jsonify({
+                'success': False,
+                'message': 'Código secreto inválido'
+            }), 403
+        
+        print("[DEBUG] Forzando inicialización completa de Railway DB...")
+        
+        if not _is_postgres_configured():
+            return jsonify({
+                'success': False,
+                'message': 'Este endpoint solo funciona con PostgreSQL (Railway)'
+            }), 400
+        
+        # Ejecutar init_db() completo
+        try:
+            init_db()
+            print("[DEBUG] init_db() ejecutado exitosamente")
+        except Exception as e:
+            print(f"[ERROR] Error en init_db(): {e}")
+            return jsonify({
+                'success': False,
+                'message': f'Error en init_db(): {str(e)}'
+            }), 500
+        
+        # Verificar que las tablas críticas existan
+        tablas_criticas = ['proveedores_manual', 'proveedores_meta', 'proveedores_duenos', 'notificaciones']
+        tablas_creadas = []
+        tablas_faltantes = []
+        
+        for tabla in tablas_criticas:
+            try:
+                result = db_query(f"SELECT COUNT(*) FROM {tabla}", fetch=True)
+                if result is not None:
+                    count = result[0]['count'] if result else 0
+                    tablas_creadas.append(f"{tabla} ({count} registros)")
+                else:
+                    tablas_faltantes.append(tabla)
+            except Exception as e:
+                print(f"[ERROR] Error verificando tabla {tabla}: {e}")
+                tablas_faltantes.append(f"{tabla} (error: {str(e)})")
+        
+        # Verificar la consulta específica que falla
+        try:
+            test_proveedores = db_query("""
+                SELECT DISTINCT p.nombre 
+                FROM proveedores_manual p
+                JOIN proveedores_duenos pd ON p.id = pd.proveedor_id
+                WHERE pd.dueno = %s
+                ORDER BY p.nombre
+            """, ('ferreteria_general',), fetch=True)
+            
+            consulta_funciona = True
+            proveedores_encontrados = [p['nombre'] for p in test_proveedores] if test_proveedores else []
+        except Exception as e:
+            consulta_funciona = False
+            proveedores_encontrados = []
+            print(f"[ERROR] Error en consulta de proveedores: {e}")
+        
+        return jsonify({
+            'success': len(tablas_faltantes) == 0,
+            'message': 'Inicialización de Railway DB completada',
+            'tablas_creadas': tablas_creadas,
+            'tablas_faltantes': tablas_faltantes,
+            'consulta_proveedores_funciona': consulta_funciona,
+            'proveedores_ferreteria_general': proveedores_encontrados
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error en inicialización Railway: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error inesperado: {str(e)}'
