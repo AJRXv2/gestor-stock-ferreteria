@@ -1,4 +1,11 @@
-# Script para corregir la base de datos en Railway
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Script para corregir la base de datos en Railway PostgreSQL.
+Este script resuelve problemas de estructura en la base de datos.
+"""
+
 import os
 import psycopg2
 
