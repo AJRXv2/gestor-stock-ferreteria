@@ -217,7 +217,7 @@ DUENOS_CONFIG = {
     'ferreteria_general': {
         'nombre': 'Ferretería General', 
         # Renombrados: ferreteria_prov1->dewalt, ferreteria_prov2->sica, ferreteria_prov3->sorbalok
-        'proveedores_excel': ['dewalt', 'sica', 'sorbalok', 'nortedist'],
+        'proveedores_excel': ['dewalt', 'sica', 'sorbalok', 'nortedist', 'bermon'],
         'puede_excel': True,
         'carpeta_excel': 'ferreteria_general'
     }
@@ -226,18 +226,19 @@ DUENOS_CONFIG = {
 # --- Configuración de Proveedores Excel ---
 PROVEEDOR_CONFIG = {
     'brementools': {
-        'fila_encabezado': 5,
+        'fila_encabezado': 0,  # Los encabezados están en diferentes filas, usar método básico
         'codigo': ['codigo', 'Código', 'CODIGO'],
         'producto': ['producto', 'Producto', 'PRODUCTO'],
-        'precio': ['precio', 'Precio', 'PRECIO'],
+        'precio': ['precio de venta'],  # Usar método especial para Bremen
         'dueno': 'ricky',
-        'folder': 'ricky'
+        'folder': 'ricky',
+        'metodo_especial': True  # Flag para usar lógica especial
     },
     'crossmaster': {
         'fila_encabezado': 11,
         'codigo': ['codigo', 'Codigo', 'CODIGO'],
         'producto': ['descripcion', 'Descripcion', 'DESCRIPCION'],
-        'precio': ['precio', 'Precio', 'PRECIO'],
+        'precio': ['Precio Lista'],  # Exacto como aparece
         'dueno': 'ricky',
         'folder': 'ricky'
     },
@@ -299,6 +300,14 @@ PROVEEDOR_CONFIG = {
         'usar_colores': True,
         'color_precio': 'FFFF00',  # Amarillo en formato RGB
         'columnas_precio': ['NORTE SIN IVA', 'NORTE'],
+        'dueno': 'ferreteria_general',
+        'folder': 'ferreteria_general'
+    },
+    'bermon': {
+        'fila_encabezado': 11,  # Los encabezados están en la fila 12 (índice 11 en base 0)
+        'codigo': ['Código', 'codigo', 'Codigo', 'CODIGO'],
+        'producto': ['Descripción', 'descripcion', 'Descripcion', 'DESCRIPCION'],
+        'marca': ['MARCA', 'marca', 'Marca'],
         'dueno': 'ferreteria_general',
         'folder': 'ferreteria_general'
     }
@@ -5043,10 +5052,9 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
     """Buscar productos en archivos Excel de proveedores y productos manuales"""
     resultados = []
     print(f"🔍 [BUSCAR_EXCEL] Iniciando búsqueda: '{termino_busqueda}' | Proveedor: '{proveedor_filtro}' | Filtro: '{filtro_adicional}' | Solo Ricky: {solo_ricky} | Solo FG: {solo_fg}")
-    
+
     # 1. Buscar en productos manuales
     if proveedor_filtro and proveedor_filtro.startswith('manual_'):
-        # Filtro específico de proveedor manual (incluye dueño)
         try:
             _, rest = proveedor_filtro.split('manual_', 1)
             parts = rest.split('_', 1)
@@ -5057,8 +5065,6 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
         except (ValueError, TypeError):
             pass
     elif proveedor_filtro and proveedor_filtro in PROVEEDOR_CONFIG:
-        # Nuevo: también incluir productos manuales que pertenezcan a ese proveedor Excel
-        # Determinar alcance de dueños según flags
         if solo_ricky and not solo_fg:
             duenos_manual = ['ricky']
         elif solo_fg and not solo_ricky:
@@ -5070,8 +5076,6 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             if resultados_manuales:
                 resultados.extend(resultados_manuales)
     elif not proveedor_filtro or proveedor_filtro not in PROVEEDOR_CONFIG:
-        # Si no hay filtro específico de Excel, incluir todos los manuales
-        # Aplicar alcance por dueño si corresponde
         if solo_ricky and not solo_fg:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda, dueno_filtro='ricky')
         elif solo_fg and not solo_ricky:
@@ -5079,42 +5083,80 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
         else:
             resultados_manuales = buscar_en_excel_manual(termino_busqueda)
         resultados.extend(resultados_manuales)
-        
+
     # 2. Buscar en Excel de proveedores
     if not proveedor_filtro or proveedor_filtro in PROVEEDOR_CONFIG:
-        # Verificar si necesitamos buscar en todos o un proveedor específico
         if proveedor_filtro:
-            # Verificar si el proveedor está habilitado para el filtro de dueño
             proveedor_config = PROVEEDOR_CONFIG.get(proveedor_filtro, {})
             proveedor_dueno = proveedor_config.get('dueno', None)
-            
-            # Saltar si no coincide con los filtros de dueño
             if (solo_ricky and proveedor_dueno != 'ricky') or (solo_fg and proveedor_dueno != 'ferreteria_general'):
                 pass
             else:
                 proveedores_a_buscar = [proveedor_filtro]
         else:
-            # Determinar qué proveedores buscar según filtro de dueño
             if solo_ricky and not solo_fg:
                 proveedores_a_buscar = [p for p, cfg in PROVEEDOR_CONFIG.items() if cfg.get('dueno') == 'ricky']
             elif solo_fg and not solo_ricky:
                 proveedores_a_buscar = [p for p, cfg in PROVEEDOR_CONFIG.items() if cfg.get('dueno') == 'ferreteria_general']
             else:
                 proveedores_a_buscar = list(PROVEEDOR_CONFIG.keys())
-                
-        # Realizar búsquedas en los proveedores seleccionados
+
         for proveedor in proveedores_a_buscar:
             resultados_proveedor = buscar_en_excel_proveedor(
-                termino_busqueda, 
+                termino_busqueda,
                 proveedor,
                 filtro_adicional
             )
             resultados.extend(resultados_proveedor)
+
+    # --- FILTRO POR CÓDIGO EXACTO (solo para búsquedas de códigos) Y DEDUPLICACIÓN ---
+    termino_codigo = str(termino_busqueda).strip()
     
-    # Log cantidad total de resultados
-    print(f"🔍 [BUSCAR_EXCEL] Total de resultados: {len(resultados)}")
+    # Solo aplicar filtro por código exacto si el término es claramente un código de producto:
+    # - Es completamente numérico, O
+    # - Es alfanumérico corto sin espacios (típico de códigos de barras/productos), O
+    # - Contiene guiones/guiones bajos (formato de código)
+    es_codigo = (
+        termino_codigo.isdigit() or  # Completamente numérico
+        (len(termino_codigo) <= 15 and 
+         not ' ' in termino_codigo and  # Sin espacios (códigos no tienen espacios)
+         (any(c.isdigit() for c in termino_codigo)) and  # Contiene al menos un número
+         termino_codigo.replace('-', '').replace('_', '').isalnum())  # Solo alfanumérico + guiones
+    )
     
-    return resultados
+    if es_codigo:
+        print(f"🔍 [BUSCAR_EXCEL] Aplicando filtro por código exacto para: '{termino_codigo}'")
+        resultados_filtrados = [r for r in resultados if r.get('codigo') and str(r.get('codigo')).strip() == termino_codigo]
+    else:
+        print(f"🔍 [BUSCAR_EXCEL] Búsqueda por texto/descripción - sin filtro por código exacto")
+        resultados_filtrados = resultados
+    
+    print(f"🔍 [BUSCAR_EXCEL] Resultados antes de deduplicación: {len(resultados_filtrados)}")
+    for r in resultados_filtrados[:5]:  # Solo mostrar primeros 5
+        print(f"    - {r.get('codigo')} de '{r.get('proveedor')}' (archivo: {r.get('archivo', 'N/A')})")
+    if len(resultados_filtrados) > 5:
+        print(f"    ... y {len(resultados_filtrados) - 5} más")
+
+    # Deduplicar por (codigo, proveedor) para mostrar solo una línea por proveedor y código
+    deduped = {}
+    for r in resultados_filtrados:
+        # Normalizar nombre de proveedor para mejor deduplicación
+        proveedor_normalizado = _normalizar_nombre_proveedor(r.get('proveedor', ''))
+        codigo_normalizado = str(r.get('codigo', '')).strip().lower()
+        
+        key = (codigo_normalizado, proveedor_normalizado)
+        
+        # Solo conservar la primera coincidencia por proveedor normalizado y código
+        if key not in deduped:
+            deduped[key] = r
+        else:
+            # Debug: mostrar cuando se descarta un duplicado
+            print(f"🔍 [DEDUP DEBUG] Descartando duplicado: {codigo_normalizado} de '{r.get('proveedor')}' (ya existe de '{deduped[key].get('proveedor')}')")
+    
+    resultados_final = list(deduped.values())
+
+    print(f"🔍 [BUSCAR_EXCEL] Total de resultados (código exacto y deduplicados por proveedor): {len(resultados_final)}")
+    return resultados_final if resultados_final is not None else []
 
 def agregar_producto_manual_excel():
     """Agregar producto manual al Excel (no directamente al stock)"""
@@ -5460,16 +5502,23 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
             print(f"[EXCEL DEBUG] Contenido de 'listas_excel': {os.listdir('listas_excel') if os.path.exists('listas_excel') else 'No existe'}")
             return []
         
-        # Listar todos los archivos Excel en el directorio
+        # Buscar solo el archivo específico del proveedor, no todos los archivos
         archivos_excel = []
         try:
+            # Buscar archivo que comience con el nombre del proveedor
+            proveedor_capitalizado = proveedor.capitalize()
             for root, _, files in os.walk(directorio_base):
                 print(f"[EXCEL DEBUG] Explorando directorio: {root}")
                 for file in files:
-                    if file.endswith('.xlsx') or file.endswith('.xls'):
-                        ruta_completa = os.path.join(root, file)
-                        archivos_excel.append(ruta_completa)
-                        print(f"[EXCEL DEBUG] Archivo encontrado: {ruta_completa}")
+                    if (file.endswith('.xlsx') or file.endswith('.xls')) and file != 'productos_manual.xlsx':
+                        # Solo incluir archivos que empiecen con el nombre del proveedor
+                        if (file.lower().startswith(proveedor.lower()) or 
+                            file.lower().startswith(proveedor_capitalizado.lower())):
+                            ruta_completa = os.path.join(root, file)
+                            archivos_excel.append(ruta_completa)
+                            print(f"[EXCEL DEBUG] Archivo específico encontrado para {proveedor}: {ruta_completa}")
+                        else:
+                            print(f"[EXCEL DEBUG] Archivo omitido (no corresponde a {proveedor}): {file}")
         except Exception as e:
             print(f"[EXCEL DEBUG] Error al listar archivos: {str(e)}")
             return []
@@ -5491,8 +5540,13 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                 print(f"[EXCEL DEBUG] Intentando cargar archivo: {archivo}")
                 try:
                     from openpyxl import load_workbook
-                    wb = load_workbook(archivo, read_only=True)
-                    print(f"[EXCEL DEBUG] Archivo cargado exitosamente: {nombre_archivo}")
+                    # Para Bremen, usar data_only=True para obtener valores calculados
+                    if proveedor == 'brementools':
+                        wb = load_workbook(archivo, data_only=True)
+                        print(f"[EXCEL DEBUG] Archivo Bremen cargado con valores calculados: {nombre_archivo}")
+                    else:
+                        wb = load_workbook(archivo, read_only=True)
+                        print(f"[EXCEL DEBUG] Archivo cargado exitosamente: {nombre_archivo}")
                 except Exception as excel_e:
                     print(f"[EXCEL ERROR] Error al cargar archivo {nombre_archivo}: {str(excel_e)}")
                     continue
@@ -5508,34 +5562,193 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                     
                     # Buscar en cada fila
                     for row_idx, row in enumerate(filas, 1):
-                        row_values = [str(cell.value).lower() if cell.value is not None else '' for cell in row]
-                        row_text = ' '.join(row_values)
+                        # Mantener valores originales para mostrar, crear versión en minúscula solo para búsqueda
+                        row_values_original = [str(cell.value) if cell.value is not None else '' for cell in row]
+                        row_values_busqueda = [str(cell.value).lower() if cell.value is not None else '' for cell in row]
+                        row_text = ' '.join(row_values_busqueda)
                         
-                        # Verificar si el término está en esta fila
-                        if termino_busqueda in row_text:
+                        # Verificar si el término está en esta fila (búsqueda flexible en minúscula)
+                        termino_busqueda_lower = termino_busqueda.lower()
+                        if termino_busqueda_lower in row_text:
                             # Aplicar filtro adicional si existe
                             if filtro_adicional and filtro_adicional.lower() not in row_text:
                                 continue
                                 
-                            # Extraer datos de la fila
-                            codigo = row_values[0] if len(row_values) > 0 else ''
-                            nombre = row_values[1] if len(row_values) > 1 else ''
+                            # Extraer datos de la fila usando configuración específica del proveedor
+                            codigo = ''
+                            nombre = ''
                             precio = 0.0
                             
-                            # Intentar extraer precio
-                            if len(row_values) > 2:
-                                try:
-                                    precio_text = row_values[2].replace('.', '').replace(',', '.')
-                                    precio = float(precio_text) if precio_text else 0.0
-                                except (ValueError, TypeError):
+                            # Usar configuración específica para código y producto
+                            codigo_cols = config.get('codigo', ['codigo'])
+                            producto_cols = config.get('producto', ['producto'])
+                            fila_encabezado = config.get('fila_encabezado', 0)
+                            
+                            # Obtener encabezados para mapear columnas
+                            encabezados = []
+                            if fila_encabezado < len(filas):
+                                encabezados = [str(cell.value).strip() if cell.value else '' for cell in filas[fila_encabezado]]
+                            
+                            # Buscar columna de código
+                            col_codigo_idx = None
+                            for i, encabezado in enumerate(encabezados):
+                                encabezado_clean = str(encabezado).strip()
+                                for codigo_alias in codigo_cols:
+                                    if encabezado_clean.lower() == codigo_alias.lower():
+                                        col_codigo_idx = i
+                                        break
+                                if col_codigo_idx is not None:
+                                    break
+                            
+                            # Buscar columna de producto
+                            col_producto_idx = None  
+                            for i, encabezado in enumerate(encabezados):
+                                encabezado_clean = str(encabezado).strip()
+                                for producto_alias in producto_cols:
+                                    if encabezado_clean.lower() == producto_alias.lower():
+                                        col_producto_idx = i
+                                        break
+                                if col_producto_idx is not None:
+                                    break
+                            
+                            # Extraer código y nombre usando las columnas encontradas
+                            if col_codigo_idx is not None and len(row_values_original) > col_codigo_idx:
+                                codigo = str(row_values_original[col_codigo_idx]).strip()
+                            else:
+                                codigo = row_values_original[0] if len(row_values_original) > 0 else ''
+                            
+                            if col_producto_idx is not None and len(row_values_original) > col_producto_idx:
+                                nombre = str(row_values_original[col_producto_idx]).strip()
+                            else:
+                                nombre = row_values_original[1] if len(row_values_original) > 1 else ''
+                            
+                            # Intentar detectar si hay una columna de proveedor en el Excel
+                            proveedor_real = proveedor  # Por defecto usar el proveedor configurado
+                            if len(row_values_original) > 3:
+                                # Buscar en columnas adicionales por posibles proveedores
+                                for i in range(3, min(len(row_values_original), 8)):  # Limitar búsqueda a primeras columnas
+                                    valor_col = str(row_values_original[i]).strip()
+                                    if valor_col and len(valor_col) > 2 and valor_col.lower() not in ['', 'nan', 'none', '0']:
+                                        # Si parece ser un nombre de proveedor (no número ni precio)
+                                        try:
+                                            float(valor_col.replace(',', '.').replace('.', ''))  # Si es número, saltar
+                                        except (ValueError, TypeError):
+                                            # No es número, podría ser proveedor
+                                            if not any(char.isdigit() for char in valor_col):
+                                                proveedor_real = valor_col
+                                                break
+                            
+                            # Usar lógica específica del proveedor para extraer precio
+                            precio = 0.0
+                            
+                            # Bremen tiene estructura especial
+                            if config.get('metodo_especial', False) and proveedor == 'brementools':
+                                # Para Bremen: precio está en columna J (índice 9) "Precio de Venta"
+                                if len(row) > 9:
+                                    try:
+                                        # Obtener el valor calculado de la celda J (índice 9) - Precio de Venta
+                                        cell_value = row[9].value
+                                        if cell_value is not None and isinstance(cell_value, (int, float)):
+                                            precio = float(cell_value)
+                                            print(f"[EXCEL DEBUG] Bremen - Precio de Venta encontrado: {precio}")
+                                        else:
+                                            print(f"[EXCEL DEBUG] Bremen - Valor de celda J no numérico: {cell_value}")
+                                            precio = 0.0
+                                    except (ValueError, TypeError, IndexError) as e:
+                                        print(f"[EXCEL DEBUG] Bremen - Error parseando precio: {e}")
+                                        precio = 0.0
+                            # Si el proveedor tiene configuración de colores (como NorteDist)
+                            elif config.get('usar_colores', False):
+                                # Para NorteDist: usar función especial de colores (se maneja en otra función)
+                                # Por ahora, extraer de columna por defecto
+                                if len(row_values_original) > 2:
+                                    try:
+                                        precio_text = str(row_values_original[2]).replace(',', '.')
+                                        precio = float(precio_text) if precio_text else 0.0
+                                    except (ValueError, TypeError):
+                                        precio = 0.0
+                                print(f"[EXCEL DEBUG] Proveedor con colores - Precio: {precio}")
+                            else:
+                                # Para otros proveedores: buscar la columna de precio según configuración
+                                precio_cols = config.get('precio', ['precio'])
+                                fila_encabezado = config.get('fila_encabezado', 0)
+                                
+                                # Si estamos en las filas de encabezado, saltar (Bremen tiene múltiples)
+                                if row_idx <= fila_encabezado + 1:
+                                    continue
+                                    
+                                # Buscar columna de precio en la fila de encabezado especificada
+                                encabezados = []
+                                if fila_encabezado < len(filas):
+                                    encabezados = [str(cell.value).strip() if cell.value else '' for cell in filas[fila_encabezado]]
+                                    print(f"[EXCEL DEBUG] Encabezados en fila {fila_encabezado}: {encabezados}")
+                                
+                                col_precio_idx = None
+                                for i, encabezado in enumerate(encabezados):
+                                    encabezado_clean = str(encabezado).strip()
+                                    if not encabezado_clean:  # Saltar columnas vacías
+                                        continue
+                                    for precio_alias in precio_cols:
+                                        # Búsqueda más precisa
+                                        if (encabezado_clean.lower() == precio_alias.lower() or 
+                                            (len(precio_alias) > 3 and precio_alias.lower() in encabezado_clean.lower())):
+                                            col_precio_idx = i
+                                            print(f"[EXCEL DEBUG] Columna de precio encontrada: '{encabezado_clean}' en posición {i}")
+                                            break
+                                    if col_precio_idx is not None:
+                                        break
+                                
+                                # Extraer precio de la columna encontrada
+                                if col_precio_idx is not None and len(row_values_original) > col_precio_idx:
+                                    try:
+                                        precio_text = str(row_values_original[col_precio_idx]).strip()
+                                        # Detectar formato de precio (europeo vs americano)
+                                        if ',' in precio_text and precio_text.rfind(',') > precio_text.rfind('.'):
+                                            # Formato europeo: 1.234.567,89 -> 1234567.89
+                                            precio_text_clean = precio_text.replace('.', '').replace(',', '.')
+                                        else:
+                                            # Formato americano: 1,234,567.89 -> 1234567.89  
+                                            precio_text_clean = precio_text.replace(',', '')
+                                        
+                                        precio = float(precio_text_clean) if precio_text_clean and precio_text_clean != 'nan' else 0.0
+                                        print(f"[EXCEL DEBUG] Precio encontrado para {proveedor} en columna '{encabezados[col_precio_idx] if col_precio_idx < len(encabezados) else col_precio_idx}': {precio_text} -> {precio}")
+                                    except (ValueError, TypeError) as e:
+                                        print(f"[EXCEL DEBUG] Error parseando precio '{precio_text}': {e}")
+                                        precio = 0.0
+                                else:
+                                    print(f"[EXCEL DEBUG] No se encontró columna de precio para {proveedor}. Encabezados: {encabezados}")
+                                    print(f"[EXCEL DEBUG] Buscando: {precio_cols}")
                                     precio = 0.0
                             
+                            # Debug: mostrar cuando se detecte un proveedor diferente
+                            if proveedor_real != proveedor:
+                                print(f"[EXCEL DEBUG] Proveedor diferente detectado: '{proveedor_real}' en archivo de '{proveedor}'")
+                            
+                            # Formatear precio en formato europeo para mostrar
+                            def formatear_precio_europeo(precio_float):
+                                if precio_float == 0.0:
+                                    return ""
+                                # Convertir a formato europeo: 1234567.89 -> 1.234.567,89
+                                precio_str = f"{precio_float:.2f}"
+                                entero, decimal = precio_str.split('.')
+                                # Agregar puntos cada 3 dígitos
+                                entero_formateado = ""
+                                for i, digit in enumerate(entero[::-1]):
+                                    if i > 0 and i % 3 == 0:
+                                        entero_formateado = "." + entero_formateado
+                                    entero_formateado = digit + entero_formateado
+                                return f"{entero_formateado},{decimal}"
+                            
+                            precio_formateado = formatear_precio_europeo(precio)
+                            
                             # Crear resultado
+                            print(f"[EXCEL DEBUG] Creando resultado - Codigo: '{codigo}' | Nombre: '{nombre}' | Precio: {precio} | Proveedor: '{proveedor_real}'")
                             resultado = {
                                 'codigo': codigo,
                                 'nombre': nombre if nombre else f"Fila {row_idx}",
-                                'precio': precio,
-                                'proveedor': proveedor,
+                                'precio': precio_formateado,
+                                'precio_numerico': precio,  # Guardar también el valor numérico
+                                'proveedor': proveedor_real,
                                 'archivo': nombre_archivo,
                                 'hoja': ws_name,
                                 'fila': row_idx,
@@ -5544,6 +5757,7 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                                 'row_text': row_text
                             }
                             resultados.append(resultado)
+                            print(f"[EXCEL DEBUG] Resultado agregado exitosamente. Total resultados: {len(resultados)}")
                 
             except Exception as e:
                 print(f"[EXCEL] Error al procesar archivo '{archivo}': {e}")
