@@ -543,14 +543,18 @@ def execute_query(conn, query, params=(), fetch=False):
     finally:
         cursor.close()
 
-def db_query(query, params=(), fetch=False):
+def db_query(query, params=(), fetch=False, conn=None):
     """Ejecutar consulta en la base de datos (PostgreSQL o SQLite).
 
     - Adapta sintaxis y placeholders automáticamente para PostgreSQL.
     - Retorna lista de dicts si fetch=True, True/False según éxito si fetch=False.
+    - Opcionalmente acepta una conexión existente a través del parámetro conn.
     - Cierra siempre la conexión (uso simple por operación). Para alto volumen podría añadirse pool.
     """
-    conn = get_db_connection()
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
     if not conn:
         return None
     use_postgres = _is_postgres_configured()
@@ -584,6 +588,11 @@ def db_query(query, params=(), fetch=False):
             cursor and cursor.close()
         except Exception:
             pass
+        if close_conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
         try:
             conn.close()
         except Exception:
