@@ -2708,7 +2708,7 @@ def agregar_producto():
                     archivos = [f for f in os.listdir(carpeta_dueno) if f.lower().startswith(key.lower()) and f.endswith('.xlsx') and f != 'productos_manual.xlsx']
                     if archivos:
                         dueno_display = 'Ricky' if dueno == 'ricky' else 'Ferretería General'
-                        item = { 'key': key, 'nombre': key.title().replace('tools','Tools') + f' ({dueno_display})' }
+                        item = { 'key': key, 'nombre': key.title().replace('tools','Tools') + f' (Excel - {dueno_display})' }
                         if dueno == 'ricky':
                             proveedores_excel_ricky.append(item)
                         else:
@@ -2743,7 +2743,7 @@ def agregar_producto():
         if dueno_val == 'ricky' and base.lower() in PROVEEDOR_CONFIG:
             continue
         dueno_display = 'Ricky' if dueno_val == 'ricky' else 'Ferretería General'
-        item = { 'key': f"manual_{row['id']}_{dueno_val}", 'nombre': f"{base} ({dueno_display})" }
+        item = { 'key': f"manual_{row['id']}_{dueno_val}", 'nombre': f"{base} (Manual - {dueno_display})" }
         if dueno_val == 'ricky':
             proveedores_excel_ricky.append(item)
         else:
@@ -5464,9 +5464,12 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             parts = rest.split('_', 1)
             proveedor_id = int(parts[0])
             dueno_sel = parts[1] if len(parts) > 1 else None
+            print(f"🔍 [MANUAL] Buscando en proveedor manual ID {proveedor_id} para dueño {dueno_sel}")
             resultados_manuales = buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_sel)
             resultados.extend(resultados_manuales)
-        except (ValueError, TypeError):
+            print(f"🔍 [MANUAL] Encontrados {len(resultados_manuales)} resultados manuales")
+        except (ValueError, TypeError) as e:
+            print(f"❌ [MANUAL] Error procesando filtro manual: {e}")
             pass
     elif proveedor_filtro and proveedor_filtro in [k.lower() for k in PROVEEDOR_CONFIG.keys()]:
         # Obtener la clave original del diccionario (preservando mayúsculas)
