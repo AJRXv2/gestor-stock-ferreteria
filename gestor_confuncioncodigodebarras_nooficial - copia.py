@@ -11,7 +11,6 @@ try:
         HAS_POSTGRES = True
     except Exception:
         HAS_POSTGRES = False
-        HAS_POSTGRES = False  # Forzar desactivación de Postgres
 except ImportError as e:
     print(f"❌ Error de importación: {e}")
     print("💡 Instala las dependencias con: pip install flask pandas openpyxl")
@@ -422,8 +421,6 @@ def _is_postgres_configured() -> bool:
         return all(os.environ.get(k) for k in ['DATABASE_URL']) and HAS_POSTGRES
     except Exception:
         return False
-def _is_postgres_configured() -> bool:
-    return False  # Forzar desactivación de Postgres
 
 # --- Funciones de Base de Datos ---
 def get_db_connection():
@@ -455,16 +452,6 @@ def get_db_connection():
     except sqlite3.Error as e:
         print(f"Error de conexión a SQLite: {e}")
         return None
-    def get_db_connection():
-        """Crear conexión a la base de datos (solo SQLite)."""
-        try:
-            conn = sqlite3.connect(DATABASE_FILE)
-            conn.row_factory = sqlite3.Row
-            print(f"[INIT] Motor de base de datos activo: SQLite")
-            return conn
-        except sqlite3.Error as e:
-            print(f"Error de conexión a SQLite: {e}")
-            return None
 
 _SQL_INSERT_OR_IGNORE_REGEX = re.compile(r"INSERT\s+OR\s+IGNORE\s+INTO\s+([A-Za-z0-9_\.\"]+)", re.IGNORECASE)
 
