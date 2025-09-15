@@ -884,52 +884,8 @@ def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observacion
         print(f"Error al agregar producto manual: {e}")
         return False
 
-def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
-    """Buscar en la tabla productos_manual de la base de datos sin proveedor específico. Permite filtrar por dueño."""
-    resultados = []
-    try:
-        print(f"[DB DEBUG] Iniciando búsqueda en DB manual. Término: '{termino_busqueda}', Dueño: {dueno_filtro}")
-        
-        # Construir consulta SQL
-        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE 1=1"
-        params = []
-        
-        if dueno_filtro:
-            query += " AND LOWER(dueno) = LOWER(?)"
-            params.append(dueno_filtro)
-            
-        if termino_busqueda:
-            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
-            if tokens:
-                or_conditions = []
-                for token in tokens:
-                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?) OR LOWER(proveedor) LIKE LOWER(?))")
-                    params.extend([f"%{token}%", f"%{token}%", f"%{token}%"])
-                query += f" AND ({' AND '.join(or_conditions)})"
-        
-        # Ejecutar consulta
-        rows = db_query(query, tuple(params), fetch=True)
-        print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
-        
-        # Convertir resultados al formato esperado
-        for row in (rows or []):
-            precio_val, precio_error = parse_price(str(row.get('precio', '')))
-            resultados.append({
-                'codigo': row.get('codigo', ''),
-                'nombre': row.get('nombre', ''),
-                'precio': precio_val,
-                'precio_texto': str(row.get('precio', '')) if precio_error else None,
-                'proveedor': row.get('proveedor', ''),
-                'observaciones': row.get('observaciones', ''),
-                'dueno': row.get('dueno', ''),
-                'es_manual': True
-            })
-            
-    except Exception as e:
-        print(f"[DB ERROR] Error en buscar_en_excel_manual: {e}")
-        import traceback
-        print(traceback.format_exc())
-    return resultados
+# Note: a robust implementation of buscar_en_excel_manual is defined later in this file.
+# The earlier, malformed duplicate definition was removed to avoid syntax errors.
 
 def buscar_en_excel_manual_old(termino_busqueda, dueno_filtro=None):
     """Función antigua que buscaba en Excel - mantenida para referencia"""
@@ -2647,26 +2603,34 @@ def agregar_producto():
                 
                 # Aplicar filtro extremadamente estricto - solo el código exacto y proveedor
                 resultados_filtrados = []
+                filtro_norm = _normalizar_nombre_proveedor(proveedor_excel_filtro)
                 for r in resultados_excel:
                     r_codigo = str(r.get('codigo', '')).strip()
                     r_proveedor = str(r.get('proveedor', '')).lower().strip()
-                    r_archivo = str(r.get('archivo', '')).lower()
-                    
+                    r_proveedor_norm = _normalizar_nombre_proveedor(r_proveedor)
+                    r_archivo = str(r.get('archivo', '')).lower() if 'archivo' in r and r.get('archivo') else None
+
                     # Verificar código exacto
                     if r_codigo != termino_excel:
                         continue
-                        
-                    # Verificar que el proveedor coincida
-                    if r_proveedor != proveedor_excel_filtro.lower():
+
+                    # Verificar que el proveedor coincida (normalizado)
+                    if r_proveedor_norm != filtro_norm:
                         continue
-                        
-                    # Verificar que el nombre del archivo comience con el proveedor
-                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
+
+                    # Si es producto manual (sin 'archivo'), no filtrar por archivo
+                    if r_archivo is None:
+                        resultados_filtrados.append(r)
+                        print(f"✅ Coincidencia estricta manual: Código {r_codigo} en proveedor {r_proveedor}")
                         continue
-                        
+
+                    # Para productos de Excel, validar que el archivo empiece con el filtro normalizado
+                    if not r_archivo.startswith(filtro_norm):
+                        continue
+
                     resultados_filtrados.append(r)
                     print(f"✅ Coincidencia estricta: Código {r_codigo} en proveedor {r_proveedor}, archivo {r_archivo}")
-                
+
                 if resultados_filtrados:
                     resultados_excel = resultados_filtrados
                     print(f"📊 Filtrado a {len(resultados_excel)} coincidencias exactas de código")
@@ -2682,21 +2646,28 @@ def agregar_producto():
             # Si hay un proveedor seleccionado, aplicar filtro muy estricto
             if proveedor_excel_filtro:
                 resultados_filtrados = []
+                filtro_norm = _normalizar_nombre_proveedor(proveedor_excel_filtro)
                 for r in resultados_excel:
                     r_proveedor = str(r.get('proveedor', '')).lower().strip()
-                    r_archivo = str(r.get('archivo', '')).lower()
-                    
-                    # Asegurarse que coincida el proveedor 
-                    if r_proveedor != proveedor_excel_filtro.lower():
+                    r_proveedor_norm = _normalizar_nombre_proveedor(r_proveedor)
+                    r_archivo = str(r.get('archivo', '')).lower() if 'archivo' in r and r.get('archivo') else None
+
+                    # Verificar que el proveedor coincida (normalizado)
+                    if r_proveedor_norm != filtro_norm:
                         continue
-                    
-                    # Verificar que el nombre del archivo comience con el proveedor
-                    if not r_archivo.startswith(proveedor_excel_filtro.lower()):
-                        print(f"⚠️ Omitiendo resultado de {r_archivo}, no coincide con proveedor {proveedor_excel_filtro.lower()}")
+
+                    # Si es producto manual, añadir directamente
+                    if r_archivo is None:
+                        resultados_filtrados.append(r)
                         continue
-                        
+
+                    # Para productos de Excel, verificar que el archivo empiece con el filtro
+                    if not r_archivo.startswith(filtro_norm):
+                        print(f"⚠️ Omitiendo resultado de {r_archivo}, no coincide con proveedor {filtro_norm}")
+                        continue
+
                     resultados_filtrados.append(r)
-                
+
                 resultados_excel = resultados_filtrados
         
         # Aplicar deduplicación para mostrar resultados únicos por producto Y proveedor
@@ -2723,6 +2694,14 @@ def agregar_producto():
         
         # Log simple sin mostrar datos detallados
         print(f"✅ Deduplicación completada: {len(resultados_excel)} productos únicos (de {resultados_previos} resultados originales)")
+        # Debug: mostrar si hay productos manuales luego de deduplicación
+        try:
+            manuals_after = [r for r in resultados_excel if r.get('es_manual')]
+            print(f"[DEBUG] manuals_after count: {len(manuals_after)}")
+            for idx, m in enumerate(manuals_after[:5]):
+                print(f"[DEBUG] manual_after #{idx+1}: codigo={m.get('codigo')} proveedor={m.get('proveedor')} nombre={m.get('nombre')}")
+        except Exception:
+            print("[DEBUG] Error al volcar manuals_after")
     
     # Obtener proveedores manuales para el selector
     proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True) or []
@@ -2809,6 +2788,16 @@ def agregar_producto():
     selected_ricky = proveedor_excel_filtro if any(p['key'] == proveedor_excel_filtro for p in proveedores_excel_ricky) else ''
     selected_fg = proveedor_excel_filtro if any(p['key'] == proveedor_excel_filtro for p in proveedores_excel_fg) else ''
 
+    # Debug: volcar primeros resultados para inspección en logs (ayuda a verificar productos manuales)
+    try:
+        dump_count = min(8, len(resultados_excel)) if resultados_excel else 0
+        print(f"[DEBUG] resultados_excel count: {len(resultados_excel) if resultados_excel is not None else 0} - mostrando {dump_count} entradas:")
+        for i in range(dump_count):
+            item = resultados_excel[i]
+            print(f"[DEBUG] #{i+1} codigo={item.get('codigo')} proveedor={item.get('proveedor')} archivo={item.get('archivo') if 'archivo' in item else None} es_manual={item.get('es_manual')} nombre={item.get('nombre')}")
+    except Exception as _:
+        print("[DEBUG] Error al volcar resultados_excel")
+
     return render_template('agregar.html', 
                          fecha_actual=datetime.now().strftime('%Y-%m-%d'),
                          proveedores_excel_ricky=proveedores_excel_ricky,
@@ -2868,6 +2857,30 @@ def procesar_producto():
 def productos_manual():
     proveedores = db_query("SELECT id, nombre FROM proveedores_manual ORDER BY nombre", fetch=True)
     return render_template('productos_manual.html', proveedores=proveedores)
+
+
+@app.route('/debug/resultados_excel', methods=['GET'])
+@login_required
+def debug_resultados_excel():
+    """Endpoint temporal para devolver los resultados de la búsqueda en Excel/manual como JSON.
+    Usa los mismos parámetros query que la vista `agregar_producto`.
+    """
+    try:
+        termino_excel = request.args.get('busqueda_excel', '')
+        proveedor_excel_ricky = request.args.get('proveedor_excel_ricky', '')
+        proveedor_excel_fg = request.args.get('proveedor_excel_fg', '')
+        proveedor_excel_filtro = proveedor_excel_ricky or proveedor_excel_fg or request.args.get('proveedor_excel', '')
+        filtro_excel = request.args.get('filtro_excel', '')
+        solo_ricky = True if request.args.get('solo_ricky') else False
+        solo_fg = True if request.args.get('solo_fg') else False
+
+        resultados = buscar_en_excel(termino_excel, proveedor_excel_filtro, filtro_excel, solo_ricky=solo_ricky, solo_fg=solo_fg)
+        return jsonify({'success': True, 'count': len(resultados), 'resultados': resultados})
+    except Exception as e:
+        import traceback
+        print(f"[DEBUG ENDPOINT] Error: {e}")
+        print(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/carrito')
 @login_required
@@ -5512,7 +5525,12 @@ def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=No
             print(f"🔍 [MANUAL] Buscando en proveedor manual ID {proveedor_id} para dueño {dueno_sel}")
             resultados_manuales = buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_sel)
             resultados.extend(resultados_manuales)
-            print(f"🔍 [MANUAL] Encontrados {len(resultados_manuales)} resultados manuales")
+            try:
+                print(f"🔍 [MANUAL] Encontrados {len(resultados_manuales)} resultados manuales")
+                if resultados_manuales:
+                    print(f"🔍 [MANUAL] sample manual[0]: {resultados_manuales[0]}")
+            except Exception:
+                print("🔍 [MANUAL] Error al volcar muestra de resultados_manuales")
         except (ValueError, TypeError) as e:
             print(f"❌ [MANUAL] Error procesando filtro manual: {e}")
             pass
@@ -5792,135 +5810,7 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
         print(traceback.format_exc())
         return []
 
-    # La línea mal indentada se elimina. Si se requiere esa lógica, debe estar dentro de un bucle o función, por ejemplo:
-    # for idx, row in enumerate(df.iterrows()):
-    #     codigo = row.get('Codigo', '')
-    #     if termino_busqueda.lower() in codigo:
-    #         print(f"[EXCEL DEBUG] ¡ENCONTRADO! Fila {idx}, Código: {row.get('Codigo', '')}, Proveedor: {row.get('Proveedor', '')}, Dueño: {row.get('Dueno', '')}")
-        
-        # Verificar si está en mayúsculas o minúsculas
-        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre}': {(df['Proveedor'] == proveedor_nombre).sum()} coincidencias")
-        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.upper()}': {(df['Proveedor'] == proveedor_nombre.upper()).sum()} coincidencias")
-        print(f"[EXCEL DEBUG] Búsqueda exacta de '{proveedor_nombre.lower()}': {(df['Proveedor'] == proveedor_nombre.lower()).sum()} coincidencias")
-        
-        # Búsqueda específica: Si buscamos un producto exacto por código, lo buscamos en todo el Excel
-        if termino_busqueda and len(termino_busqueda.strip()) >= 3 and not termino_busqueda.strip().isdigit():
-            exact_matches = df[df['Codigo'].astype(str).str.lower() == termino_busqueda.lower()]
-            if len(exact_matches) > 0:
-                print(f"[EXCEL DEBUG] ¡ENCONTRAMOS CÓDIGO EXACTO! '{termino_busqueda}' - {len(exact_matches)} coincidencias")
-                for _, row in exact_matches.iterrows():
-                    precio_val, precio_error = parse_price(row.get('Precio', ''))
-                    resultado = {
-                        'codigo': row.get('Codigo', ''),
-                        'nombre': row.get('Nombre', ''),
-                        'precio': precio_val,
-                        'precio_texto': str(row.get('Precio', '')) if precio_error else None,
-                        'proveedor': row.get('Proveedor', ''),
-                        'observaciones': row.get('Observaciones', ''),
-                        'dueno': row.get('Dueno', ''),
-                        'es_manual': True,
-                        'matchExacto': True
-                    }
-                    resultados.append(resultado)
-        
-        # Usar una búsqueda más flexible que incluya coincidencias parciales y comparaciones insensibles a mayúsculas/minúsculas
-        # Esta es una búsqueda más agresiva que la original
-        filtered_df = df[df['Proveedor'].astype(str).str.lower().str.contains(proveedor_nombre.lower(), na=False)]
-        print(f"[EXCEL DEBUG] Después de filtrar por proveedor '{proveedor_nombre}' (búsqueda flexible): {len(filtered_df)} filas")
-        
-        # Si no hay resultados después de filtrar por proveedor pero hay un filtro de dueño,
-        # ignoramos el filtro de proveedor y solo filtramos por dueño
-        if len(filtered_df) == 0:
-            print(f"[EXCEL DEBUG] No se encontraron productos para el proveedor '{proveedor_nombre}' - ignorando filtro de proveedor")
-            # CAMBIO: Usamos el DataFrame original sin filtrar por proveedor siempre que no hay resultados
-            df_for_dueno = df
-            # Si hay término de búsqueda, buscamos específicamente ese término
-            if termino_busqueda:
-                print(f"[EXCEL DEBUG] Buscando específicamente el término '{termino_busqueda}' en todo el Excel:")
-                for idx, row in df.iterrows():
-                    codigo = str(row.get('Codigo', '')).lower()
-                    nombre = str(row.get('Nombre', '')).lower()
-                    if termino_busqueda.lower() in codigo or termino_busqueda.lower() in nombre:
-                        print(f"[EXCEL DEBUG] ¡ENCONTRADO SIN FILTRO DE PROVEEDOR! Fila {idx}, Código: {row.get('Codigo', '')}, Nombre: {row.get('Nombre', '')}")
-        else:
-            # Si encontramos productos con el proveedor, continuamos normalmente
-            df_for_dueno = filtered_df
-        
-        # Aplicamos el filtro de dueño si existe
-        if dueno_filtro:
-            print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
-            df = df_for_dueno[df_for_dueno['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-            print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
-        else:
-            df = df_for_dueno
-        
-        # Filtrar por término de búsqueda si existe (soporta combinaciones "palabra1 palabra2")
-        if termino_busqueda and len(resultados) == 0:  # Solo filtrar si no tenemos resultados exactos
-            print(f"[EXCEL DEBUG] Filtrando por término de búsqueda: {termino_busqueda}")
-            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
-            if tokens:
-                mask_all = pd.Series(True, index=df.index)
-                for tok in tokens:
-                    mask_tok = (
-                        df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
-                        df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
-                        df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
-                    )
-                    mask_all &= mask_tok
-                df = df[mask_all]
-                print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(df)} filas")
-        
-        # Si después de todo esto no hay resultados, pero hay un término de búsqueda,
-        # volvemos a buscar en todo el Excel sin filtro de proveedor
-        if len(df) == 0 and len(resultados) == 0 and termino_busqueda:
-            print(f"[EXCEL DEBUG] No se encontraron resultados - buscando en todo el Excel sin filtros")
-            all_df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-            # Normalizar nombres de columnas
-            all_df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
-            
-            # Filtrar solo por término de búsqueda
-            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
-            if tokens:
-                mask_all = pd.Series(True, index=all_df.index)
-                for tok in tokens:
-                    mask_tok = (
-                        all_df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
-                        all_df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
-                        all_df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
-                    )
-                    mask_all &= mask_tok
-                all_df = all_df[mask_all]
-                print(f"[EXCEL DEBUG] Resultados sin filtro de proveedor: {len(all_df)} filas")
-                
-                # Filtrar por dueño si existe
-                if dueno_filtro:
-                    all_df = all_df[all_df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-                    print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(all_df)} filas")
-                
-                # Usar estos resultados
-                df = all_df
-        
-        print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
-        
-        # Convertir a lista de diccionarios
-        for _, row in df.iterrows():
-            precio_val, precio_error = parse_price(row.get('Precio', ''))
-            resultado = {
-                'codigo': row.get('Codigo', ''),
-                'nombre': row.get('Nombre', ''),
-                'precio': precio_val,
-                'precio_texto': str(row.get('Precio', '')) if precio_error else None,
-                'proveedor': row.get('Proveedor', ''),
-                'observaciones': row.get('Observaciones', ''),
-                'dueno': row.get('Dueno', ''),
-                'es_manual': True
-            }
-            resultados.append(resultado)
-    
-    except Exception as e:
-        print(f"Error al buscar en Excel manual por proveedor: {e}")
-    
-    return resultados
+    # (removido) bloque duplicado/colgado que fue trasladado a implementaciones correctas más abajo.
 
 def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveedor, dueno_filtro=None):
     resultados = []
@@ -5946,6 +5836,11 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
         print(f"[DB DEBUG] Params: {params}")
         rows = db_query(query, tuple(params), fetch=True)
         print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
+        try:
+            if rows and len(rows) > 0:
+                print(f"[DB DEBUG] sample row 0: {rows[0]}")
+        except Exception:
+            print("[DB DEBUG] Error al volcar sample de rows")
         for row in (rows or []):
             precio_val, precio_error = parse_price(str(row.get('precio', '')))
             resultados.append({
@@ -5991,6 +5886,11 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
         # Ejecutar consulta
         rows = db_query(query, tuple(params), fetch=True)
         print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
+        try:
+            if rows and len(rows) > 0:
+                print(f"[DB DEBUG] sample row 0: {rows[0]}")
+        except Exception:
+            print("[DB DEBUG] Error al volcar sample de rows")
         
         # Convertir resultados al formato esperado
         for row in (rows or []):
@@ -6010,7 +5910,6 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
         print(f"[DB ERROR] Error en buscar_en_excel_manual: {e}")
         import traceback
         print(traceback.format_exc())
-    return resultados
     return resultados
     
 def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None):

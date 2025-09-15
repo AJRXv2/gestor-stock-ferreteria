@@ -1,617 +1,336 @@
-2025-09-15T09:49:10.000000000Z [inf]  Starting Container
-2025-09-15T09:49:11.355610067Z [err]  [2025-09-15 09:49:10 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:11.355614145Z [err]  [2025-09-15 09:49:10 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:11.355618715Z [err]  [2025-09-15 09:49:10 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:11.355626695Z [err]  [2025-09-15 09:49:10 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:11.355632180Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:11.355637605Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:11.355642963Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:11.355649337Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:11.355658417Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:11.355663331Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:11.355669651Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:11.355673540Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:11.355677980Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:11.355684970Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:11.355689059Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:11.355693563Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:11.355698343Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:11.355705515Z [err]  [2025-09-15 09:49:10 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:11.355711167Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:11.355715292Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:11.355750839Z [err]      worker.init_process()
-2025-09-15T09:49:11.355754456Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:11.355759024Z [err]      self.load_wsgi()
-2025-09-15T09:49:11.355764044Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:11.355768525Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:11.355774390Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:11.356093512Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:11.356097456Z [err]      self.callable = self.load()
-2025-09-15T09:49:11.356104737Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:11.356109451Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:11.356113854Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:11.356117587Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:11.356121740Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:11.356125835Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:11.356130477Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:11.356135944Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:11.356140731Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:11.356144611Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:11.356149924Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:11.356153225Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:11.356156921Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:11.356160706Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:11.356167295Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:11.356170805Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:11.356174235Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:11.356177809Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:11.356182680Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:11.356186416Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:11.356190248Z [err]      from gestor import app as application
-2025-09-15T09:49:11.356194623Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:11.356199120Z [err]      for d in duenos_manual:
-2025-09-15T09:49:11.356202865Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:11.356207782Z [err]  [2025-09-15 09:49:10 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:11.356212009Z [err]  [2025-09-15 09:49:10 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:11.356217896Z [err]  [2025-09-15 09:49:10 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:11.356221637Z [err]  [2025-09-15 09:49:10 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:12.093557854Z [err]  [2025-09-15 09:49:12 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:12.093565089Z [err]  [2025-09-15 09:49:12 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:12.093569870Z [err]  [2025-09-15 09:49:12 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:12.097134656Z [err]  [2025-09-15 09:49:12 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:12.104492828Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:12.137732209Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:12.140587915Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:12.140596477Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:12.140603574Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:12.144299433Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:12.144304704Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:12.161795658Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:12.161801935Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:12.164753407Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:12.170710209Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:12.173928118Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:12.177455113Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:12.261765208Z [err]  [2025-09-15 09:49:12 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:12.261772833Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:12.261781880Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:12.261792029Z [err]      worker.init_process()
-2025-09-15T09:49:12.261799134Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:12.261804717Z [err]      self.load_wsgi()
-2025-09-15T09:49:12.261811043Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:12.261817305Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:12.261824011Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:12.261829683Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:12.261834876Z [err]      self.callable = self.load()
-2025-09-15T09:49:12.261841703Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:12.261847944Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:12.261854041Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:12.261860098Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:12.261866017Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:12.261871845Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:12.261877332Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:12.261884789Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:12.261892143Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:12.261898011Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:12.261903474Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:12.261909505Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:12.261916181Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:12.261922359Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:12.261928315Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:12.261933376Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:12.261941123Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:12.261947487Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:12.261953761Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:12.261960422Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:12.261965974Z [err]      from gestor import app as application
-2025-09-15T09:49:12.261971477Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:12.261977792Z [err]      for d in duenos_manual:
-2025-09-15T09:49:12.261983854Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:12.261990478Z [err]  [2025-09-15 09:49:12 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:12.301039944Z [err]  [2025-09-15 09:49:12 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:12.301047306Z [err]  [2025-09-15 09:49:12 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:12.301052586Z [err]  [2025-09-15 09:49:12 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:14.301238929Z [err]  [2025-09-15 09:49:14 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:14.301248171Z [err]  [2025-09-15 09:49:14 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:14.301254762Z [err]  [2025-09-15 09:49:14 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:14.304641410Z [err]  [2025-09-15 09:49:14 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:14.365014639Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:14.403473336Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:14.407458882Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:14.407501530Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:14.407514870Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:14.411303616Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:14.411309198Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:14.425690301Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:14.425698213Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:14.432782598Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:14.436336714Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:14.440193838Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:14.440409208Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:14.535686154Z [err]  [2025-09-15 09:49:14 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:14.535693426Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:14.535698608Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:14.535703765Z [err]      worker.init_process()
-2025-09-15T09:49:14.535709018Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:14.535714060Z [err]      self.load_wsgi()
-2025-09-15T09:49:14.535718608Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:14.535723354Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:14.535727945Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:14.535733126Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:14.535737202Z [err]      self.callable = self.load()
-2025-09-15T09:49:14.535741299Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:14.535745095Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:14.535749128Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:14.535754185Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:14.535758536Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:14.535765261Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:14.535770701Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:14.535776035Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:14.535781720Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:14.535797842Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:14.535802863Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:14.535808649Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:14.535814411Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:14.535821235Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:14.535829208Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:14.535834839Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:14.535840358Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:14.535845152Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:14.535849531Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:14.535854972Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:14.535859449Z [err]      from gestor import app as application
-2025-09-15T09:49:14.535863848Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:14.535869953Z [err]      for d in duenos_manual:
-2025-09-15T09:49:14.535873921Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:14.535878223Z [err]  [2025-09-15 09:49:14 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:14.577949903Z [err]  [2025-09-15 09:49:14 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:14.577954816Z [err]  [2025-09-15 09:49:14 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:14.577958918Z [err]  [2025-09-15 09:49:14 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:16.157481210Z [err]  [2025-09-15 09:49:16 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:16.157489025Z [err]  [2025-09-15 09:49:16 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:16.157494284Z [err]  [2025-09-15 09:49:16 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:16.161296184Z [err]  [2025-09-15 09:49:16 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:16.172475537Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:16.203746294Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:16.203753396Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:16.203759923Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:16.203766862Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:16.207498544Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:16.207507188Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:16.227942734Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:16.227949224Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:16.234127262Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:16.237937766Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:16.241726531Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:16.245343299Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:16.370986017Z [err]  [2025-09-15 09:49:16 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:16.370990534Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:16.370998607Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:16.371003692Z [err]      worker.init_process()
-2025-09-15T09:49:16.371007897Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:16.371011893Z [err]      self.load_wsgi()
-2025-09-15T09:49:16.371015443Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:16.371019792Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:16.371023795Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:16.371027795Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:16.371036078Z [err]      self.callable = self.load()
-2025-09-15T09:49:16.371041501Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:16.371046708Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:16.371051255Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:16.371055532Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:16.371061054Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:16.371064739Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:16.371068326Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:16.371072299Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:16.371076421Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:16.371080070Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:16.371159660Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:16.371163904Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:16.371167786Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:16.371172843Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:16.371176726Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:16.371181571Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:16.371186044Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:16.371190656Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:16.371196811Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:16.371201506Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:16.371233933Z [err]      from gestor import app as application
-2025-09-15T09:49:16.371239841Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:16.371244706Z [err]      for d in duenos_manual:
-2025-09-15T09:49:16.371250339Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:16.371254701Z [err]  [2025-09-15 09:49:16 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:16.411042498Z [err]  [2025-09-15 09:49:16 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:16.411051052Z [err]  [2025-09-15 09:49:16 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:16.411056439Z [err]  [2025-09-15 09:49:16 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:17.834079905Z [err]  [2025-09-15 09:49:17 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:17.834085637Z [err]  [2025-09-15 09:49:17 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:17.834091707Z [err]  [2025-09-15 09:49:17 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:17.836713709Z [err]  [2025-09-15 09:49:17 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:17.843743149Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:17.934055437Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:17.937028794Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:17.937036194Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:17.937044586Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:17.940239545Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:17.940243844Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:17.958007042Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:17.958011326Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:17.961605371Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:17.969409865Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:17.972765421Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:17.976358333Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:18.070364814Z [err]  [2025-09-15 09:49:18 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:18.070371451Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:18.070379082Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:18.070384800Z [err]      worker.init_process()
-2025-09-15T09:49:18.070391096Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:18.070397214Z [err]      self.load_wsgi()
-2025-09-15T09:49:18.070402542Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:18.070407441Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:18.070412411Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:18.070417384Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:18.070423223Z [err]      self.callable = self.load()
-2025-09-15T09:49:18.070428544Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:18.070433146Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:18.070437939Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:18.070442758Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:18.070448377Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:18.070454368Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:18.070459313Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:18.070626924Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:18.070634501Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:18.070640550Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:18.070646584Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:18.070654100Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:18.070659257Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:18.070664357Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:18.070669750Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:18.070675766Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:18.070680801Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:18.070686667Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:18.070691590Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:18.070696831Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:18.070704024Z [err]      from gestor import app as application
-2025-09-15T09:49:18.070711050Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:18.070716219Z [err]      for d in duenos_manual:
-2025-09-15T09:49:18.070722244Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:18.070728428Z [err]  [2025-09-15 09:49:18 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:18.116323087Z [err]  [2025-09-15 09:49:18 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:18.116328998Z [err]  [2025-09-15 09:49:18 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:18.116334117Z [err]  [2025-09-15 09:49:18 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:19.633322463Z [err]  [2025-09-15 09:49:19 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:19.660593190Z [err]  [2025-09-15 09:49:19 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:19.660602606Z [err]  [2025-09-15 09:49:19 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:19.660615733Z [err]  [2025-09-15 09:49:19 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:19.661350843Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:19.676933106Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:19.680981759Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:19.680986279Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:19.680992852Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:19.684535177Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:19.684540015Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:19.699753925Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:19.699759830Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:19.706613415Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:19.709985674Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:19.713576806Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:19.717073309Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:19.830581036Z [err]  [2025-09-15 09:49:19 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:19.830585058Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:19.830589191Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:19.830596207Z [err]      worker.init_process()
-2025-09-15T09:49:19.830600418Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:19.830604494Z [err]      self.load_wsgi()
-2025-09-15T09:49:19.830609504Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:19.830613442Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:19.830708147Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:19.830713031Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:19.830717023Z [err]      self.callable = self.load()
-2025-09-15T09:49:19.830720745Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:19.830724385Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:19.830728187Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:19.830732961Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:19.830736912Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:19.830741015Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:19.830744968Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:19.830749633Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:19.830754481Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:19.830758957Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:19.830763211Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:19.830767466Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:19.830771482Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:19.830776328Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:19.830781881Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:19.830786789Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:19.830790461Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:19.830794119Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:19.830797721Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:19.830802001Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:19.830806781Z [err]      from gestor import app as application
-2025-09-15T09:49:19.830810946Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:19.830814985Z [err]      for d in duenos_manual:
-2025-09-15T09:49:19.830819120Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:19.830824187Z [err]  [2025-09-15 09:49:19 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:19.891547660Z [err]  [2025-09-15 09:49:19 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:19.891552842Z [err]  [2025-09-15 09:49:19 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:19.891557178Z [err]  [2025-09-15 09:49:19 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:21.612888103Z [err]  [2025-09-15 09:49:21 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:21.612899337Z [err]  [2025-09-15 09:49:21 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:21.612905906Z [err]  [2025-09-15 09:49:21 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:21.616367402Z [err]  [2025-09-15 09:49:21 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:21.623596037Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:21.716234391Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:21.716242005Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:21.716247156Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:21.716253302Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:21.723747271Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:21.723753237Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:21.738177737Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:21.738186787Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:21.742638253Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:21.746539176Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:21.749792988Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:21.756501847Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:21.842498581Z [err]  [2025-09-15 09:49:21 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:21.842503591Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:21.842509078Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:21.842514270Z [err]      worker.init_process()
-2025-09-15T09:49:21.842519767Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:21.842525828Z [err]      self.load_wsgi()
-2025-09-15T09:49:21.842533413Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:21.842540776Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:21.842547518Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:21.842552614Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:21.842558627Z [err]      self.callable = self.load()
-2025-09-15T09:49:21.842565082Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:21.842569678Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:21.842575034Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:21.842579572Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:21.842584989Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:21.842590287Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:21.842595051Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:21.842600135Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:21.842605532Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:21.842611279Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:21.842629822Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:21.842635898Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:21.842641304Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:21.842646541Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:21.842652067Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:21.842657643Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:21.842663327Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:21.842670473Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:21.842675690Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:21.842680157Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:21.842686377Z [err]      from gestor import app as application
-2025-09-15T09:49:21.842691555Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:21.842696903Z [err]      for d in duenos_manual:
-2025-09-15T09:49:21.842701719Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:21.842708243Z [err]  [2025-09-15 09:49:21 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:21.886826111Z [err]  [2025-09-15 09:49:21 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:21.886830025Z [err]  [2025-09-15 09:49:21 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:21.886835346Z [err]  [2025-09-15 09:49:21 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:23.413729978Z [err]  [2025-09-15 09:49:23 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:23.414191031Z [err]  [2025-09-15 09:49:23 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:23.414200993Z [err]  [2025-09-15 09:49:23 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:23.420252711Z [err]  [2025-09-15 09:49:23 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:23.427277003Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:23.463323996Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:23.463330261Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:23.463337079Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:23.463344159Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:23.465783022Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:23.465789764Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:23.478849192Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:23.478854005Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:23.486756045Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:23.498210583Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:23.502536820Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:23.506092069Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:23.592182327Z [err]  [2025-09-15 09:49:23 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:23.592187401Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:23.592193543Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:23.592197965Z [err]      worker.init_process()
-2025-09-15T09:49:23.592202331Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:23.592206507Z [err]      self.load_wsgi()
-2025-09-15T09:49:23.592210784Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:23.592215177Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:23.592219071Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:23.592223591Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:23.592229476Z [err]      self.callable = self.load()
-2025-09-15T09:49:23.592234093Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:23.592238957Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:23.592243002Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:23.592247219Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:23.592251330Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:23.592255247Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:23.592259984Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:23.592265518Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:23.592270384Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:23.592274510Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:23.592278409Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:23.592283342Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:23.592337709Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:23.592342905Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:23.592347647Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:23.592351717Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:23.592356530Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:23.592361541Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:23.592365839Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:23.592370222Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:23.592373968Z [err]      from gestor import app as application
-2025-09-15T09:49:23.592377869Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:23.592382816Z [err]      for d in duenos_manual:
-2025-09-15T09:49:23.592386731Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:23.592390981Z [err]  [2025-09-15 09:49:23 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:23.625151514Z [err]  [2025-09-15 09:49:23 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:23.625160111Z [err]  [2025-09-15 09:49:23 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:23.625167298Z [err]  [2025-09-15 09:49:23 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:25.192463177Z [err]  [2025-09-15 09:49:25 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:25.192471085Z [err]  [2025-09-15 09:49:25 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:25.192479580Z [err]  [2025-09-15 09:49:25 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:25.196788891Z [err]  [2025-09-15 09:49:25 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:25.204565312Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:25.296167708Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:25.296181921Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:25.296189568Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:25.296195603Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:25.299933741Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:25.299939789Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:25.316632560Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:25.316638317Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:25.320391085Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:25.329658661Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:25.329665500Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:25.381946134Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:25.418448248Z [err]  [2025-09-15 09:49:25 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:25.418452432Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:25.418456480Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:25.418460502Z [err]      worker.init_process()
-2025-09-15T09:49:25.418465021Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:25.418469256Z [err]      self.load_wsgi()
-2025-09-15T09:49:25.418472941Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:25.418476824Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:25.418480463Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:25.418486079Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:25.418490519Z [err]      self.callable = self.load()
-2025-09-15T09:49:25.418496037Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:25.418500857Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:25.418509573Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:25.418513300Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:25.418517847Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:25.418521688Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:25.418525663Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:25.418529938Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:25.418534076Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:25.418538805Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:25.418543332Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:25.418547369Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:25.418551177Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:25.418554728Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:25.418559054Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:25.418563585Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:25.418567863Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:25.418571637Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:25.418575472Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:25.418579096Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:25.418584739Z [err]      from gestor import app as application
-2025-09-15T09:49:25.418588776Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:25.418592391Z [err]      for d in duenos_manual:
-2025-09-15T09:49:25.418598660Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:25.418603962Z [err]  [2025-09-15 09:49:25 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:25.459945615Z [err]  [2025-09-15 09:49:25 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:25.459949649Z [err]  [2025-09-15 09:49:25 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:25.459954465Z [err]  [2025-09-15 09:49:25 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:26.854736355Z [err]  [2025-09-15 09:49:26 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:26.854741883Z [err]  [2025-09-15 09:49:26 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:26.854749345Z [err]  [2025-09-15 09:49:26 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:26.858485812Z [err]  [2025-09-15 09:49:26 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:26.870118412Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:26.904334189Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:26.904340144Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:26.904345820Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:26.904353217Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:26.908188973Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:26.908194546Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:26.925717134Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:26.925722854Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:26.928923687Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:26.932895567Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:26.939987771Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:26.943338784Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:27.036472738Z [err]  [2025-09-15 09:49:27 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:27.036478413Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:27.036482842Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:27.036487349Z [err]      worker.init_process()
-2025-09-15T09:49:27.036491542Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:27.036496025Z [err]      self.load_wsgi()
-2025-09-15T09:49:27.036501807Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:27.036506041Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:27.036510138Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:27.036514415Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:27.036518425Z [err]      self.callable = self.load()
-2025-09-15T09:49:27.036523317Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:27.036527237Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:27.036531099Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:27.036535449Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:27.036539251Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:27.036543712Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:27.036548177Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:27.036553631Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:27.036559278Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:27.036564581Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:27.036575730Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:27.036580838Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:27.036586697Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:27.036591834Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:27.036597681Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:27.036605468Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:27.036611068Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:27.036616671Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:27.036622055Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:27.036629914Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:27.036635387Z [err]      from gestor import app as application
-2025-09-15T09:49:27.036641025Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:27.036646177Z [err]      for d in duenos_manual:
-2025-09-15T09:49:27.036652010Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:27.036657633Z [err]  [2025-09-15 09:49:27 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:27.069603495Z [err]  [2025-09-15 09:49:27 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:27.072953169Z [err]  [2025-09-15 09:49:27 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:27.072959267Z [err]  [2025-09-15 09:49:27 +0000] [1] [ERROR] Reason: Worker failed to boot.
-2025-09-15T09:49:28.600877473Z [err]  [2025-09-15 09:49:28 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2025-09-15T09:49:28.600885124Z [err]  [2025-09-15 09:49:28 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-2025-09-15T09:49:28.600892615Z [err]  [2025-09-15 09:49:28 +0000] [1] [INFO] Using worker: sync
-2025-09-15T09:49:28.604225866Z [err]  [2025-09-15 09:49:28 +0000] [4] [INFO] Booting worker with pid: 4
-2025-09-15T09:49:28.613804959Z [inf]  Ejecutando migraciones de base de datos...
-2025-09-15T09:49:28.710595336Z [inf]  [INFO] Tabla schema_migrations verificada o creada
-2025-09-15T09:49:28.714530093Z [inf]  No hay migraciones pendientes que aplicar.
-2025-09-15T09:49:28.714543758Z [inf]  Migraciones aplicadas con éxito
-2025-09-15T09:49:28.714551804Z [inf]  Ejecutando diagnóstico de base de datos...
-2025-09-15T09:49:28.717844984Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
-2025-09-15T09:49:28.717855286Z [inf]  Motor: PostgreSQL
-2025-09-15T09:49:28.735322908Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
-2025-09-15T09:49:28.735331371Z [inf]  [OK] Todas las tablas requeridas existen
-2025-09-15T09:49:28.739171153Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
-2025-09-15T09:49:28.743535073Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
-2025-09-15T09:49:28.752782001Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
-2025-09-15T09:49:28.752785960Z [inf]  === DIAGNÓSTICO COMPLETADO ===
-2025-09-15T09:49:28.847878127Z [err]  [2025-09-15 09:49:28 +0000] [4] [ERROR] Exception in worker process
-2025-09-15T09:49:28.847884403Z [err]  Traceback (most recent call last):
-2025-09-15T09:49:28.847889160Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 609, in spawn_worker
-2025-09-15T09:49:28.847892945Z [err]      worker.init_process()
-2025-09-15T09:49:28.847897616Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 134, in init_process
-2025-09-15T09:49:28.847903106Z [err]      self.load_wsgi()
-2025-09-15T09:49:28.847907447Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 146, in load_wsgi
-2025-09-15T09:49:28.847911907Z [err]      self.wsgi = self.app.wsgi()
-2025-09-15T09:49:28.847916186Z [err]                  ^^^^^^^^^^^^^^^
-2025-09-15T09:49:28.847920625Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
-2025-09-15T09:49:28.847924865Z [err]      self.callable = self.load()
-2025-09-15T09:49:28.847928840Z [err]                      ^^^^^^^^^^^
-2025-09-15T09:49:28.847932768Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
-2025-09-15T09:49:28.847937264Z [err]      return self.load_wsgiapp()
-2025-09-15T09:49:28.847941540Z [err]             ^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:28.847948264Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-2025-09-15T09:49:28.847953624Z [err]      return util.import_app(self.app_uri)
-2025-09-15T09:49:28.847958969Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:28.847965205Z [err]    File "/opt/venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
-2025-09-15T09:49:28.847970845Z [err]      mod = importlib.import_module(module)
-2025-09-15T09:49:28.847976235Z [err]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:28.847981639Z [err]    File "/root/.nix-profile/lib/python3.11/importlib/__init__.py", line 126, in import_module
-2025-09-15T09:49:28.847985756Z [err]      return _bootstrap._gcd_import(name[level:], package, level)
-2025-09-15T09:49:28.847989418Z [err]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2025-09-15T09:49:28.847993527Z [err]    File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-2025-09-15T09:49:28.847998678Z [err]    File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-2025-09-15T09:49:28.848002682Z [err]    File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-2025-09-15T09:49:28.848006665Z [err]    File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-2025-09-15T09:49:28.848010658Z [err]    File "<frozen importlib._bootstrap_external>", line 940, in exec_module
-2025-09-15T09:49:28.848014628Z [err]    File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-2025-09-15T09:49:28.848019271Z [err]    File "/app/wsgi.py", line 43, in <module>
-2025-09-15T09:49:28.848023196Z [err]      from gestor import app as application
-2025-09-15T09:49:28.848027003Z [err]    File "/app/gestor.py", line 5534
-2025-09-15T09:49:28.848031486Z [err]      for d in duenos_manual:
-2025-09-15T09:49:28.848035597Z [err]  IndentationError: unexpected indent
-2025-09-15T09:49:28.848041366Z [err]  [2025-09-15 09:49:28 +0000] [4] [INFO] Worker exiting (pid: 4)
-2025-09-15T09:49:28.890912134Z [err]  [2025-09-15 09:49:28 +0000] [1] [ERROR] Worker (pid:4) exited with code 3
-2025-09-15T09:49:28.890924110Z [err]  [2025-09-15 09:49:28 +0000] [1] [ERROR] Shutting down: Master
-2025-09-15T09:49:28.890934495Z [err]  [2025-09-15 09:49:28 +0000] [1] [ERROR] Reason: Worker failed to boot.
+2025-09-15T11:44:46.000000000Z [inf]  Starting Container
+2025-09-15T11:44:47.713760643Z [err]  [2025-09-15 11:44:46 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2025-09-15T11:44:47.713767751Z [err]  [2025-09-15 11:44:46 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+2025-09-15T11:44:47.713778292Z [err]  [2025-09-15 11:44:46 +0000] [1] [INFO] Using worker: sync
+2025-09-15T11:44:47.713787262Z [err]  [2025-09-15 11:44:46 +0000] [4] [INFO] Booting worker with pid: 4
+2025-09-15T11:44:47.713794455Z [inf]  Ejecutando migraciones de base de datos...
+2025-09-15T11:44:47.713801385Z [inf]  [INFO] Tabla schema_migrations verificada o creada
+2025-09-15T11:44:47.713808457Z [inf]  No hay migraciones pendientes que aplicar.
+2025-09-15T11:44:47.713815786Z [inf]  Migraciones aplicadas con éxito
+2025-09-15T11:44:47.713823839Z [inf]  Ejecutando diagnóstico de base de datos...
+2025-09-15T11:44:47.713834160Z [inf]  === DIAGNÓSTICO DE BASE DE DATOS ===
+2025-09-15T11:44:47.713841007Z [inf]  Motor: PostgreSQL
+2025-09-15T11:44:47.713848598Z [inf]  Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos, notificaciones, proveedores_meta, proveedores_eliminados, users
+2025-09-15T11:44:47.713854555Z [inf]  [OK] Todas las tablas requeridas existen
+2025-09-15T11:44:47.713860046Z [inf]  [OK] Tabla productos_manual tiene todas las columnas requeridas
+2025-09-15T11:44:47.713865430Z [inf]  [OK] Tabla proveedores_manual tiene todas las columnas requeridas
+2025-09-15T11:44:47.713871204Z [inf]  [OK] Tabla stock tiene todas las columnas requeridas
+2025-09-15T11:44:47.713877013Z [inf]  === DIAGNÓSTICO COMPLETADO ===
+2025-09-15T11:44:47.713884017Z [inf]  🔄 Cargando dependencias...
+2025-09-15T11:44:47.713890626Z [inf]  ✅ Flask-WTF importado correctamente
+2025-09-15T11:44:47.713896124Z [inf]  ✅ Werkzeug y functools importados correctamente
+2025-09-15T11:44:47.713902022Z [inf]  ✅ pdfplumber disponible para lectura de facturas PDF
+2025-09-15T11:44:47.730352296Z [inf]  [INFO] Blueprint de diagnóstico Railway registrado correctamente
+2025-09-15T11:44:47.730359400Z [inf]  [INFO] Blueprint de diagnóstico de búsqueda registrado correctamente
+2025-09-15T11:45:07.712630400Z [inf]  
+2025-09-15T11:45:07.712637521Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712643924Z [inf]  
+2025-09-15T11:45:07.712650538Z [inf]  
+2025-09-15T11:45:07.712656468Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712662891Z [inf]  
+2025-09-15T11:45:07.712668214Z [inf]  
+2025-09-15T11:45:07.712672690Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712681316Z [inf]  
+2025-09-15T11:45:07.712685476Z [inf]  
+2025-09-15T11:45:07.712690377Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712695132Z [inf]  
+2025-09-15T11:45:07.712699105Z [inf]  
+2025-09-15T11:45:07.712703308Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712707165Z [inf]  
+2025-09-15T11:45:07.712712804Z [inf]  
+2025-09-15T11:45:07.712717511Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712721284Z [inf]  
+2025-09-15T11:45:07.712724922Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
+2025-09-15T11:45:07.712728578Z [inf]  
+2025-09-15T11:45:07.712733241Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:07.712737341Z [inf]  
+2025-09-15T11:45:12.807495502Z [inf]  🔍 Buscando: 'CARBG7202' con filtro proveedor: '' | solo_ricky: False | solo_fg: False
+2025-09-15T11:45:12.807503754Z [inf]  🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'CARBG7202' | Proveedor: '' | Filtro: '' | Solo Ricky: False | Solo FG: False
+2025-09-15T11:45:12.807510262Z [inf]  [DB DEBUG] Iniciando búsqueda en DB manual. Término: 'CARBG7202', Dueño: None
+2025-09-15T11:45:12.879117188Z [inf]  
+2025-09-15T11:45:12.879127129Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:12.879134236Z [inf]  
+2025-09-15T11:45:12.879140649Z [inf]  [DB DEBUG] Resultados: 1 productos
+2025-09-15T11:45:12.879149764Z [inf]  Búsqueda manual para todos los dueños: 1 resultados
+2025-09-15T11:45:12.879156657Z [inf]  Agregando 1 resultados manuales
+2025-09-15T11:45:12.879171946Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'brementools'
+2025-09-15T11:45:12.879178111Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 5, 'codigo': ['codigo', 'Código', 'CODIGO'], 'producto': ['producto', 'Producto', 'PRODUCTO'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T11:45:12.879185079Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T11:45:12.879191051Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T11:45:12.879197930Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T11:45:12.879204960Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T11:45:12.879211189Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:12.879217456Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:12.879224801Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:12.879231730Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:12.879238119Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:12.879245113Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'brementools'
+2025-09-15T11:45:12.879252001Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T11:45:12.879258290Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:12.989207321Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T11:45:13.128115262Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T11:45:13.128129677Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:13.165715978Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T11:45:13.471110964Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T11:45:13.471119396Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:13.510827998Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T11:45:13.647921001Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T11:45:13.647928460Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:13.695818685Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T11:45:14.060960253Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T11:45:14.060971357Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:14.153607660Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T11:45:15.359953704Z [inf]  [EXCEL] Búsqueda en proveedor 'brementools' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:15.359968297Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'crossmaster'
+2025-09-15T11:45:15.359976098Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 11, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T11:45:15.359983876Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T11:45:15.359993495Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T11:45:15.360000576Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T11:45:15.360007089Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T11:45:15.360012179Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:15.360020684Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:15.360028575Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:15.360037753Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:15.360044325Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:15.360050519Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'crossmaster'
+2025-09-15T11:45:15.360056880Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T11:45:15.360063622Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:15.423764037Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T11:45:15.577481004Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T11:45:15.577487989Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:15.616015054Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T11:45:15.849782504Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T11:45:15.849793036Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:15.916036652Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T11:45:16.101625593Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T11:45:16.101631716Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:16.175722273Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T11:45:16.449555824Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T11:45:16.449560429Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:16.602563848Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T11:45:17.452941349Z [inf]  [EXCEL] Búsqueda en proveedor 'crossmaster' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:17.452946141Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'berger'
+2025-09-15T11:45:17.452950384Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['cod', 'COD', 'codigo', 'Codigo'], 'producto': ['detalle', 'DETALLE', 'producto', 'Producto'], 'precio': ['P.VENTA', 'precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T11:45:17.452954033Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T11:45:17.452958402Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T11:45:17.452962506Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T11:45:17.452972979Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T11:45:17.452977719Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:17.452983210Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:17.452987643Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:17.452995572Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:17.452999363Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:17.453002833Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'berger'
+2025-09-15T11:45:17.453007110Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T11:45:17.453012297Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:17.513004280Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T11:45:17.680737453Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T11:45:17.680749166Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:17.715686733Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T11:45:17.934701214Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T11:45:17.934710392Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:17.989260797Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T11:45:18.089672164Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T11:45:18.089679397Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:18.177771649Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T11:45:18.454222208Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T11:45:18.454232414Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:18.527246764Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T11:45:19.421582275Z [inf]  [EXCEL] Búsqueda en proveedor 'berger' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:19.421588978Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'chiesa'
+2025-09-15T11:45:19.421593819Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 1, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['descripción', 'Descripción', 'descripcion', 'Descripcion'], 'precio': ['precio', 'Precio', 'PRECIO', 'Pr.Unit', 'pr.unit', 'PR.UNIT'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T11:45:19.421598199Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T11:45:19.421603077Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T11:45:19.421608090Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T11:45:19.421612677Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T11:45:19.421618647Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:19.421625847Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:19.421632047Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:19.421638123Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:19.421643817Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:19.421649150Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'chiesa'
+2025-09-15T11:45:19.421656661Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T11:45:19.421663201Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:19.469827929Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T11:45:19.576611001Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T11:45:19.576621351Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:19.618736829Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T11:45:19.869624898Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T11:45:19.869629543Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:19.928990827Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T11:45:20.018821863Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T11:45:20.018831874Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:20.150069548Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T11:45:20.380856089Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T11:45:20.380863520Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:20.509559924Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T11:45:21.312071428Z [inf]  [EXCEL] Búsqueda en proveedor 'chiesa' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:21.312079053Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'cachan'
+2025-09-15T11:45:21.312085602Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO'], 'producto': ['nombre', 'Nombre', 'NOMBRE'], 'precio': ['precio', 'Precio', 'PRECIO'], 'dueno': 'ricky', 'folder': 'ricky'}
+2025-09-15T11:45:21.312093938Z [inf]  [EXCEL DEBUG] Carpeta Excel: ricky, Dueño: ricky
+2025-09-15T11:45:21.312102740Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ricky
+2025-09-15T11:45:21.312109221Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ricky
+2025-09-15T11:45:21.312116020Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ricky
+2025-09-15T11:45:21.312126268Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:21.312132279Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:21.312138841Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:21.312145686Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:21.312151885Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:21.312157809Z [inf]  [EXCEL] Buscando 'CARBG7202' en 5 archivos de 'cachan'
+2025-09-15T11:45:21.312194676Z [inf]  [EXCEL DEBUG] Procesando archivo: Crossmaster-092025.xlsx
+2025-09-15T11:45:21.312206771Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Crossmaster-092025.xlsx
+2025-09-15T11:45:21.360710873Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Crossmaster-092025.xlsx
+2025-09-15T11:45:21.543861536Z [inf]  [EXCEL DEBUG] Procesando archivo: Chiesa-092025.xlsx
+2025-09-15T11:45:21.543869494Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Chiesa-092025.xlsx
+2025-09-15T11:45:21.583782456Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Chiesa-092025.xlsx
+2025-09-15T11:45:21.834686938Z [inf]  [EXCEL DEBUG] Procesando archivo: Cachan-092025.xlsx
+2025-09-15T11:45:21.834693791Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Cachan-092025.xlsx
+2025-09-15T11:45:21.888669505Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Cachan-092025.xlsx
+2025-09-15T11:45:21.984116524Z [inf]  [EXCEL DEBUG] Procesando archivo: Berger-092025.xlsx
+2025-09-15T11:45:21.984125156Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/Berger-092025.xlsx
+2025-09-15T11:45:22.094681413Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: Berger-092025.xlsx
+2025-09-15T11:45:22.399852008Z [inf]  [EXCEL DEBUG] Procesando archivo: BremenTools-092025.xlsx
+2025-09-15T11:45:22.399857664Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ricky/BremenTools-092025.xlsx
+2025-09-15T11:45:22.480110339Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: BremenTools-092025.xlsx
+2025-09-15T11:45:23.314681094Z [inf]  [EXCEL] Búsqueda en proveedor 'cachan' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:23.314690459Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'dewalt'
+2025-09-15T11:45:23.314695147Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T11:45:23.314710665Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T11:45:23.314719131Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T11:45:23.314723386Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T11:45:23.314727447Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T11:45:23.314733361Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.314738031Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.314743091Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'dewalt'
+2025-09-15T11:45:23.314747708Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T11:45:23.314751982Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.386528247Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T11:45:23.479536474Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.479540550Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.479545256Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T11:45:23.479549116Z [inf]  [EXCEL] Búsqueda en proveedor 'dewalt' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:23.479553829Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'sica'
+2025-09-15T11:45:23.479558782Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T11:45:23.479564183Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T11:45:23.479568859Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T11:45:23.479573576Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T11:45:23.479577771Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T11:45:23.479582435Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.479587146Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.479593042Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'sica'
+2025-09-15T11:45:23.479597544Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T11:45:23.479602468Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.521531174Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T11:45:23.680762988Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.680771535Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.680777444Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T11:45:23.680783143Z [inf]  [EXCEL] Búsqueda en proveedor 'sica' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:23.680790984Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'sorbalok'
+2025-09-15T11:45:23.680798458Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T11:45:23.680805304Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T11:45:23.680811126Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T11:45:23.680816703Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T11:45:23.680822237Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T11:45:23.680827336Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.680842959Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.680848936Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'sorbalok'
+2025-09-15T11:45:23.680854235Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T11:45:23.680860674Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.736498148Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T11:45:23.840898239Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.840903798Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.840908572Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T11:45:23.840912703Z [inf]  [EXCEL] Búsqueda en proveedor 'sorbalok' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:23.842137178Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'nortedist'
+2025-09-15T11:45:23.842145079Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo_barra', 'codigo', 'Codigo', 'CODIGO'], 'producto': ['descripcion', 'Descripcion', 'DESCRIPCION', 'producto', 'Producto'], 'precio': ['NORTE SIN IVA', 'NORTE', 'precio', 'Precio'], 'marca': ['marca', 'Marca', 'MARCA'], 'usar_colores': True, 'color_precio': 'FFFF00', 'columnas_precio': ['NORTE SIN IVA', 'NORTE'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T11:45:23.842150307Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T11:45:23.842156421Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T11:45:23.842164129Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T11:45:23.842168884Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T11:45:23.842172708Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.842176756Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:23.842180902Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'nortedist'
+2025-09-15T11:45:23.842191694Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T11:45:23.842196291Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:23.896523207Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T11:45:24.062490240Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T11:45:24.062498197Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:24.062503566Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T11:45:24.062510920Z [inf]  [EXCEL] Búsqueda en proveedor 'nortedist' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:24.066176840Z [inf]  [EXCEL DEBUG] Iniciando búsqueda para proveedor 'jeluz'
+2025-09-15T11:45:24.066185048Z [inf]  [EXCEL DEBUG] Configuración del proveedor: {'fila_encabezado': 0, 'codigo': ['codigo', 'Codigo', 'CODIGO', 'cod', 'COD'], 'producto': ['producto', 'Producto', 'PRODUCTO', 'descripcion', 'Descripcion', 'nombre', 'Nombre'], 'precio': ['precio', 'Precio', 'PRECIO', 'p.venta', 'P.VENTA'], 'dueno': 'ferreteria_general', 'folder': 'ferreteria_general'}
+2025-09-15T11:45:24.066192276Z [inf]  [EXCEL DEBUG] Carpeta Excel: ferreteria_general, Dueño: ferreteria_general
+2025-09-15T11:45:24.066198683Z [inf]  [EXCEL DEBUG] Directorio base completo: listas_excel/ferreteria_general
+2025-09-15T11:45:24.066204140Z [inf]  [EXCEL DEBUG] Directorio absoluto: /app/listas_excel/ferreteria_general
+2025-09-15T11:45:24.066208753Z [inf]  [EXCEL DEBUG] Explorando directorio: listas_excel/ferreteria_general
+2025-09-15T11:45:24.066212745Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:24.066218294Z [inf]  [EXCEL DEBUG] Archivo encontrado: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:24.066222864Z [inf]  [EXCEL] Buscando 'CARBG7202' en 2 archivos de 'jeluz'
+2025-09-15T11:45:24.066226996Z [inf]  [EXCEL DEBUG] Procesando archivo: NorteDist-092025.xlsx
+2025-09-15T11:45:24.066231393Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/NorteDist-092025.xlsx
+2025-09-15T11:45:24.120315967Z [inf]  [EXCEL DEBUG] Archivo cargado exitosamente: NorteDist-092025.xlsx
+2025-09-15T11:45:24.255799245Z [inf]  [EXCEL DEBUG] Procesando archivo: ~$NorteDist-092025.xlsx
+2025-09-15T11:45:24.255808167Z [inf]  [EXCEL DEBUG] Intentando cargar archivo: listas_excel/ferreteria_general/~$NorteDist-092025.xlsx
+2025-09-15T11:45:24.255814855Z [inf]  [EXCEL ERROR] Error al cargar archivo ~$NorteDist-092025.xlsx: File is not a zip file
+2025-09-15T11:45:24.255821397Z [inf]  [EXCEL] Búsqueda en proveedor 'jeluz' completada: 0 resultados (de 0 coincidencias)
+2025-09-15T11:45:24.255827500Z [inf]  🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: 1 de 1 originales
+2025-09-15T11:45:24.255833975Z [inf]  📊 Resultados encontrados: 1
+2025-09-15T11:45:24.255840438Z [inf]  📊 Resultados después de filtrar entradas inválidas: 1
+2025-09-15T11:45:24.255847182Z [inf]  ✅ Deduplicación completada: 1 productos únicos (de 1 resultados originales)
+2025-09-15T11:45:24.292501443Z [inf]  
+2025-09-15T11:45:24.292513081Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:24.292554984Z [inf]  
+2025-09-15T11:45:24.311435208Z [inf]  
+2025-09-15T11:45:24.311444262Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:24.311449560Z [inf]  
+2025-09-15T11:45:24.324328741Z [inf]  
+2025-09-15T11:45:24.324337251Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:24.324346529Z [inf]  
+2025-09-15T11:45:24.337496101Z [inf]  
+2025-09-15T11:45:24.337503252Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:24.337511514Z [inf]  
+2025-09-15T11:45:24.355126245Z [inf]  
+2025-09-15T11:45:24.355135963Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:24.355143713Z [inf]  
+2025-09-15T11:45:24.355150408Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
+2025-09-15T11:45:24.364129101Z [inf]  
+2025-09-15T11:45:24.364140991Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:24.364149923Z [inf]  
+2025-09-15T11:45:30.824952610Z [inf]  🔍 Buscando: 'CARBG7202' con filtro proveedor: 'manual_11_ricky' | solo_ricky: True | solo_fg: False
+2025-09-15T11:45:30.824959686Z [inf]  🔍 [BUSCAR_EXCEL] Iniciando búsqueda: 'CARBG7202' | Proveedor: 'manual_11_ricky' | Filtro: '' | Solo Ricky: True | Solo FG: False
+2025-09-15T11:45:30.824967335Z [inf]  🔍 [MANUAL] Buscando en proveedor manual ID 11 para dueño ricky
+2025-09-15T11:45:30.824975948Z [inf]  [DB DEBUG] Buscando por ID de proveedor. Término: 'CARBG7202', Proveedor ID: 11, Dueño: ricky
+2025-09-15T11:45:30.897275727Z [inf]  
+2025-09-15T11:45:30.897287031Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.897293597Z [inf]  
+2025-09-15T11:45:30.897297963Z [inf]  [DB DEBUG] Buscando por nombre de proveedor en DB. Término: 'CARBG7202', Proveedor: 'Chiesa' normalizado: 'chiesa', Dueño: ricky
+2025-09-15T11:45:30.897302635Z [inf]  [DB DEBUG] SQL: SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE LOWER(TRIM(proveedor)) = LOWER(TRIM(?)) AND LOWER(TRIM(dueno)) = LOWER(TRIM(?)) AND ((LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?)))
+2025-09-15T11:45:30.897309329Z [inf]  [DB DEBUG] Params: ['chiesa', 'ricky', '%CARBG7202%', '%CARBG7202%']
+2025-09-15T11:45:30.904762800Z [inf]  
+2025-09-15T11:45:30.904773192Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.904780398Z [inf]  
+2025-09-15T11:45:30.904786734Z [inf]  [DB DEBUG] Resultados: 1 productos
+2025-09-15T11:45:30.904793344Z [inf]  🔍 [MANUAL] Encontrados 1 resultados manuales
+2025-09-15T11:45:30.904798702Z [inf]  🔍 [BUSCAR_EXCEL] Total de resultados sin duplicados exactos: 1 de 1 originales
+2025-09-15T11:45:30.904803218Z [inf]  📊 Resultados encontrados: 1
+2025-09-15T11:45:30.904807019Z [inf]  📊 Resultados después de filtrar entradas inválidas: 1
+2025-09-15T11:45:30.904813204Z [inf]  ✅ Deduplicación completada: 0 productos únicos (de 0 resultados originales)
+2025-09-15T11:45:30.922094160Z [inf]  
+2025-09-15T11:45:30.922101827Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.922107289Z [inf]  
+2025-09-15T11:45:30.926379318Z [inf]  
+2025-09-15T11:45:30.926385394Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.926390797Z [inf]  
+2025-09-15T11:45:30.945056582Z [inf]  
+2025-09-15T11:45:30.945064214Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.945071719Z [inf]  
+2025-09-15T11:45:30.954184311Z [inf]  
+2025-09-15T11:45:30.954191698Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.954196408Z [inf]  
+2025-09-15T11:45:30.962995203Z [inf]  
+2025-09-15T11:45:30.963002613Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.963008833Z [inf]  
+2025-09-15T11:45:30.966290931Z [inf]  [DEBUG] Usando proveedores_duenos: 2 mappings encontrados
+2025-09-15T11:45:30.979140592Z [inf]  
+2025-09-15T11:45:30.979147933Z [inf]  [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+2025-09-15T11:45:30.979152183Z [inf]  
