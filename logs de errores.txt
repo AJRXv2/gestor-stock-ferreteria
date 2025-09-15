@@ -1,31 +1,9 @@
-Starting Container
-[2025-09-15 05:21:20 +0000] [1] [INFO] Starting gunicorn 21.2.0
-[2025-09-15 05:21:20 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-[2025-09-15 05:21:20 +0000] [1] [INFO] Using worker: sync
-[2025-09-15 05:21:20 +0000] [4] [INFO] Booting worker with pid: 4
-Ejecutando migraciones de base de datos...
-[INFO] Tabla schema_migrations verificada o creada
-No hay migraciones pendientes que aplicar.
-Migraciones aplicadas con éxito
-Ejecutando diagnóstico de base de datos...
-=== DIAGNÓSTICO DE BASE DE DATOS ===
-Motor: PostgreSQL
-Tablas encontradas: schema_migrations, usuarios, stock_history, carrito, productos_manual, stock, proveedores_manual, proveedores_ocultos, proveedores_duenos
-[OK] Todas las tablas requeridas existen
-[OK] Tabla productos_manual tiene todas las columnas requeridas
-[OK] Tabla proveedores_manual tiene todas las columnas requeridas
-[OK] Tabla stock tiene todas las columnas requeridas
-=== DIAGNÓSTICO COMPLETADO ===
-🔄 Cargando dependencias...
-✅ Flask-WTF importado correctamente
-✅ Werkzeug y functools importados correctamente
-✅ pdfplumber disponible para lectura de facturas PDF
-[INFO] Blueprint de diagnóstico Railway registrado correctamente
-[INFO] Blueprint de diagnóstico de búsqueda registrado correctamente
-Tabla 'productos_manual' limpiada: 0 registros eliminados.
-Tabla 'stock' limpiada: 51 registros eliminados.
-Tabla 'stock_history' limpiada: 51 registros eliminados.
-Tabla 'carrito' limpiada: 0 registros eliminados.
+
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
 [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
 Error en la consulta a la base de datos: relation "notificaciones" does not exist
 LINE 1: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS N...
@@ -33,6 +11,55 @@ LINE 1: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS N...
 SQL original: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=?) AND leida=0
 SQL ejecutado: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=%s) AND leida=0
 Params: (1,)
+[DEBUG agregar_proveedor] nombre='SICA', dueno='ferreteria_general'
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] Agregando proveedor 'SICA' (ID: 6) para dueños: ['ferreteria_general']
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] Proveedor 'SICA' asociado a dueño 'ferreteria_general' en proveedores_duenos
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+Error en la consulta a la base de datos: relation "proveedores_meta" does not exist
+LINE 1: INSERT INTO proveedores_meta (nombre, dueno) VALUES ('SICA',...
+                    ^
+SQL original: INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)
+SQL ejecutado: INSERT INTO proveedores_meta (nombre, dueno) VALUES (%s, %s) ON CONFLICT DO NOTHING
+Params: ('SICA', 'ferreteria_general')
+[DEBUG] Proveedor 'SICA' asociado a dueño 'ferreteria_general' en proveedores_meta (legacy)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG agregar_proveedor] nombre='SICA', dueno='ferreteria_general'
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] Agregando proveedor 'SICA' (ID: 6) para dueños: ['ferreteria_general']
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[DEBUG] Proveedor 'SICA' asociado a dueño 'ferreteria_general' en proveedores_duenos
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+Error en la consulta a la base de datos: relation "proveedores_meta" does not exist
+LINE 1: INSERT INTO proveedores_meta (nombre, dueno) VALUES ('SICA',...
+                    ^
+SQL original: INSERT OR IGNORE INTO proveedores_meta (nombre, dueno) VALUES (?, ?)
+SQL ejecutado: INSERT INTO proveedores_meta (nombre, dueno) VALUES (%s, %s) ON CONFLICT DO NOTHING
+Params: ('SICA', 'ferreteria_general')
+[DEBUG] Proveedor 'SICA' asociado a dueño 'ferreteria_general' en proveedores_meta (legacy)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+Error en la consulta a la base de datos: relation "notificaciones" does not exist
+LINE 1: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS N...
+                                  ^
+SQL original: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=?) AND leida=0
+SQL ejecutado: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS NULL OR user_id=%s) AND leida=0
+Params: (1,)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+[INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
+Error en la consulta a la base de datos: relation "proveedores_meta" does not exist
+LINE 1: ...m.nombre, m.dueno FROM proveedores_manual pm JOIN proveedore...
+                                                             ^
+SQL original: SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre, m.dueno
+SQL ejecutado: SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre, m.dueno
+Params: ()
 [INIT] 🐘 Motor de base de datos activo: PostgreSQL (postgres.railway.internal:5432/railway)
 Error en la consulta a la base de datos: relation "notificaciones" does not exist
 LINE 1: SELECT COUNT(1) as c FROM notificaciones WHERE (user_id IS N...

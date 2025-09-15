@@ -1,0 +1,70 @@
+Explicación del programa Gestor de Stock y su problema actual
+Visión general del sistema
+El programa es un gestor de inventario (Gestor de Stock) para una ferretería que tiene dos líneas de negocio principales: "Ferretería General" y "Ricky". El sistema permite gestionar productos, proveedores, stock, y realizar diversas operaciones de administración de inventario.
+
+Arquitectura técnica
+Backend: Aplicación Flask (Python)
+Base de datos:
+Local: SQLite (archivo gestor_stock.db)
+Online: PostgreSQL en Railway (plataforma de hosting)
+Frontend: HTML, CSS, JavaScript (con Bootstrap para la interfaz)
+Funcionalidades principales
+Gestión de productos:
+
+Agregar productos manualmente
+Importar productos desde archivos Excel
+Buscar productos en la base de datos
+Modificar información de productos
+Gestión de proveedores:
+
+Asignar proveedores a dueños (Ferretería General o Ricky)
+Mostrar proveedores según el dueño seleccionado
+Gestión de inventario:
+
+Control de stock
+Historial de movimientos
+Carrito de compras temporal
+Estructura de datos clave
+Tablas importantes
+proveedores_manual:
+
+Almacena la información básica de los proveedores
+Campos: id, nombre, dueno, created_at
+proveedores_duenos:
+
+Establece la relación muchos a muchos entre proveedores y dueños
+Campos: proveedor_id, dueno
+proveedores_meta:
+
+Tabla utilizada por el frontend para mostrar las relaciones proveedor-dueño
+Campos: id, nombre, dueno
+stock:
+
+Almacena los productos en inventario
+Incluye referencias a proveedores, precios, cantidades, etc.
+Problema actual
+Síntoma
+Los proveedores que fueron agregados para "Ferretería General" y "Ricky" no aparecen en el formulario de agregar productos manualmente en la versión online (Railway con PostgreSQL).
+
+Causa raíz
+El problema está en la falta de sincronización entre las tablas proveedores_duenos y proveedores_meta en el entorno de PostgreSQL en Railway:
+
+Cuando se agregan proveedores, se crean entradas en la tabla proveedores_manual y relaciones en proveedores_duenos
+El formulario de agregar productos utiliza la tabla proveedores_meta para poblar los selectores de proveedores
+En el entorno de Railway, esta tabla proveedores_meta no está sincronizada con los datos de proveedores_duenos
+Detalles técnicos
+En el código de gestor.py, se utiliza una consulta JOIN entre proveedores_manual y proveedores_meta para mostrar los proveedores en el formulario
+La sincronización entre proveedores_duenos y proveedores_meta funciona correctamente en el entorno local (SQLite), pero no en Railway
+El acceso directo a la consola o SQL de Railway está limitado, lo que complica la resolución directa del problema
+Comportamiento esperado vs actual
+Esperado: Al seleccionar "Ferretería General" o "Ricky" en el formulario de agregar productos, deberían aparecer todos los proveedores asociados a ese dueño
+Actual: Los selectores de proveedores aparecen vacíos o incompletos en la versión de Railway
+Diagnóstico realizado
+Se ha confirmado que las relaciones están correctamente establecidas en la tabla proveedores_duenos
+Los proveedores están correctamente asociados:
+Ferretería General: 5 proveedores (DECKER, JELUZ, MIG, Otros Proveedores, SICA)
+Ricky: 6 proveedores (Berger, BremenTools, Cachan, Chiesa, Crossmaster, MIG)
+
+El problema está específicamente en la tabla proveedores_meta en el entorno de Railway, que no contiene las mismas relaciones que proveedores_duenos
+Este problema afecta principalmente la funcionalidad de agregar productos manualmente en el entorno online, que es donde la aplicación se usa con mayor frecuencia.
+
