@@ -7010,6 +7010,60 @@ def procesar_escaneo():
     
     return redirect(url_for('escanear'))
 
+@app.route('/api/fix_railway_db', methods=['POST'])
+def fix_railway_db():
+    """Endpoint para ejecutar la migración de la base de datos en Railway.
+    
+    Requiere un token de seguridad para evitar ejecuciones no autorizadas.
+    El token se configura mediante la variable de entorno MIGRATION_TOKEN.
+    """
+    try:
+        # Verificar si estamos en Railway con PostgreSQL
+        if not _is_postgres_configured():
+            return jsonify({
+                'success': False,
+                'message': 'Este endpoint solo funciona en entornos con PostgreSQL (Railway)'
+            }), 400
+        
+        # Verificar token de seguridad
+        expected_token = os.environ.get('MIGRATION_TOKEN')
+        if not expected_token:
+            return jsonify({
+                'success': False, 
+                'message': 'No se ha configurado MIGRATION_TOKEN en las variables de entorno'
+            }), 500
+        
+        provided_token = request.headers.get('X-Migration-Token') or request.form.get('token')
+        if not provided_token or provided_token != expected_token:
+            return jsonify({
+                'success': False,
+                'message': 'Token de migración inválido o no proporcionado'
+            }), 403
+        
+        # Ejecutar la migración
+        from fix_railway_pg import execute_migration
+        result = execute_migration()
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'message': 'Migración aplicada correctamente'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Error al aplicar la migración. Revise los logs del servidor.'
+            }), 500
+    
+    except Exception as e:
+        print(f"[ERROR] Error en el endpoint de migración: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        }), 500
+
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")
     print("📁 Directorio base:", BASE_DIR)
