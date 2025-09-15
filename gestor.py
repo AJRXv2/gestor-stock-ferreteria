@@ -522,6 +522,27 @@ def db_connect():
     """Alias para get_db_connection para compatibilidad con scripts de diagnóstico."""
     return get_db_connection()
 
+# Función para ejecutar consultas directamente con una conexión
+def execute_query(conn, query, params=(), fetch=False):
+    """Ejecutar una consulta SQL con parámetros opcionales."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute(query, params)
+        if fetch:
+            if _is_postgres_configured():
+                result = [dict(row) for row in cursor.fetchall()]
+            else:
+                result = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+            return result
+        else:
+            conn.commit()
+            return cursor.rowcount
+    except Exception as e:
+        print(f"Error en execute_query: {e}")
+        raise
+    finally:
+        cursor.close()
+
 def db_query(query, params=(), fetch=False):
     """Ejecutar consulta en la base de datos (PostgreSQL o SQLite).
 
