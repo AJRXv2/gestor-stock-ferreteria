@@ -82,6 +82,10 @@ def _normalizar_nombre_proveedor(nombre: str) -> str:
 
 # --- Configuración de la Aplicación ---
 app = Flask(__name__)
+print(f"🔍 DEBUG: Flask template folder: {app.template_folder}")
+print(f"🔍 DEBUG: Absolute template path: {os.path.abspath(app.template_folder) if app.template_folder else 'None'}")
+# Forzar recarga de templates en desarrollo
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 app.permanent_session_lifetime = timedelta(hours=3)
 
@@ -3673,6 +3677,7 @@ def eliminar_todo_historial():
 @login_required
 def eliminar_manual():
     """Ruta para gestionar productos manuales"""
+    print("🔍 DEBUG: Función eliminar_manual ejecutándose...")
     # Preparar listas de proveedores por dueño para la UI
     mappings = db_query("SELECT pm.id, pm.nombre, m.dueno FROM proveedores_manual pm JOIN proveedores_meta m ON LOWER(m.nombre)=LOWER(pm.nombre) ORDER BY pm.nombre", fetch=True) or []
     proveedores_ricky = []
@@ -3683,6 +3688,7 @@ def eliminar_manual():
             proveedores_ricky.append(entry)
         else:
             proveedores_fg.append(entry)
+    print(f"🔍 DEBUG: Renderizando template eliminar_manual.html")
     return render_template('eliminar_manual.html', proveedores_ricky=proveedores_ricky, proveedores_fg=proveedores_fg)
 
 @app.route('/obtener_productos_proveedor/<int:proveedor_id>')
@@ -6684,6 +6690,86 @@ def procesar_escaneo():
         }
     
     return redirect(url_for('escanear'))
+
+# Rutas para backup de productos_manual.xlsx
+@app.route('/descargar_backup_manual')
+@login_required
+def descargar_backup_manual():
+    """Descargar backup del archivo productos_manual.xlsx"""
+    try:
+        from datetime import datetime
+        import shutil
+        
+        # Buscar el archivo productos_manual.xlsx en la carpeta principal listas_excel
+        archivo_manual = os.path.join(EXCEL_FOLDER, 'productos_manual.xlsx')
+        
+        if not os.path.exists(archivo_manual):
+            archivo_manual = None
+        
+        if not archivo_manual:
+            flash('No se encontró el archivo productos_manual.xlsx', 'danger')
+            return redirect(url_for('eliminar_manual'))
+        
+        # Crear nombre con timestamp para descarga
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nombre_backup = f'productos_manual_backup_{timestamp}.xlsx'
+        
+        # Enviar el archivo original directamente
+        return send_file(archivo_manual, as_attachment=True, download_name=nombre_backup)
+        
+    except Exception as e:
+        print(f"Error al crear backup: {e}")
+        flash(f'Error al crear backup: {str(e)}', 'danger')
+        return redirect(url_for('eliminar_manual'))
+
+@app.route('/subir_backup_manual', methods=['POST'])
+@login_required
+def subir_backup_manual():
+    """Subir y restaurar archivo productos_manual.xlsx"""
+    try:
+        if 'archivo_backup' not in request.files:
+            flash('No se seleccionó ningún archivo', 'danger')
+            return redirect(url_for('eliminar_manual'))
+        
+        archivo = request.files['archivo_backup']
+        if archivo.filename == '':
+            flash('No se seleccionó ningún archivo', 'danger')
+            return redirect(url_for('eliminar_manual'))
+        
+        # Verificar extensión
+        if not archivo.filename.lower().endswith('.xlsx'):
+            flash('El archivo debe ser un Excel (.xlsx)', 'danger')
+            return redirect(url_for('eliminar_manual'))
+        
+        # Actualizar archivo en la ubicación principal (listas_excel)
+        from datetime import datetime
+        import shutil
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Crear carpeta de backups
+        backups_folder = os.path.join(BASE_DIR, 'backups')
+        if not os.path.exists(backups_folder):
+            os.makedirs(backups_folder)
+        
+        # Ubicación del archivo principal
+        archivo_destino = os.path.join(EXCEL_FOLDER, 'productos_manual.xlsx')
+        
+        # Crear backup del archivo actual si existe
+        if os.path.exists(archivo_destino):
+            backup_name = f'productos_manual_anterior_{timestamp}.xlsx'
+            backup_path = os.path.join(backups_folder, backup_name)
+            shutil.copy2(archivo_destino, backup_path)
+        
+        # Guardar nuevo archivo
+        archivo.save(archivo_destino)
+        
+        flash('Archivo restaurado exitosamente', 'success')
+        return redirect(url_for('eliminar_manual'))
+        
+    except Exception as e:
+        print(f"Error al restaurar backup: {e}")
+        flash(f'Error al restaurar backup: {str(e)}', 'danger')
+        return redirect(url_for('eliminar_manual'))
 
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")
