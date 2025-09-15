@@ -885,34 +885,75 @@ def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observacion
         return False
 
 def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
-    """Buscar productos en el Excel de productos manuales"""
+    """Buscar en la tabla productos_manual de la base de datos sin proveedor específico. Permite filtrar por dueño."""
     resultados = []
-    
     try:
-        if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            return resultados
+        print(f"[DB DEBUG] Iniciando búsqueda en DB manual. Término: '{termino_busqueda}', Dueño: {dueno_filtro}")
         
-        wb = load_workbook(MANUAL_PRODUCTS_FILE)
-        ws = wb.active
+        # Construir consulta SQL
+        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE 1=1"
+        params = []
         
-        # Asumir que las columnas son (orden unificado):
-        # Codigo (A), Proveedor (B), Nombre (C), Precio (D), Observaciones (E), Dueno (F)
+        if dueno_filtro:
+            query += " AND LOWER(dueno) = LOWER(?)"
+            params.append(dueno_filtro)
+            
+        if termino_busqueda:
+            tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
+            if tokens:
+                or_conditions = []
+                for token in tokens:
+                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?) OR LOWER(proveedor) LIKE LOWER(?))")
+                    params.extend([f"%{token}%", f"%{token}%", f"%{token}%"])
+                query += f" AND ({' AND '.join(or_conditions)})"
+        
+        # Ejecutar consulta
+        rows = db_query(query, tuple(params), fetch=True)
+        print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
+        
+        # Convertir resultados al formato esperado
+        for row in (rows or []):
+            precio_val, precio_error = parse_price(str(row.get('precio', '')))
+            resultados.append({
+                'codigo': row.get('codigo', ''),
+                'nombre': row.get('nombre', ''),
+                'precio': precio_val,
+                'precio_texto': str(row.get('precio', '')) if precio_error else None,
+                'proveedor': row.get('proveedor', ''),
+                'observaciones': row.get('observaciones', ''),
+                'dueno': row.get('dueno', ''),
+                'es_manual': True
+            })
+            
+    except Exception as e:
+        print(f"[DB ERROR] Error en buscar_en_excel_manual: {e}")
+        import traceback
+        print(traceback.format_exc())
+    return resultados
+
+def buscar_en_excel_manual_old(termino_busqueda, dueno_filtro=None):
+    """Función antigua que buscaba en Excel - mantenida para referencia"""
+    pass
+
+def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_filtro=None):
+    resultados = []
+    try:
+        # Aquí deberías obtener los datos de las filas, por ejemplo desde un Excel o una consulta
+        # Por ejemplo, rows = ...
+        rows = []  # Debes reemplazar esto por la obtención real de datos
         tokens = [t.strip().lower() for t in str(termino_busqueda).split() if t.strip()]
-        for row in ws.iter_rows(min_row=2, values_only=True):  # Saltar encabezado
+        for row in rows:
             if len(row) < 6:
                 continue
-            
             codigo = str(row[0]).strip() if row[0] else ''
             proveedor = str(row[1]).strip() if row[1] else ''
             nombre = str(row[2]).strip() if row[2] else ''
             precio = str(row[3]).strip() if row[3] else ''
             observaciones = str(row[4]).strip() if row[4] else ''
             dueno = str(row[5]).strip() if row[5] else ''
-            
             # Filtrar por dueño si se especifica
             if dueno_filtro and dueno.lower() != dueno_filtro.lower():
                 continue
-            
             # Buscar en los campos relevantes con soporte de combinaciones (AND entre tokens)
             campos = [codigo.lower(), proveedor.lower(), nombre.lower(), precio.lower(), observaciones.lower()]
             coincide = True
@@ -921,7 +962,6 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                     coincide = False
                     break
             if coincide:
-                
                 resultados.append({
                     'codigo': codigo,
                     'proveedor': proveedor,
@@ -930,10 +970,8 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                     'observaciones': observaciones,
                     'dueno': dueno
                 })
-    
     except Exception as e:
         print(f"Error al buscar en Excel manual: {e}")
-    
     return resultados
 
 def init_db():
@@ -5933,126 +5971,51 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
     return resultados
 
 def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
-    """Buscar en productos_manual.xlsx sin proveedor específico. Permite filtrar por dueño."""
+    """Buscar en la tabla productos_manual de la base de datos sin proveedor específico. Permite filtrar por dueño."""
     resultados = []
     try:
-        print(f"[EXCEL DEBUG] Iniciando búsqueda en Excel manual. Término: '{termino_busqueda}', Dueño: {dueno_filtro}")
+        print(f"[DB DEBUG] Iniciando búsqueda en DB manual. Término: '{termino_busqueda}', Dueño: {dueno_filtro}")
         
-        if not os.path.exists(MANUAL_PRODUCTS_FILE):
-            print(f"[EXCEL ERROR] Archivo de productos manuales no encontrado: {MANUAL_PRODUCTS_FILE}")
-            return resultados
-            
-        print(f"[EXCEL DEBUG] Leyendo archivo: {MANUAL_PRODUCTS_FILE}")
-        df = pd.read_excel(MANUAL_PRODUCTS_FILE)
-        df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+        # Construir consulta SQL
+        query = "SELECT id, nombre, codigo, precio, proveedor, observaciones, dueno FROM productos_manual WHERE 1=1"
+        params = []
         
-        print(f"[EXCEL DEBUG] DataFrame inicial: {len(df)} filas")
-        if df.empty:
-            print("[EXCEL ERROR] El archivo de productos manuales está vacío")
-            return resultados
-            
         if dueno_filtro:
-            print(f"[EXCEL DEBUG] Filtrando por dueño: {dueno_filtro}")
-            df = df[df['Dueno'].astype(str).str.lower() == str(dueno_filtro).lower()]
-            print(f"[EXCEL DEBUG] Después de filtrar por dueño: {len(df)} filas")
+            query += " AND LOWER(dueno) = LOWER(?)"
+            params.append(dueno_filtro)
             
         if termino_busqueda:
-            print(f"[EXCEL DEBUG] Filtrando por término de búsqueda: {termino_busqueda}")
             tokens = [t.strip() for t in str(termino_busqueda).split() if t.strip()]
             if tokens:
-                mask_all = pd.Series(True, index=df.index)
-                for tok in tokens:
-                    tok_mask = (
-                        df['Nombre'].astype(str).str.contains(tok, case=False, na=False) |
-                        df['Codigo'].astype(str).str.contains(tok, case=False, na=False) |
-                        df['Proveedor'].astype(str).str.contains(tok, case=False, na=False)
-                    )
-                    mask_all &= tok_mask
-                
-                filtered_by_term = df[mask_all]
-                print(f"[EXCEL DEBUG] Después de filtrar por tokens de búsqueda: {len(filtered_by_term)} filas")
-                
-                # Si no hay resultados después de filtrar por término, mostramos todos los productos disponibles
-                if len(filtered_by_term) == 0:
-                    print("[EXCEL DEBUG] ======= DIAGNÓSTICO: PRODUCTOS DISPONIBLES =======")
-                    print(f"[EXCEL DEBUG] No se encontraron productos que coincidan con '{termino_busqueda}'")
-                    print("[EXCEL DEBUG] Mostrando TODOS los productos disponibles después de filtrar por dueño:")
-                    try:
-                        # Mostrar cada fila individualmente para garantizar que se vea en los logs
-                        for idx, row in df.iterrows():
-                            print(f"[EXCEL DEBUG] Fila {idx}:")
-                            for col in df.columns:
-                                print(f"[EXCEL DEBUG]   {col}: {row[col]}")
-                            print("[EXCEL DEBUG] ---")
-                            
-                            # Intentar una búsqueda manual por si hay problemas de formato
-                            if termino_busqueda and isinstance(termino_busqueda, str):
-                                codigo_str = str(row.get('Codigo', '')).lower()
-                                nombre_str = str(row.get('Nombre', '')).lower()
-                                term_lower = termino_busqueda.lower()
-                                print(f"[EXCEL DEBUG] Prueba manual - Código: '{codigo_str}', Término: '{term_lower}', ¿Coincide?: {term_lower in codigo_str}")
-                                print(f"[EXCEL DEBUG] Prueba manual - Nombre: '{nombre_str}', Término: '{term_lower}', ¿Coincide?: {term_lower in nombre_str}")
-                                
-                    except Exception as e:
-                        print(f"[EXCEL DEBUG] Error al mostrar filas: {e}")
-                    print("[EXCEL DEBUG] ======= FIN DIAGNÓSTICO =======")
-                    
-            # Alternativa más agresiva: mostrar SIEMPRE los productos disponibles
-        print("[EXCEL DEBUG] Mostrando productos disponibles aunque no coincidan con el término de búsqueda")
-        print("[EXCEL DEBUG] Productos disponibles para mostrar en la UI:")
+                or_conditions = []
+                for token in tokens:
+                    or_conditions.append("(LOWER(nombre) LIKE LOWER(?) OR LOWER(codigo) LIKE LOWER(?) OR LOWER(proveedor) LIKE LOWER(?))")
+                    params.extend([f"%{token}%", f"%{token}%", f"%{token}%"])
+                query += f" AND ({' AND '.join(or_conditions)})"
         
-        # Guardar el DataFrame filtrado original
-        filtered_empty = filtered_by_term.empty
+        # Ejecutar consulta
+        rows = db_query(query, tuple(params), fetch=True)
+        print(f"[DB DEBUG] Resultados: {len(rows) if rows else 0} productos")
         
-        # Si no hay resultados de búsqueda pero hay productos para este dueño, mostrarlos todos
-        if filtered_empty and len(df) > 0:
-            print(f"[EXCEL DEBUG] No se encontraron coincidencias exactas para '{termino_busqueda}', mostrando todos los productos disponibles")
-            
-            # DESACTIVAR ESTA LÍNEA PARA VOLVER AL COMPORTAMIENTO NORMAL
-            # Mostrar todos los productos disponibles para este dueño, ignorando el filtro de término
-            df_result = df  # Usar todos los productos disponibles
-            
-            # Crear resultados para cada producto
-            for _, row in df_result.iterrows():
-                precio_val, precio_error = parse_price(row.get('Precio', ''))
-                resultado = {
-                    'codigo': row.get('Codigo', ''),
-                    'nombre': row.get('Nombre', '') + " [SIN FILTRO]",  # Marcar que no coincide con el filtro
-                    'precio': precio_val,
-                    'precio_texto': str(row.get('Precio', '')) if precio_error else None,
-                    'proveedor': row.get('Proveedor', ''),
-                    'observaciones': row.get('Observaciones', ''),
-                    'dueno': row.get('Dueno', ''),
-                    'es_manual': True
-                }
-                resultados.append(resultado)
-                print(f"[EXCEL DEBUG] Producto añadido: {resultado['codigo']} - {resultado['nombre']}")
-            
-            # Devolver resultados directamente sin seguir procesando
-            print(f"[EXCEL DEBUG] Total resultados (mostrados sin filtro): {len(resultados)}")
-            return resultados
-        else:
-            # Continuar con el comportamiento normal si hay resultados o no hay productos disponibles
-            df = filtered_by_term
-            
-        print(f"[EXCEL DEBUG] Resultados finales: {len(df)} filas")
-        
-        for _, row in df.iterrows():
-            precio_val, precio_error = parse_price(row.get('Precio', ''))
+        # Convertir resultados al formato esperado
+        for row in (rows or []):
+            precio_val, precio_error = parse_price(str(row.get('precio', '')))
             resultados.append({
-                'codigo': row.get('Codigo', ''),
-                'nombre': row.get('Nombre', ''),
+                'codigo': row.get('codigo', ''),
+                'nombre': row.get('nombre', ''),
                 'precio': precio_val,
-                'precio_texto': str(row.get('Precio', '')) if precio_error else None,
-                'proveedor': row.get('Proveedor', ''),
-                'observaciones': row.get('Observaciones', ''),
-                'dueno': row.get('Dueno', ''),
+                'precio_texto': str(row.get('precio', '')) if precio_error else None,
+                'proveedor': row.get('proveedor', ''),
+                'observaciones': row.get('observaciones', ''),
+                'dueno': row.get('dueno', ''),
                 'es_manual': True
             })
+            
     except Exception as e:
-        print(f"[EXCEL ERROR] Error en buscar_en_excel_manual: {e}")
+        print(f"[DB ERROR] Error en buscar_en_excel_manual: {e}")
         import traceback
         print(traceback.format_exc())
+    return resultados
     return resultados
     
 def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None):
