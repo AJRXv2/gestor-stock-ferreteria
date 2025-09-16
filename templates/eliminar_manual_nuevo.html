@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}🔴 NUEVO TEMPLATE DE PRUEBA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="alert alert-danger" role="alert">
+        <h1>🔴 ESTE ES EL NUEVO TEMPLATE DE PRUEBA</h1>
+        <p><strong>Timestamp:</strong> 2025-09-15 18:15:00 (Static)</p>
+        <p><strong>Si ves esto, Flask está cargando templates desde la ubicación correcta.</strong></p>
+        <p><strong>Template path:</strong> templates/eliminar_manual_nuevo.html</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>🧪 Sección de Backup (Nueva Implementación)</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <a href="{{ url_for('descargar_backup_manual') }}" class="btn btn-success">
+                        📥 Descargar Backup
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <form method="post" action="{{ url_for('subir_backup_manual') }}" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-2">
+                            <label>📁 Seleccionar archivo:</label>
+                            <input type="file" class="form-control" name="archivo_backup" accept=".xlsx" required>
+                        </div>
+                        <button type="submit" class="btn btn-warning">
+                            📤 Subir Backup
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

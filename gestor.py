@@ -6609,28 +6609,201 @@ def escanear():
     
     return render_template('escanear.html', historial=historial, resultado=session.pop('resultado_escaneo', None))
 
+def extraer_codigo_de_barras(codigo_barras):
+    """
+    Extrae el código del producto desde el código de barras usando múltiples patrones.
+    
+    Patrones soportados:
+    - 13 dígitos: últimos 6 dígitos, extraer posiciones 2-5 (ej: 7795163082347 -> 082347 -> 8234)
+    - 12 dígitos: últimos 6 dígitos, extraer posiciones 2-5 
+    - 10 dígitos: últimos 6 dígitos, extraer posiciones 1-4
+    - Códigos más cortos: intentar diferentes extracciones
+    
+    Returns:
+        list: Lista de códigos extraídos posibles, ordenados por probabilidad
+    """
+    codigos_posibles = []
+    codigo_limpio = ''.join(filter(str.isdigit, codigo_barras))
+    
+    if not codigo_limpio:
+        return [codigo_barras]  # Retornar original si no tiene números
+    
+    print(f"🔍 DEBUG BARCODE: Código original: '{codigo_barras}' -> Limpio: '{codigo_limpio}' (longitud: {len(codigo_limpio)})")
+    
+    # Agregar siempre el código original como opción
+    codigos_posibles.append(codigo_barras)
+    codigos_posibles.append(codigo_limpio)
+    
+    longitud = len(codigo_limpio)
+    
+    # Patrón principal: Códigos de 13 dígitos (EAN-13)
+    if longitud == 13:
+        ultimos_6 = codigo_limpio[-6:]  # Últimos 6 dígitos
+        codigo_extraido = ultimos_6[1:5]  # Posiciones 2-5 (índices 1-4)
+        codigos_posibles.append(codigo_extraido)
+        print(f"🔍 DEBUG BARCODE: Patrón 13 dígitos - Últimos 6: '{ultimos_6}' -> Código: '{codigo_extraido}'")
+    
+    # Patrón secundario: Códigos de 12 dígitos (UPC-A)
+    elif longitud == 12:
+        ultimos_6 = codigo_limpio[-6:]
+        codigo_extraido = ultimos_6[1:5]
+        codigos_posibles.append(codigo_extraido)
+        print(f"🔍 DEBUG BARCODE: Patrón 12 dígitos - Últimos 6: '{ultimos_6}' -> Código: '{codigo_extraido}'")
+    
+    # Patrón para códigos de 10 dígitos
+    elif longitud == 10:
+        ultimos_6 = codigo_limpio[-6:] if longitud >= 6 else codigo_limpio
+        if len(ultimos_6) >= 5:
+            codigo_extraido = ultimos_6[1:5]
+            codigos_posibles.append(codigo_extraido)
+        print(f"🔍 DEBUG BARCODE: Patrón 10 dígitos - Últimos 6: '{ultimos_6}' -> Código: '{codigo_extraido if len(ultimos_6) >= 5 else 'N/A'}'")
+    
+    # Patrón flexible: Para códigos más cortos, intentar diferentes extracciones
+    elif longitud >= 6:
+        ultimos_6 = codigo_limpio[-6:]
+        # Extraer del medio (posiciones 1-4 de los últimos 6)
+        if len(ultimos_6) >= 5:
+            codigo_extraido = ultimos_6[1:5]
+            codigos_posibles.append(codigo_extraido)
+        # También probar otras posiciones
+        if len(ultimos_6) >= 4:
+            codigo_extraido_alt = ultimos_6[0:4]  # Primeros 4 de los últimos 6
+            codigos_posibles.append(codigo_extraido_alt)
+        print(f"🔍 DEBUG BARCODE: Patrón flexible - Últimos 6: '{ultimos_6}' -> Códigos: '{codigo_extraido if len(ultimos_6) >= 5 else 'N/A'}', '{codigo_extraido_alt if len(ultimos_6) >= 4 else 'N/A'}'")
+    
+    # Para códigos muy cortos, usar directamente
+    elif longitud >= 4:
+        codigos_posibles.append(codigo_limpio)
+        print(f"🔍 DEBUG BARCODE: Código corto - Usando directo: '{codigo_limpio}'")
+    
+    # Eliminar duplicados manteniendo el orden
+    codigos_unicos = []
+    for codigo in codigos_posibles:
+        if codigo and codigo not in codigos_unicos:
+            codigos_unicos.append(codigo)
+    
+    print(f"🔍 DEBUG BARCODE: Códigos finales a buscar: {codigos_unicos}")
+    return codigos_unicos
+
 @app.route('/procesar_escaneo', methods=['POST'])
 @login_required
 def procesar_escaneo():
-    codigo_barras = request.form.get('codigo_barras', '').strip()
-    cantidad = int(request.form.get('cantidad', 1))
+    codigo_barras_original = request.form.get('codigo_barras', '').strip()
     
-    if not codigo_barras:
-        flash('Debe proporcionar un código de barras', 'danger')
+    if not codigo_barras_original:
+        return jsonify({
+            'success': False,
+            'message': 'Debe proporcionar un código de barras',
+            'productos': []
+        })
+    
+    # Extraer códigos posibles del código de barras
+    codigos_posibles = extraer_codigo_de_barras(codigo_barras_original)
+    
+    # Buscar productos que coincidan con cualquiera de los códigos extraídos
+    productos_encontrados = []
+    
+    # 1. Buscar en la base de datos de stock
+    for codigo in codigos_posibles:
+        productos = db_query("SELECT * FROM stock WHERE codigo = ?", (codigo,), fetch=True)
+        if productos:
+            for producto in productos:
+                # Evitar duplicados
+                if not any(p.get('id') == producto['id'] and p.get('source') == 'stock' for p in productos_encontrados):
+                    producto['codigo_extraido'] = codigo
+                    producto['codigo_barras_original'] = codigo_barras_original
+                    producto['source'] = 'stock'  # Marcar que viene del stock
+                    producto['en_stock'] = True
+                    productos_encontrados.append(producto)
+    
+    # 2. Buscar en las listas de precios de Excel
+    for codigo in codigos_posibles:
+        try:
+            resultados_excel = buscar_en_excel(codigo)
+            if resultados_excel:
+                for item_excel in resultados_excel:
+                    # Crear producto compatible con el formato esperado
+                    producto_excel = {
+                        'id': f"excel_{item_excel.get('codigo', '')}_{item_excel.get('proveedor', '')}",
+                        'codigo': item_excel.get('codigo', ''),
+                        'nombre': item_excel.get('nombre', ''),
+                        'precio': item_excel.get('precio', 0),
+                        'cantidad': 0,  # No hay stock físico
+                        'proveedor': item_excel.get('proveedor', ''),
+                        'dueno': item_excel.get('dueno', ''),
+                        'codigo_extraido': codigo,
+                        'codigo_barras_original': codigo_barras_original,
+                        'source': 'excel',  # Marcar que viene de Excel
+                        'en_stock': False
+                    }
+                    
+                    # Evitar duplicados (mismo código y proveedor)
+                    es_duplicado = any(
+                        p.get('codigo') == producto_excel['codigo'] and 
+                        p.get('proveedor') == producto_excel['proveedor'] and
+                        p.get('source') == 'excel'
+                        for p in productos_encontrados
+                    )
+                    
+                    if not es_duplicado:
+                        productos_encontrados.append(producto_excel)
+        except Exception as e:
+            print(f"[WARN] Error buscando en Excel para código {codigo}: {e}")
+    
+    # Devolver respuesta JSON para manejo AJAX
+    if not productos_encontrados:
+        return jsonify({
+            'success': False,
+            'message': f'No se encontró ningún producto con el código de barras "{codigo_barras_original}". Códigos probados: {", ".join(codigos_posibles)}',
+            'productos': []
+        })
+    
+    # Guardar productos en sesión para uso posterior
+    session['productos_escaneados'] = productos_encontrados
+    
+    # Devolver productos encontrados como JSON
+    return jsonify({
+        'success': True,
+        'message': f'Se encontraron {len(productos_encontrados)} producto(s)',
+        'productos': productos_encontrados
+    })
+
+@app.route('/confirmar_escaneo', methods=['GET'])
+@login_required
+def confirmar_escaneo():
+    """Mostrar productos encontrados para confirmación de venta"""
+    productos = session.get('productos_escaneados', [])
+    
+    if not productos:
+        flash('No hay productos para confirmar', 'warning')
         return redirect(url_for('escanear'))
     
-    # Buscar el producto por código de barras
-    producto = db_query("SELECT * FROM stock WHERE codigo = ?", (codigo_barras,), fetch=True)
+    return render_template('confirmar_escaneo.html', productos=productos)
+
+@app.route('/ejecutar_venta_escaneo', methods=['POST'])
+@login_required
+def ejecutar_venta_escaneo():
+    """Procesar la venta de un producto específico por escáner"""
+    producto_id = request.form.get('producto_id')
+    cantidad = int(request.form.get('cantidad', 1))
+    
+    if not producto_id:
+        flash('Debe seleccionar un producto', 'danger')
+        return redirect(url_for('escanear'))
+    
+    # Buscar el producto específico
+    producto = db_query("SELECT * FROM stock WHERE id = ?", (producto_id,), fetch=True)
     
     if not producto:
-        session['resultado_escaneo'] = {
-            'tipo': 'danger',
-            'titulo': 'Producto no encontrado',
-            'mensaje': f'No se encontró ningún producto con el código {codigo_barras}'
-        }
+        flash('Producto no encontrado', 'danger')
         return redirect(url_for('escanear'))
     
     producto = producto[0]
+    
+    # Verificar que hay stock suficiente
+    if producto['cantidad'] < cantidad:
+        flash(f'Stock insuficiente. Solo hay {producto["cantidad"]} unidades disponibles', 'danger')
+        return redirect(url_for('confirmar_escaneo'))
     
     # Actualizar el stock
     nueva_cantidad = max(0, producto['cantidad'] - cantidad)
@@ -6653,11 +6826,14 @@ def procesar_escaneo():
             )
         )
         
+        # Limpiar sesión de productos escaneados
+        session.pop('productos_escaneados', None)
+        
         # Generar mensaje de resultado
         session['resultado_escaneo'] = {
             'tipo': 'success',
-            'titulo': 'Stock actualizado',
-            'mensaje': f'Se descontaron {cantidad} unidades de "{producto["nombre"]}". Stock actual: {nueva_cantidad}'
+            'titulo': 'Venta procesada exitosamente',
+            'mensaje': f'Se vendieron {cantidad} unidades de "{producto["nombre"]}". Stock actual: {nueva_cantidad}. Total: ${float(producto["precio"]) * cantidad:,.2f}'
         }
         
         # Verificar si el stock está bajo el umbral
@@ -6683,13 +6859,176 @@ def procesar_escaneo():
                 except Exception as _e:
                     print(f"[WARN] No se pudo persistir notificación: {_e}")
     else:
-        session['resultado_escaneo'] = {
-            'tipo': 'danger',
-            'titulo': 'Error',
-            'mensaje': 'No se pudo actualizar el stock del producto'
-        }
+        flash('No se pudo actualizar el stock del producto', 'danger')
     
     return redirect(url_for('escanear'))
+
+@app.route('/procesar_venta_mesa', methods=['POST'])
+@login_required
+def procesar_venta_mesa():
+    """Procesar la venta de múltiples productos desde la mesa/carrito"""
+    try:
+        # Obtener datos del carrito desde JSON
+        carrito_data = request.get_json()
+        
+        if not carrito_data or 'productos' not in carrito_data:
+            return jsonify({'success': False, 'message': 'No se recibieron datos del carrito'})
+        
+        productos_carrito = carrito_data['productos']
+        
+        if not productos_carrito:
+            return jsonify({'success': False, 'message': 'El carrito está vacío'})
+        
+        # Procesar cada producto del carrito
+        productos_procesados = []
+        total_venta = 0
+        errores = []
+        
+        for item in productos_carrito:
+            producto_id = item.get('id')
+            cantidad = int(item.get('cantidad', 1))
+            sin_stock = item.get('sinStock', False)
+            
+            # Verificar si el producto viene de Excel (ID empieza con "excel_")
+            if str(producto_id).startswith('excel_'):
+                # Producto solo en lista de precios - usar datos del item directamente
+                producto_excel = {
+                    'codigo': item.get('codigo', ''),
+                    'nombre': item.get('nombre', ''),
+                    'precio': item.get('precio', 0),
+                    'proveedor': item.get('proveedor', ''),
+                    'dueno': item.get('dueno', ''),
+                    'cantidad': 0  # No hay stock físico
+                }
+                
+                # Registrar directamente en el historial (no actualizar stock)
+                db_query(
+                    "INSERT INTO historial (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        producto_excel['codigo'],
+                        producto_excel['nombre'],
+                        producto_excel['precio'],
+                        cantidad,
+                        datetime.now().isoformat(timespec='seconds'),
+                        producto_excel['proveedor'],
+                        f'Venta por escáner - Mesa/Carrito (SOLO LISTA DE PRECIOS)',
+                        str(producto_excel['precio']),
+                        producto_excel['dueno']
+                    )
+                )
+                
+                # Calcular subtotal
+                subtotal = float(producto_excel['precio']) * cantidad
+                total_venta += subtotal
+                
+                productos_procesados.append({
+                    'nombre': producto_excel['nombre'],
+                    'cantidad': cantidad,
+                    'precio_unitario': float(producto_excel['precio']),
+                    'subtotal': subtotal,
+                    'stock_restante': 'N/A (Solo lista)',
+                    'sin_stock': True
+                })
+                
+            else:
+                # Producto en base de datos de stock
+                producto = db_query("SELECT * FROM stock WHERE id = ?", (producto_id,), fetch=True)
+                
+                if not producto:
+                    errores.append(f'Producto con ID {producto_id} no encontrado en stock')
+                    continue
+                
+                producto = producto[0]
+                
+                # Verificar stock suficiente
+                if producto['cantidad'] < cantidad:
+                    errores.append(f'Stock insuficiente para "{producto["nombre"]}". Solo hay {producto["cantidad"]} unidades disponibles')
+                    continue
+                
+                # Actualizar el stock
+                nueva_cantidad = max(0, producto['cantidad'] - cantidad)
+                result = db_query("UPDATE stock SET cantidad = ? WHERE id = ?", (nueva_cantidad, producto['id']))
+                
+                if result:
+                    # Registrar en el historial
+                    db_query(
+                    "INSERT INTO historial (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        producto['codigo'],
+                        producto['nombre'],
+                        producto['precio'],
+                        cantidad,
+                        datetime.now().isoformat(timespec='seconds'),
+                        producto['proveedor'],
+                        f'Venta por escáner - Mesa/Carrito',
+                        str(producto['precio']),
+                        producto['dueno']
+                    )
+                    )
+                    
+                    # Calcular subtotal
+                    subtotal = float(producto['precio']) * cantidad
+                    total_venta += subtotal
+                    
+                    productos_procesados.append({
+                        'nombre': producto['nombre'],
+                        'cantidad': cantidad,
+                        'precio_unitario': float(producto['precio']),
+                        'subtotal': subtotal,
+                        'stock_restante': nueva_cantidad
+                    })
+                    
+                    # Verificar si el stock está bajo el umbral
+                    if producto.get('avisar_bajo_stock') and producto.get('min_stock_aviso') is not None:
+                        umbral = int(producto.get('min_stock_aviso'))
+                        if nueva_cantidad <= umbral:
+                            mensaje = f'Producto "{producto.get("nombre", "")}" bajo en stock (quedan {nueva_cantidad}, umbral {umbral}).'
+                            try:
+                                user_id = session.get('user_id')
+                                db_query(
+                                    "INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id) VALUES (?,?,?,?,?,?,?)",
+                                    (
+                                        producto.get('codigo',''),
+                                        producto.get('nombre',''),
+                                        producto.get('proveedor',''),
+                                        mensaje,
+                                        datetime.now().isoformat(timespec='seconds'),
+                                        0,
+                                        user_id
+                                    )
+                                )
+                            except Exception as _e:
+                                print(f"[WARN] No se pudo persistir notificación: {_e}")
+                else:
+                    errores.append(f'No se pudo actualizar el stock de "{producto["nombre"]}"')
+        
+        # Limpiar sesión de productos escaneados
+        session.pop('productos_escaneados', None)
+        
+        # Preparar respuesta
+        if productos_procesados:
+            mensaje_exito = f'Se procesaron {len(productos_procesados)} productos. Total: ${total_venta:,.2f}'
+            
+            if errores:
+                mensaje_exito += f'\n\nAlertas: {"; ".join(errores)}'
+            
+            return jsonify({
+                'success': True,
+                'message': mensaje_exito,
+                'productos_procesados': productos_procesados,
+                'total_venta': total_venta,
+                'errores': errores if errores else []
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'No se pudo procesar ningún producto. Errores: {"; ".join(errores)}',
+                'errores': errores
+            })
+            
+    except Exception as e:
+        print(f"[ERROR] Error procesando venta mesa: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'})
 
 # Rutas para backup de productos_manual.xlsx
 @app.route('/descargar_backup_manual')

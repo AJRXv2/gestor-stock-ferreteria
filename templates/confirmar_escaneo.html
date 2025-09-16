@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Escaneo{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-check-circle me-2"></i>Productos Encontrados</h2>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>
+                        Seleccione el producto a vender
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if productos %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Código escaneado:</strong> {{ productos[0].codigo_barras_original }}
+                            <br>
+                            <strong>Productos encontrados:</strong> {{ productos|length }}
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Código Extraído</th>
+                                        <th>Nombre</th>
+                                        <th>Proveedor</th>
+                                        <th>Stock Actual</th>
+                                        <th>Precio</th>
+                                        <th>Dueño</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for producto in productos %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-primary">{{ producto.codigo_extraido }}</span>
+                                            <br>
+                                            <small class="text-muted">Original: {{ producto.codigo }}</small>
+                                        </td>
+                                        <td>
+                                            <strong>{{ producto.nombre }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ producto.proveedor or 'N/A' }}</span>
+                                        </td>
+                                        <td>
+                                            {% if producto.source == 'excel' %}
+                                                <div>
+                                                    <span class="badge bg-info">Solo en Lista de Precios</span>
+                                                    <br>
+                                                    <small class="text-muted">No hay stock físico</small>
+                                                </div>
+                                            {% elif producto.cantidad <= 0 %}
+                                                <span class="badge bg-danger">Sin stock</span>
+                                            {% elif producto.cantidad <= 5 %}
+                                                <span class="badge bg-warning">{{ producto.cantidad }} unidades</span>
+                                            {% else %}
+                                                <span class="badge bg-success">{{ producto.cantidad }} unidades</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>${{ "%.2f"|format(producto.precio|float) }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if producto.dueno == 'ricky' %}bg-info{% else %}bg-warning{% endif %}">
+                                                {{ producto.dueno or 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if producto.source == 'excel' %}
+                                                <!-- Producto solo en lista de precios -->
+                                                <div class="btn-group-vertical" role="group">
+                                                    <!-- Solo agregar a mesa (no venta directa) -->
+                                                    <button type="button" class="btn btn-warning btn-sm" 
+                                                            onclick="agregarAMesa('{{ producto.id }}', '{{ producto.codigo }}', '{{ producto.nombre|e }}', {{ producto.precio }}, '{{ producto.proveedor|e }}', 0, true)"
+                                                            title="Este producto no está en stock, solo en lista de precios">
+                                                        <i class="bi bi-table"></i> A Mesa (Sin Stock)
+                                                    </button>
+                                                </div>
+                                            {% elif producto.cantidad > 0 %}
+                                                <div class="btn-group-vertical" role="group">
+                                                    <!-- Venta directa -->
+                                                    <form method="post" action="{{ url_for('ejecutar_venta_escaneo') }}" class="mb-1">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                                                        
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" class="form-control" name="cantidad" value="1" min="1" max="{{ producto.cantidad }}" style="width: 60px;">
+                                                            <button type="submit" class="btn btn-success btn-sm">
+                                                                <i class="bi bi-cart-plus"></i> Vender
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                    
+                                                    <!-- Agregar a mesa -->
+                                                    <button type="button" class="btn btn-primary btn-sm" 
+                                                            onclick="agregarAMesa('{{ producto.id }}', '{{ producto.codigo }}', '{{ producto.nombre|e }}', {{ producto.precio }}, '{{ producto.proveedor|e }}', {{ producto.cantidad }}, false)">
+                                                        <i class="bi bi-table"></i> A Mesa
+                                                    </button>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">Sin stock</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="{{ url_for('escanear') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver al Escáner
+                            </a>
+                        </div>
+                        
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            No hay productos para mostrar.
+                        </div>
+                        <a href="{{ url_for('escanear') }}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left"></i> Volver al Escáner
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mesa de Ventas -->
+    <div class="row mt-4" id="mesaVentas" style="display:none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        Mesa de Ventas
+                        <span class="badge bg-dark ms-2" id="contadorMesa">0</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tablaMesa">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Proveedor</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Cantidad</th>
+                                    <th>Subtotal</th>
+                                    <th>Stock Disp.</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoMesa">
+                                <!-- Los productos se agregan dinámicamente aquí -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <td colspan="4"><strong>TOTAL:</strong></td>
+                                    <td><strong id="totalMesa">$0.00</strong></td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-success btn-lg me-2" onclick="procesarVentaMesa()" id="btnVenderMesa" disabled>
+                            <i class="bi bi-cart-check"></i> Vender Todo
+                        </button>
+                        <button type="button" class="btn btn-danger me-2" onclick="limpiarMesa()">
+                            <i class="bi bi-trash"></i> Limpiar Mesa
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="ocultarMesa()">
+                            <i class="bi bi-eye-slash"></i> Ocultar Mesa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información adicional -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Cómo funciona</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>El sistema extrajo códigos del código de barras escaneado</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Se encontraron productos que coinciden con esos códigos</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Seleccione la cantidad y confirme la venta</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Importante</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="bi bi-info-circle text-info me-2"></i>Verifique que sea el producto correcto</li>
+                        <li><i class="bi bi-info-circle text-info me-2"></i>El stock se descontará automáticamente</li>
+                        <li><i class="bi bi-info-circle text-info me-2"></i>La venta se registrará en el historial</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mesa de ventas en memoria
+let mesaVentas = [];
+let contadorId = 0;
+
+// Funciones de persistencia del carrito
+function guardarCarrito() {
+    localStorage.setItem('mesaVentas', JSON.stringify(mesaVentas));
+    localStorage.setItem('contadorId', contadorId.toString());
+}
+
+function cargarCarrito() {
+    const carritoGuardado = localStorage.getItem('mesaVentas');
+    const contadorGuardado = localStorage.getItem('contadorId');
+    
+    if (carritoGuardado) {
+        mesaVentas = JSON.parse(carritoGuardado);
+    }
+    
+    if (contadorGuardado) {
+        contadorId = parseInt(contadorGuardado);
+    }
+    
+    // Actualizar la tabla visual
+    actualizarMesa();
+}
+
+// Cargar carrito al iniciar la página
+document.addEventListener('DOMContentLoaded', function() {
+    cargarCarrito();
+});
+
+function agregarAMesa(productoId, codigo, nombre, precio, proveedor, stockDisponible, sinStock = false) {
+    // Nota: Eliminada la advertencia de stock físico por solicitud del usuario
+    
+    // Verificar si el producto ya existe en la mesa
+    const existeIndex = mesaVentas.findIndex(item => item.productoId === productoId);
+    
+    if (existeIndex >= 0) {
+        // Si existe, aumentar cantidad
+        if (!sinStock && mesaVentas[existeIndex].cantidad < stockDisponible) {
+            mesaVentas[existeIndex].cantidad++;
+            mesaVentas[existeIndex].subtotal = mesaVentas[existeIndex].cantidad * mesaVentas[existeIndex].precio;
+        } else if (sinStock) {
+            // Para productos sin stock, permitir incrementar cantidad pero con advertencia
+            mesaVentas[existeIndex].cantidad++;
+            mesaVentas[existeIndex].subtotal = mesaVentas[existeIndex].cantidad * mesaVentas[existeIndex].precio;
+        } else {
+            alert('No hay más stock disponible para este producto');
+            return;
+        }
+    } else {
+        // Si no existe, agregar nuevo
+        mesaVentas.push({
+            id: ++contadorId,
+            productoId: productoId,
+            codigo: codigo,
+            nombre: nombre,
+            precio: precio,
+            proveedor: proveedor,
+            cantidad: 1,
+            subtotal: precio,
+            stockDisponible: stockDisponible,
+            sinStock: sinStock
+        });
+    }
+    
+    actualizarMesa();
+    guardarCarrito();
+}
+
+function actualizarMesa() {
+    const cuerpoMesa = document.getElementById('cuerpoMesa');
+    const contadorMesa = document.getElementById('contadorMesa');
+    const totalMesa = document.getElementById('totalMesa');
+    const btnVenderMesa = document.getElementById('btnVenderMesa');
+    const mesaDiv = document.getElementById('mesaVentas');
+    
+    // Limpiar tabla
+    cuerpoMesa.innerHTML = '';
+    
+    if (mesaVentas.length === 0) {
+        mesaDiv.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar mesa
+    mesaDiv.style.display = 'block';
+    
+    let total = 0;
+    mesaVentas.forEach((item, index) => {
+        total += item.subtotal;
+        
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>
+                <strong>${item.nombre}</strong><br>
+                <small class="text-muted">Código: ${item.codigo}</small>
+            </td>
+            <td><span class="badge bg-secondary">${item.proveedor}</span></td>
+            <td>$${item.precio.toFixed(2)}</td>
+            <td>
+                <div class="input-group input-group-sm" style="width: 120px;">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="cambiarCantidad(${index}, -1)">-</button>
+                    <input type="number" class="form-control text-center" value="${item.cantidad}" min="1" max="${item.stockDisponible}" 
+                           onchange="setCantidad(${index}, this.value)" style="width: 60px;">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="cambiarCantidad(${index}, 1)">+</button>
+                </div>
+            </td>
+            <td><strong>$${item.subtotal.toFixed(2)}</strong></td>
+            <td>
+                ${item.sinStock ? 
+                    '<span class="badge bg-warning">⚠️ Sin Stock</span>' : 
+                    `<span class="badge bg-info">${item.stockDisponible} disp.</span>`}
+            </td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm" onclick="quitarDeMesa(${index})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        cuerpoMesa.appendChild(fila);
+    });
+    
+    // Actualizar contador y total
+    contadorMesa.textContent = mesaVentas.length;
+    totalMesa.textContent = `$${total.toFixed(2)}`;
+    btnVenderMesa.disabled = mesaVentas.length === 0;
+}
+
+function cambiarCantidad(index, cambio) {
+    const item = mesaVentas[index];
+    const nuevaCantidad = item.cantidad + cambio;
+    
+    if (nuevaCantidad >= 1 && (item.sinStock || nuevaCantidad <= item.stockDisponible)) {
+        item.cantidad = nuevaCantidad;
+        item.subtotal = item.cantidad * item.precio;
+        actualizarMesa();
+        guardarCarrito();
+    } else if (!item.sinStock && nuevaCantidad > item.stockDisponible) {
+        alert('No hay suficiente stock disponible');
+    }
+}
+
+function setCantidad(index, nuevaCantidad) {
+    const item = mesaVentas[index];
+    const cantidad = parseInt(nuevaCantidad);
+    
+    if (cantidad >= 1 && (item.sinStock || cantidad <= item.stockDisponible)) {
+        item.cantidad = cantidad;
+        item.subtotal = item.cantidad * item.precio;
+        actualizarMesa();
+        guardarCarrito();
+    } else {
+        actualizarMesa(); // Restaurar valor válido
+    }
+}
+
+function quitarDeMesa(index) {
+    mesaVentas.splice(index, 1);
+    actualizarMesa();
+    guardarCarrito();
+}
+
+function limpiarMesa() {
+    if (mesaVentas.length > 0 && confirm('¿Seguro que quiere limpiar toda la mesa de ventas?')) {
+        mesaVentas = [];
+        actualizarMesa();
+        guardarCarrito();
+    }
+}
+
+function ocultarMesa() {
+    document.getElementById('mesaVentas').style.display = 'none';
+}
+
+function procesarVentaMesa() {
+    if (mesaVentas.length === 0) {
+        alert('No hay productos en la mesa de ventas');
+        return;
+    }
+    
+    // Verificar si hay productos sin stock
+    const productosSinStock = mesaVentas.filter(item => item.sinStock);
+    
+    if (productosSinStock.length > 0) {
+        const nombresSinStock = productosSinStock.map(item => `• ${item.nombre}`).join('\n');
+        const mensaje = `⚠️ ADVERTENCIA: Los siguientes productos NO ESTÁN EN STOCK:\n\n${nombresSinStock}\n\n¿Desea continuar con la venta de todas formas?`;
+        
+        if (!confirm(mensaje)) {
+            return;
+        }
+    }
+    
+    if (confirm(`¿Confirmar venta de ${mesaVentas.length} productos por un total de ${document.getElementById('totalMesa').textContent}?`)) {
+        // Enviar datos al servidor
+        fetch('{{ url_for("procesar_venta_mesa") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                productos: mesaVentas,
+                csrf_token: '{{ csrf_token() }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Venta procesada exitosamente!');
+                mesaVentas = [];
+                actualizarMesa();
+                guardarCarrito(); // Limpiar carrito guardado tras venta exitosa
+                // Opcional: redirigir al escáner
+                window.location.href = '{{ url_for("escanear") }}';
+            } else {
+                alert('Error al procesar la venta: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión al procesar la venta');
+        });
+    }
+}
+</script>
+
+{% endblock %}
