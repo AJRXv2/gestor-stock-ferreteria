@@ -77,8 +77,29 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('eliminar_manual') }}">Gestionar Productos Manuales</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('escanear') }}">Escáner de Códigos</a>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarEscaner" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-upc-scan me-1"></i>Escáner de Códigos
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarEscaner">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('escanear') }}">
+                                <i class="bi bi-phone me-2"></i>Escáner Normal
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="javascript:void(0)" onclick="abrirEscanerAmpliado()">
+                                <i class="bi bi-fullscreen me-2"></i>Escáner Ampliado <small class="text-muted">(Nueva ventana)</small>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <span class="dropdown-item-text text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Ampliado: Interfaz más grande y legible
+                            </span>
+                        </li>
+                    </ul>
                 </li>
             </ul>
             <ul class="navbar-nav ms-auto mb-2 mb-md-0">
@@ -140,5 +161,52 @@
 {# Desactivado para evitar duplicado; se usará solo el toast inferior #}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function abrirEscanerAmpliado() {
+    // Configuración de la nueva ventana
+    const ancho = screen.width * 0.9; // 90% del ancho de pantalla
+    const alto = screen.height * 0.9; // 90% del alto de pantalla
+    const left = (screen.width - ancho) / 2;
+    const top = (screen.height - alto) / 2;
+    
+    const caracteristicas = [
+        `width=${ancho}`,
+        `height=${alto}`,
+        `left=${left}`,
+        `top=${top}`,
+        'scrollbars=yes',
+        'resizable=yes',
+        'menubar=no',
+        'toolbar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Abrir nueva ventana
+    const ventanaEscaner = window.open(
+        '{{ url_for("escanear_ampliado") }}',
+        'EscanerAmpliado',
+        caracteristicas
+    );
+    
+    // Enfocar la ventana si se abrió correctamente
+    if (ventanaEscaner) {
+        ventanaEscaner.focus();
+    } else {
+        // Fallback si el popup fue bloqueado
+        alert('Por favor, permita ventanas emergentes para usar el escáner ampliado.\nO abra manualmente: ' + '{{ url_for("escanear_ampliado") }}');
+    }
+}
+
+// Atajo de teclado global para abrir escáner ampliado (Ctrl+Shift+S)
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        abrirEscanerAmpliado();
+    }
+});
+</script>
+
 </body>
 </html>

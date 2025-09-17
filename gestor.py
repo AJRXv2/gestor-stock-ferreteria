@@ -6840,6 +6840,46 @@ def escanear():
     
     return render_template('escanear.html', historial=historial, resultado=session.pop('resultado_escaneo', None))
 
+@app.route('/escanear_ampliado', methods=['GET'])
+@login_required
+def escanear_ampliado():
+    """Escáner de códigos de barras en ventana ampliada - Mantiene todas las funcionalidades"""
+    # Obtener el historial de escaneos recientes (últimos 10)
+    if _is_postgres_configured():
+        # PostgreSQL usa una sintaxis diferente para operaciones de fecha
+        historial = db_query("""
+            SELECT s.id, s.codigo, s.nombre, h.cantidad, h.fecha_compra, s.cantidad as stock_actual
+            FROM historial h
+            JOIN stock s ON h.codigo = s.codigo
+            WHERE h.fecha_compra >= NOW() - INTERVAL '1 day'
+            ORDER BY h.fecha_compra DESC
+            LIMIT 10
+        """, fetch=True) or []
+    else:
+        # Consulta para SQLite
+        historial = db_query("""
+            SELECT s.id, s.codigo, s.nombre, h.cantidad, h.fecha_compra, s.cantidad as stock_actual
+            FROM historial h
+            JOIN stock s ON h.codigo = s.codigo
+            WHERE h.fecha_compra >= datetime('now', '-1 day')
+            ORDER BY h.fecha_compra DESC
+            LIMIT 10
+        """, fetch=True) or []
+    
+    # Obtener la lista de proveedores para el filtro
+    proveedores = list(PROVEEDOR_CONFIG.keys())
+    
+    # Obtener carrito actual si existe
+    carrito_productos = session.get('carrito_escaneo', [])
+    total_carrito = sum(float(item.get('precio', 0)) * int(item.get('cantidad', 1)) for item in carrito_productos)
+    
+    return render_template('escanear_ampliado.html', 
+                         historial=historial, 
+                         resultado=session.pop('resultado_escaneo', None),
+                         proveedores=proveedores,
+                         carrito_productos=carrito_productos,
+                         total_carrito=total_carrito)
+
 def formatear_precio_europeo(precio):
     """
     Formatea el precio usando el sistema de numeración europeo:

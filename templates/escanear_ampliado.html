@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner de Códigos - Interfaz Ampliada</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container-ampliado {
+            max-width: 95%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+        
+        .form-control, .form-select {
+            font-size: 1.2rem;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 15px rgba(13, 110, 253, 0.25);
+        }
+        
+        .btn-lg {
+            padding: 15px 30px;
+            font-size: 1.3rem;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .producto-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .producto-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            transform: translateY(-5px);
+        }
+        
+        .precio-display {
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: #000000;
+        }
+        
+        .codigo-display {
+            font-size: 1.5rem;
+            font-family: 'Courier New', monospace;
+            color: #6c757d;
+        }
+        
+        .stock-badge {
+            font-size: 1.1rem;
+            padding: 8px 15px;
+        }
+        
+        .mesa-ventas {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+        }
+        
+        .table th {
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        
+        .table td {
+            font-size: 1.1rem;
+            vertical-align: middle;
+        }
+        
+        .total-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #000000;
+        }
+        
+        .historial-card {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .floating-header {
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .scanner-input {
+            font-size: 1.5rem;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* Animaciones suaves */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-ampliado">
+        <!-- Header Flotante -->
+        <div class="floating-header text-center">
+            <h1 class="mb-0">
+                <i class="bi bi-upc-scan me-3"></i>
+                Escáner de Códigos - Interfaz Ampliada
+                <i class="bi bi-fullscreen ms-3"></i>
+            </h1>
+            <p class="text-muted mb-0">Sistema de numeración europea | Filtros Crossmaster | Mesa de ventas integrada</p>
+        </div>
+        
+        <div class="row">
+            <!-- Panel de Escáner Principal -->
+            <div class="col-lg-8">
+                <div class="card fade-in">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">
+                            <i class="bi bi-barcode me-2"></i>
+                            Escáner Principal
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="escanerForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            
+                            <!-- Filtro de Proveedor Ampliado -->
+                            <div class="mb-4">
+                                <label for="proveedor_escaner_main" class="form-label fs-5">
+                                    <i class="bi bi-funnel me-2"></i>Filtro de Proveedor:
+                                </label>
+                                <select id="proveedor_escaner_main" name="proveedor_filtro" class="form-select">
+                                    <option value="">🔍 Búsqueda Automática (Todos los proveedores)</option>
+                                    <optgroup label="🔧 Ricky">
+                                        {% for proveedor in proveedores %}
+                                            {% if proveedor in ['brementools', 'crossmaster', 'berger', 'chiesa', 'cachan'] %}
+                                                <option value="{{ proveedor }}">
+                                                    {% if proveedor == 'crossmaster' %}
+                                                        🎯 Crossmaster (UPC-A: 7824→9977824, 9977824.1)
+                                                    {% else %}
+                                                        {{ proveedor.title() }}
+                                                    {% endif %}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </optgroup>
+                                    <optgroup label="🏪 Ferretería General">
+                                        {% for proveedor in proveedores %}
+                                            {% if proveedor in ['nortedist', 'bermon', 'dewalt', 'sica', 'sorbalok'] %}
+                                                <option value="{{ proveedor }}">{{ proveedor.title() }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </optgroup>
+                                </select>
+                                <div class="form-text">
+                                    💡 <strong>Crossmaster:</strong> UPC-A 12 dígitos (190349378240 → extrae 7824 → busca 9927824, 9927824.1, 9937824, 9937824.1...)
+                                </div>
+                            </div>
+                            
+                            <!-- Campo de Código Ampliado -->
+                            <div class="mb-4">
+                                <label for="codigo_barras" class="form-label fs-4">
+                                    <i class="bi bi-upc me-2"></i>Código de Barras:
+                                </label>
+                                <input type="text" 
+                                       class="form-control scanner-input" 
+                                       id="codigo_barras" 
+                                       name="codigo_barras" 
+                                       autofocus 
+                                       placeholder="🔍 Escanee aquí o ingrese manualmente..."
+                                       autocomplete="off">
+                            </div>
+                            
+                            <!-- Botones Ampliados -->
+                            <div class="d-grid gap-3 d-md-flex justify-content-md-center">
+                                <button type="submit" class="btn btn-primary btn-lg flex-fill">
+                                    <i class="bi bi-search me-2"></i>
+                                    <span id="btnTexto">Buscar Producto</span>
+                                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-lg" onclick="limpiarFormulario()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Limpiar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Resultados de Productos -->
+                <div id="seccionResultados" style="display:none;" class="mt-4 fade-in">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h3 class="mb-0">
+                                <i class="bi bi-search me-2"></i>
+                                Productos Encontrados
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="productosEncontrados">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel Lateral - Historial y Mesa -->
+            <div class="col-lg-4">
+                <!-- Mesa de Ventas Compacta -->
+                <div class="card fade-in" id="mesaVentasCompacta" style="display:none;">
+                    <div class="card-header bg-warning text-dark">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-table me-2"></i>Mesa 
+                                <span class="badge bg-dark" id="contadorMesa">0</span>
+                            </h5>
+                            <button class="btn btn-sm btn-outline-dark" onclick="mostrarMesaCompleta()">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="resumenMesa"></div>
+                        <div class="d-grid gap-2 mt-3">
+                            <button class="btn btn-success" id="btnVenderMesa" onclick="procesarVentaMesa()" disabled>
+                                <i class="bi bi-cart-check"></i> Vender Todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Historial Reciente -->
+                <div class="card fade-in mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Historial Reciente
+                        </h5>
+                    </div>
+                    <div class="card-body historial-card">
+                        {% if historial %}
+                            {% for item in historial %}
+                                <div class="border-bottom pb-2 mb-2">
+                                    <div class="fw-bold">{{ item.nombre }}</div>
+                                    <small class="text-muted">
+                                        Código: {{ item.codigo }} | 
+                                        Cantidad: {{ item.cantidad }} | 
+                                        Stock: {{ item.stock_actual }}
+                                    </small>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center">No hay historial reciente</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Instrucciones Ampliadas -->
+                <div class="card fade-in mt-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Instrucciones
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-primary border-0">
+                                    <i class="bi bi-1-circle-fill me-2"></i>
+                                    <strong>Escanee</strong> el código en el campo principal
+                                </div>
+                                <div class="alert alert-success border-0">
+                                    <i class="bi bi-2-circle-fill me-2"></i>
+                                    <strong>Seleccione</strong> productos para agregar a la mesa
+                                </div>
+                                <div class="alert alert-warning border-0">
+                                    <i class="bi bi-3-circle-fill me-2"></i>
+                                    <strong>Procese</strong> la venta completa cuando esté listo
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mesa de Ventas Completa -->
+        <div class="mesa-ventas" id="mesaVentasCompleta" style="display:none;">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="bi bi-table me-2"></i>Mesa de Ventas 
+                            <span class="badge bg-light text-dark fs-6" id="contadorMesaCompleta">0</span>
+                        </h3>
+                        <div>
+                            <button type="button" class="btn btn-success btn-lg me-2" id="btnVenderMesaCompleta" onclick="procesarVentaMesa()" disabled>
+                                <i class="bi bi-cart-check"></i> Procesar Venta
+                            </button>
+                            <button type="button" class="btn btn-warning btn-lg me-2" onclick="limpiarMesa()">
+                                <i class="bi bi-trash"></i> Limpiar Mesa
+                            </button>
+                            <button type="button" class="btn btn-outline-light btn-lg" onclick="ocultarMesaCompleta()">
+                                <i class="bi bi-arrows-collapse"></i> Minimizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Código</th>
+                                    <th>Proveedor</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Cantidad</th>
+                                    <th>Subtotal</th>
+                                    <th>Stock</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoMesaCompleta">
+                                <!-- Contenido dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="card bg-light border-dark">
+                                <div class="card-body text-center">
+                                    <h4 class="text-dark">Total a Cobrar:</h4>
+                                    <div class="total-display" id="totalMesaCompleta">$0,00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let mesaVentas = [];
+        let contadorId = 0;
+
+        // Función para formatear precios al estilo europeo
+        function formatearPrecioEuropeo(precio) {
+            try {
+                if (typeof precio === 'string') {
+                    precio = parseFloat(precio.replace(',', '.'));
+                } else if (precio == null) {
+                    precio = 0.0;
+                }
+                
+                const precioFloat = parseFloat(precio);
+                
+                // Formatear con 2 decimales usando formato americano primero
+                const precioAmericano = precioFloat.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                
+                // Convertir al formato europeo: intercambiar puntos y comas
+                let precioEuropeo = '';
+                for (let char of precioAmericano) {
+                    if (char === ',') {
+                        precioEuropeo += '.';
+                    } else if (char === '.') {
+                        precioEuropeo += ',';
+                    } else {
+                        precioEuropeo += char;
+                    }
+                }
+                
+                return precioEuropeo;
+                
+            } catch (error) {
+                return '0,00';
+            }
+        }
+
+        // Persistencia del carrito
+        function guardarCarrito() {
+            localStorage.setItem('mesaVentasAmpliada', JSON.stringify(mesaVentas));
+            localStorage.setItem('contadorIdAmpliada', contadorId.toString());
+        }
+
+        function cargarCarrito() {
+            const carritoGuardado = localStorage.getItem('mesaVentasAmpliada');
+            const contadorGuardado = localStorage.getItem('contadorIdAmpliada');
+            
+            if (carritoGuardado) {
+                mesaVentas = JSON.parse(carritoGuardado);
+            }
+            
+            if (contadorGuardado) {
+                contadorId = parseInt(contadorGuardado);
+            }
+            
+            actualizarMesa();
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarCarrito();
+            document.getElementById('codigo_barras').focus();
+            
+            // Manejar envío del formulario
+            document.getElementById('escanerForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                procesarEscaneo();
+            });
+            
+            // Auto-procesamiento para escáneres
+            const inputCodigo = document.getElementById('codigo_barras');
+            
+            inputCodigo.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    procesarEscaneo();
+                }
+            });
+            
+            // Detección automática de escaneo completo
+            let typingTimer;
+            const doneTypingInterval = 500;
+            
+            inputCodigo.addEventListener('keyup', function() {
+                clearTimeout(typingTimer);
+                if (inputCodigo.value) {
+                    typingTimer = setTimeout(function() {
+                        if (inputCodigo.value.length >= 8 && inputCodigo.value.length <= 20) {
+                            procesarEscaneo();
+                        }
+                    }, doneTypingInterval);
+                }
+            });
+        });
+
+        function procesarEscaneo() {
+            const codigoBarras = document.getElementById('codigo_barras').value.trim();
+            const proveedorFiltro = document.getElementById('proveedor_escaner_main').value;
+            
+            if (!codigoBarras) {
+                alert('Debe ingresar un código de barras');
+                return;
+            }
+            
+            // Mostrar información del filtro
+            if (proveedorFiltro) {
+                console.log(`🎯 ESCÁNER AMPLIADO: Usando filtro específico para '${proveedorFiltro}'`);
+            } else {
+                console.log('🔍 ESCÁNER AMPLIADO: Modo automático (todos los proveedores)');
+            }
+            
+            // Mostrar spinner
+            const textoBoton = proveedorFiltro ? `Buscando en ${proveedorFiltro}...` : 'Buscando...';
+            document.getElementById('btnTexto').textContent = textoBoton;
+            document.getElementById('btnSpinner').classList.remove('d-none');
+            
+            // Petición AJAX
+            fetch('/procesar_escaneo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                },
+                body: new URLSearchParams({
+                    'codigo_barras': codigoBarras,
+                    'proveedor_filtro': proveedorFiltro,
+                    'csrf_token': document.querySelector('input[name="csrf_token"]').value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Ocultar spinner
+                document.getElementById('btnTexto').textContent = 'Buscar Producto';
+                document.getElementById('btnSpinner').classList.add('d-none');
+                
+                if (data.success) {
+                    mostrarProductos(data.productos);
+                    // Limpiar y enfocar para próximo escaneo
+                    document.getElementById('codigo_barras').value = '';
+                    setTimeout(() => document.getElementById('codigo_barras').focus(), 100);
+                } else {
+                    mostrarError(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('btnTexto').textContent = 'Buscar Producto';
+                document.getElementById('btnSpinner').classList.add('d-none');
+                mostrarError('Error de conexión. Verifique su conexión a internet.');
+            });
+        }
+
+        function mostrarProductos(productos) {
+            const container = document.getElementById('productosEncontrados');
+            const seccionResultados = document.getElementById('seccionResultados');
+            
+            if (!productos || productos.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning text-center">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        No se encontraron productos con el código escaneado
+                    </div>`;
+                seccionResultados.style.display = 'block';
+                return;
+            }
+            
+            // DEDUPLICACIÓN MEJORADA: Priorizar productos en stock sobre lista de precios
+            const productosDeduplicados = {};
+            
+            productos.forEach(producto => {
+                const key = `${producto.codigo}_${producto.proveedor}`;
+                const enStock = producto.en_stock || producto.source === 'stock';
+                
+                if (!productosDeduplicados[key]) {
+                    // Si no existe, agregar
+                    productosDeduplicados[key] = producto;
+                } else {
+                    // Si ya existe, priorizar el que está en stock
+                    const existeEnStock = productosDeduplicados[key].en_stock || productosDeduplicados[key].source === 'stock';
+                    
+                    if (enStock && !existeEnStock) {
+                        // El nuevo está en stock y el existente no, reemplazar
+                        productosDeduplicados[key] = producto;
+                    } else if (!enStock && !existeEnStock) {
+                        // Ambos son solo lista de precios, mantener el que tenga mejor precio
+                        const precioExistente = parseFloat(productosDeduplicados[key].precio) || 0;
+                        const precioNuevo = parseFloat(producto.precio) || 0;
+                        
+                        if (precioNuevo > 0 && (precioExistente === 0 || precioNuevo < precioExistente)) {
+                            productosDeduplicados[key] = producto;
+                        }
+                    }
+                    // Si el existente está en stock y el nuevo no, mantener el existente (no hacer nada)
+                }
+            });
+            
+            // Convertir objeto de vuelta a array
+            const productosFiltrados = Object.values(productosDeduplicados);
+            
+            let html = '';
+            productosFiltrados.forEach((producto, index) => {
+                const precioFormateado = formatearPrecioEuropeo(producto.precio);
+                const enStock = producto.en_stock || producto.source === 'stock';
+                const stockInfo = enStock ? 
+                    `<span class="stock-badge badge bg-success">En Stock: ${producto.cantidad || 0}</span>` : 
+                    `<span class="stock-badge badge bg-warning text-dark">Solo Lista de Precios</span>`;
+                
+                html += `
+                    <div class="producto-card">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h4 class="mb-2">${producto.nombre}</h4>
+                                <div class="codigo-display mb-2">
+                                    <i class="bi bi-upc me-2"></i>${producto.codigo}
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-info fs-6">${producto.proveedor}</span>
+                                    ${stockInfo}
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="precio-display">$${precioFormateado}</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary btn-lg" onclick="agregarAMesa(${index})">
+                                        <i class="bi bi-cart-plus me-2"></i>
+                                        Agregar a Mesa
+                                    </button>
+                                    ${enStock ? `
+                                        <button class="btn btn-success" onclick="venderDirecto(${index})">
+                                            <i class="bi bi-lightning me-2"></i>
+                                            Vender Ahora
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            seccionResultados.style.display = 'block';
+            
+            // Guardar productos filtrados para uso posterior
+            window.productosActuales = productosFiltrados;
+        }
+
+        function mostrarError(mensaje) {
+            const container = document.getElementById('productosEncontrados');
+            const seccionResultados = document.getElementById('seccionResultados');
+            
+            container.innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="bi bi-x-circle me-2"></i>
+                    ${mensaje}
+                </div>`;
+            
+            seccionResultados.style.display = 'block';
+        }
+
+        function agregarAMesa(index) {
+            if (!window.productosActuales || !window.productosActuales[index]) return;
+            
+            const producto = window.productosActuales[index];
+            
+            // Verificar si ya existe en la mesa
+            const existeIndex = mesaVentas.findIndex(item => 
+                item.codigo === producto.codigo && item.proveedor === producto.proveedor
+            );
+            
+            if (existeIndex >= 0) {
+                // Si existe, incrementar cantidad
+                mesaVentas[existeIndex].cantidad++;
+            } else {
+                // Si no existe, agregar nuevo
+                mesaVentas.push({
+                    id: ++contadorId,
+                    codigo: producto.codigo,
+                    nombre: producto.nombre,
+                    precio: parseFloat(producto.precio) || 0,
+                    cantidad: 1,
+                    proveedor: producto.proveedor,
+                    en_stock: producto.en_stock || false,
+                    stock_disponible: producto.cantidad || 0,
+                    source: producto.source || 'excel'
+                });
+            }
+            
+            actualizarMesa();
+            guardarCarrito();
+            
+            // Mostrar confirmación
+            mostrarNotificacion('Producto agregado a la mesa', 'success');
+        }
+
+        function actualizarMesa() {
+            const totalItems = mesaVentas.length;
+            const totalPrecio = mesaVentas.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            
+            // Actualizar contadores
+            document.getElementById('contadorMesa').textContent = totalItems;
+            document.getElementById('contadorMesaCompleta').textContent = totalItems;
+            
+            // Actualizar botones de venta
+            const tieneItems = totalItems > 0;
+            document.getElementById('btnVenderMesa').disabled = !tieneItems;
+            document.getElementById('btnVenderMesaCompleta').disabled = !tieneItems;
+            
+            // Mostrar/ocultar mesa compacta
+            const mesaCompacta = document.getElementById('mesaVentasCompacta');
+            if (totalItems > 0) {
+                mesaCompacta.style.display = 'block';
+                
+                // Actualizar resumen compacto
+                const resumen = document.getElementById('resumenMesa');
+                resumen.innerHTML = `
+                    <div class="text-center">
+                        <div class="fs-5 fw-bold">${totalItems} productos</div>
+                        <div class="fs-3 fw-bold">$${formatearPrecioEuropeo(totalPrecio)}</div>
+                    </div>
+                `;
+            } else {
+                mesaCompacta.style.display = 'none';
+            }
+            
+            // Actualizar mesa completa
+            actualizarMesaCompleta();
+        }
+
+        function actualizarMesaCompleta() {
+            const tbody = document.getElementById('cuerpoMesaCompleta');
+            const totalSpan = document.getElementById('totalMesaCompleta');
+            
+            if (mesaVentas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            <i class="bi bi-cart-x me-2"></i>
+                            No hay productos en la mesa
+                        </td>
+                    </tr>
+                `;
+                totalSpan.textContent = '$0,00';
+                return;
+            }
+            
+            let html = '';
+            let total = 0;
+            
+            mesaVentas.forEach((item, index) => {
+                const subtotal = item.precio * item.cantidad;
+                total += subtotal;
+                
+                const stockBadge = item.en_stock ? 
+                    `<span class="badge bg-success">${item.stock_disponible}</span>` :
+                    `<span class="badge bg-warning text-dark">N/A</span>`;
+                
+                html += `
+                    <tr>
+                        <td class="fw-bold">${item.nombre}</td>
+                        <td><code>${item.codigo}</code></td>
+                        <td><span class="badge bg-info">${item.proveedor}</span></td>
+                        <td class="text-end">$${formatearPrecioEuropeo(item.precio)}</td>
+                        <td>
+                            <div class="input-group input-group-sm" style="width: 120px;">
+                                <button class="btn btn-outline-secondary" onclick="cambiarCantidad(${index}, -1)">-</button>
+                                <input type="number" class="form-control text-center" value="${item.cantidad}" 
+                                       onchange="setCantidad(${index}, this.value)" min="1">
+                                <button class="btn btn-outline-secondary" onclick="cambiarCantidad(${index}, 1)">+</button>
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold">$${formatearPrecioEuropeo(subtotal)}</td>
+                        <td class="text-center">${stockBadge}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="quitarDeMesa(${index})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            totalSpan.textContent = '$' + formatearPrecioEuropeo(total);
+        }
+
+        function cambiarCantidad(index, delta) {
+            if (mesaVentas[index]) {
+                mesaVentas[index].cantidad = Math.max(1, mesaVentas[index].cantidad + delta);
+                actualizarMesa();
+                guardarCarrito();
+            }
+        }
+
+        function setCantidad(index, nuevaCantidad) {
+            const cantidad = parseInt(nuevaCantidad);
+            if (mesaVentas[index] && cantidad >= 1) {
+                mesaVentas[index].cantidad = cantidad;
+                actualizarMesa();
+                guardarCarrito();
+            }
+        }
+
+        function quitarDeMesa(index) {
+            if (confirm('¿Quitar este producto de la mesa?')) {
+                mesaVentas.splice(index, 1);
+                actualizarMesa();
+                guardarCarrito();
+                mostrarNotificacion('Producto removido de la mesa', 'warning');
+            }
+        }
+
+        function limpiarMesa() {
+            if (mesaVentas.length === 0) return;
+            
+            if (confirm('¿Limpiar toda la mesa de ventas?')) {
+                mesaVentas = [];
+                actualizarMesa();
+                guardarCarrito();
+                mostrarNotificacion('Mesa limpiada', 'info');
+            }
+        }
+
+        function mostrarMesaCompleta() {
+            document.getElementById('mesaVentasCompleta').style.display = 'block';
+            // Scroll hacia la mesa
+            document.getElementById('mesaVentasCompleta').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function ocultarMesaCompleta() {
+            document.getElementById('mesaVentasCompleta').style.display = 'none';
+        }
+
+        function procesarVentaMesa() {
+            if (mesaVentas.length === 0) {
+                alert('No hay productos en la mesa para procesar');
+                return;
+            }
+            
+            if (!confirm(`¿Procesar venta de ${mesaVentas.length} productos?`)) {
+                return;
+            }
+            
+            // Mostrar loading
+            const btnVender = document.getElementById('btnVenderMesaCompleta');
+            const textoOriginal = btnVender.innerHTML;
+            btnVender.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+            btnVender.disabled = true;
+            
+            // Enviar a servidor
+            fetch('/procesar_venta_mesa', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                },
+                body: JSON.stringify({
+                    productos: mesaVentas,
+                    csrf_token: document.querySelector('input[name="csrf_token"]').value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btnVender.innerHTML = textoOriginal;
+                btnVender.disabled = false;
+                
+                if (data.success) {
+                    mostrarNotificacion(`Venta procesada exitosamente. Total: $${formatearPrecioEuropeo(data.total)}`, 'success');
+                    
+                    // Limpiar mesa
+                    mesaVentas = [];
+                    actualizarMesa();
+                    guardarCarrito();
+                    
+                    // Ocultar mesa completa
+                    ocultarMesaCompleta();
+                    
+                    // Enfocar código de barras
+                    setTimeout(() => document.getElementById('codigo_barras').focus(), 500);
+                } else {
+                    mostrarNotificacion(`Error: ${data.message}`, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btnVender.innerHTML = textoOriginal;
+                btnVender.disabled = false;
+                mostrarNotificacion('Error de conexión', 'danger');
+            });
+        }
+
+        function venderDirecto(index) {
+            if (!window.productosActuales || !window.productosActuales[index]) return;
+            
+            const producto = window.productosActuales[index];
+            
+            if (!producto.en_stock) {
+                alert('Este producto no está en stock físico');
+                return;
+            }
+            
+            if (confirm(`¿Vender 1 unidad de "${producto.nombre}"?`)) {
+                // Agregar a mesa y procesar inmediatamente
+                mesaVentas = [{
+                    id: ++contadorId,
+                    codigo: producto.codigo,
+                    nombre: producto.nombre,
+                    precio: parseFloat(producto.precio) || 0,
+                    cantidad: 1,
+                    proveedor: producto.proveedor,
+                    en_stock: true,
+                    stock_disponible: producto.cantidad || 0,
+                    source: producto.source || 'stock'
+                }];
+                
+                procesarVentaMesa();
+            }
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('codigo_barras').value = '';
+            document.getElementById('proveedor_escaner_main').value = '';
+            document.getElementById('seccionResultados').style.display = 'none';
+            document.getElementById('codigo_barras').focus();
+        }
+
+        function mostrarNotificacion(mensaje, tipo) {
+            // Crear elemento de notificación
+            const notif = document.createElement('div');
+            notif.className = `alert alert-${tipo} alert-dismissible position-fixed`;
+            notif.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notif.innerHTML = `
+                ${mensaje}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+            
+            document.body.appendChild(notif);
+            
+            // Auto-remover después de 3 segundos
+            setTimeout(() => {
+                if (notif.parentElement) {
+                    notif.remove();
+                }
+            }, 3000);
+        }
+
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            // F1 - Enfocar código de barras
+            if (e.key === 'F1') {
+                e.preventDefault();
+                document.getElementById('codigo_barras').focus();
+            }
+            // F2 - Mostrar/ocultar mesa completa
+            else if (e.key === 'F2') {
+                e.preventDefault();
+                const mesa = document.getElementById('mesaVentasCompleta');
+                if (mesa.style.display === 'none' || !mesa.style.display) {
+                    mostrarMesaCompleta();
+                } else {
+                    ocultarMesaCompleta();
+                }
+            }
+            // F3 - Procesar venta
+            else if (e.key === 'F3') {
+                e.preventDefault();
+                if (mesaVentas.length > 0) {
+                    procesarVentaMesa();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
