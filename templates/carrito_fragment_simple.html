@@ -38,7 +38,7 @@
                 </td>
                 <td>
                     {% if item.precio and item.precio > 0 %}
-                        ${{ "%.2f"|format(item.precio|float) }}
+                        {{ formatear_precio_europeo(item.precio) }}
                     {% else %}
                         <span class="text-muted">Sin precio</span>
                     {% endif %}

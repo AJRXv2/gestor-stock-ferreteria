@@ -1,6 +1,6 @@
 print("🔄 Cargando dependencias...")
 try:
-    from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+    from flask import Flask, render_template, render_template_string, request, redirect, url_for, flash, session, jsonify
     from flask import send_file
     from datetime import datetime, timedelta
     from openpyxl import Workbook, load_workbook
@@ -97,6 +97,8 @@ if _HAS_FLASK_WTF:
 else:
     # Fallback: expose our simple generate_csrf and validate on POST
     app.jinja_env.globals['csrf_token'] = generate_csrf
+
+
 
     # Endpoints seguros/legacy que omiten la verificación CSRF (AJAX/legacy forms)
     CSRF_WHITELIST = {
@@ -224,6 +226,35 @@ DUENOS_CONFIG = {
         'proveedores_excel': ['dewalt', 'sica', 'sorbalok', 'nortedist', 'bermon'],
         'puede_excel': True,
         'carpeta_excel': 'ferreteria_general'
+    }
+}
+
+# --- Configuración de Patrones de Código de Barras por Proveedor ---
+PATRONES_CODIGO_BARRAS = {
+    'crossmaster': {
+        'tipo': 'prefijos_predefinidos',
+        'prefijos': ['992', '993', '994', '995', '996', '997', '998'],
+        'sufijos': ['', '.1'],  # Variantes: sin sufijo y con .1
+        'extraccion': 'upc_a_medio_4_digitos',
+        'patron_barras': '12_digitos_upc_a',
+        'posicion_inicio': 8,  # Posición donde empiezan los 4 dígitos en UPC-A (1903494[6846]0)
+        'posicion_fin': 12,    # Posición donde terminan los 4 dígitos
+        'descripcion': 'UPC-A 12 dígitos: 190349468460 → extrae 6846 (pos 8-11) → genera 9996846, 9996846.1, etc.'
+    },
+    'brementools': {
+        'tipo': 'estandar_ean13',
+        'extraccion': 'posicion_2_5_ultimos_6',
+        'descripcion': 'Método estándar EAN-13: últimos 6 dígitos, posiciones 2-5'
+    },
+    'berger': {
+        'tipo': 'estandar_ean13', 
+        'extraccion': 'posicion_2_5_ultimos_6',
+        'descripcion': 'Método estándar EAN-13'
+    },
+    'nortedist': {
+        'tipo': 'estandar_ean13',
+        'extraccion': 'posicion_2_5_ultimos_6', 
+        'descripcion': 'Método estándar EAN-13'
     }
 }
 
@@ -2346,6 +2377,136 @@ def marcar_notificaciones_leidas():
     return redirect(url_for('notificaciones'))
 
 # --- Rutas principales de la aplicación ---
+
+@app.route('/procesar_escaneo_agregar', methods=['POST'])
+@login_required
+def procesar_escaneo_agregar():
+    """Procesa el escaneo de códigos de barras en la sección de agregar productos (solo búsqueda, sin mesa)"""
+    try:
+        data = request.get_json()
+        codigo_barras = data.get('codigo_barras', '').strip()
+        
+        if not codigo_barras:
+            return jsonify({
+                'success': False,
+                'mensaje': 'Código de barras vacío'
+            })
+        
+        # Obtener proveedor filtro si se especificó
+        proveedor_filtro = data.get('proveedor_filtro')
+        
+        # Usar la función de extracción inteligente de códigos
+        codigos_buscar = extraer_codigo_de_barras(codigo_barras, proveedor_filtro)
+        print(f"🔍 DEBUG BARCODE AGREGAR: Código original: '{codigo_barras}' -> Códigos finales: {codigos_buscar}")
+        
+        # Buscar en stock (base de datos)
+        productos_stock = []
+        for codigo in codigos_buscar:
+            try:
+                resultados = db_query("SELECT id, codigo, nombre, precio, cantidad, proveedor FROM productos WHERE codigo LIKE ? LIMIT 10", (f"%{codigo}%",))
+                for fila in resultados:
+                    # Convertir precio de manera segura
+                    precio_float = 0.0
+                    try:
+                        precio_raw = fila[3]
+                        if isinstance(precio_raw, str):
+                            precio_str = precio_raw.replace(',', '.')
+                            precio_float = float(precio_str)
+                        else:
+                            precio_float = float(precio_raw)
+                    except (ValueError, TypeError):
+                        precio_float = 0.0
+                    
+                    productos_stock.append({
+                        'id': fila[0],
+                        'codigo': fila[1],
+                        'nombre': fila[2],
+                        'precio': precio_float,
+                        'cantidad': fila[4],
+                        'proveedor': fila[5],
+                        'tipo': 'stock',
+                        'codigo_barras_original': codigo_barras,
+                        'codigo_extraido': codigo,
+                        # Formatear precio al estilo europeo para mostrar
+                        'precio_formato_europeo': formatear_precio_europeo(precio_float)
+                    })
+            except Exception as e:
+                print(f"Error buscando en stock: {e}")
+        
+        # Buscar en Excel (listas de precios) con filtro de proveedor
+        productos_excel = []
+        try:
+            # Usar el filtro de proveedor para búsqueda dirigida y rápida
+            for codigo in codigos_buscar:
+                if proveedor_filtro:
+                    print(f"🎯 BÚSQUEDA DIRIGIDA: Buscando '{codigo}' solo en proveedor '{proveedor_filtro}'")
+                    resultados_excel = buscar_en_excel(codigo, proveedor_filtro, None, False, False)
+                else:
+                    print(f"🔍 BÚSQUEDA COMPLETA: Buscando '{codigo}' en todos los proveedores")
+                    resultados_excel = buscar_en_excel(codigo, None, None, False, False)
+                for resultado in resultados_excel:
+                    # Convertir precio de manera segura manejando formatos con comas
+                    precio_raw = resultado.get('precio', 0)
+                    precio_float = 0.0
+                    try:
+                        if isinstance(precio_raw, str):
+                            # Reemplazar coma por punto para la conversión
+                            precio_str = precio_raw.replace(',', '.')
+                            precio_float = float(precio_str)
+                        else:
+                            precio_float = float(precio_raw)
+                    except (ValueError, TypeError):
+                        precio_float = 0.0
+                    
+                    productos_excel.append({
+                        'id': f"excel_{resultado.get('archivo', '')}_{resultado.get('codigo', '')}_{resultado.get('proveedor', '')}",
+                        'codigo': resultado.get('codigo', ''),
+                        'nombre': resultado.get('nombre', ''),  # Corregido: usar 'nombre' en lugar de 'producto'
+                        'precio': precio_float,
+                        'proveedor': resultado.get('proveedor', ''),
+                        'tipo': 'excel',
+                        'codigo_barras_original': codigo_barras,
+                        'codigo_extraido': codigo,
+                        'archivo': resultado.get('archivo', ''),
+                        'cantidad': 0,  # Los productos Excel no tienen stock físico
+                        'observaciones': resultado.get('observaciones', ''),  # Agregar observaciones
+                        # Formatear precio al estilo europeo para mostrar
+                        'precio_formato_europeo': formatear_precio_europeo(precio_float)
+                    })
+        except Exception as e:
+            print(f"Error buscando en Excel: {e}")
+        
+        # Combinar resultados
+        todos_productos = productos_stock + productos_excel
+        
+        # Formatear resultados para el frontend
+        resultados_formateados = []
+        for producto in todos_productos:
+            resultado = {
+                'codigo': producto.get('codigo', ''),
+                'nombre': producto.get('nombre', ''),
+                'precio': producto.get('precio', 0),  # Precio original como número
+                'precio_formato_europeo': producto.get('precio_formato_europeo', formatear_precio_europeo(producto.get('precio', 0))),  # Precio formateado
+                'proveedor': producto.get('proveedor', ''),
+                'observaciones': producto.get('observaciones', ''),
+                'origen': 'stock' if producto.get('tipo') == 'stock' else 'excel'
+            }
+            resultados_formateados.append(resultado)
+        
+        return jsonify({
+            'success': True,
+            'resultados': resultados_formateados,
+            'total_encontrados': len(resultados_formateados),
+            'codigo_original': codigo_barras,
+            'codigos_extraidos': codigos_buscar
+        })
+        
+    except Exception as e:
+        print(f"Error en procesar_escaneo_agregar: {e}")
+        return jsonify({
+            'success': False,
+            'mensaje': f'Error interno: {str(e)}'
+        })
 
 @app.route('/agregar_producto', methods=['GET', 'POST'])
 @login_required
@@ -5054,6 +5215,32 @@ def debug_stock_item():
         return jsonify({'success': False, 'error': str(e)})
 
 # --- Funciones de Búsqueda en Excel ---
+def buscar_multiples_codigos_excel(lista_codigos, proveedor_filtro=None):
+    """Buscar múltiples códigos de manera optimizada para reducir llamadas repetitivas"""
+    todos_resultados = []
+    print(f"📋 BÚSQUEDA MÚLTIPLE: Procesando {len(lista_codigos)} códigos con filtro '{proveedor_filtro}'")
+    
+    for i, codigo in enumerate(lista_codigos, 1):
+        print(f"   🔍 [{i}/{len(lista_codigos)}] Buscando: {codigo}")
+        try:
+            if proveedor_filtro:
+                resultados = buscar_en_excel(codigo, proveedor_filtro, None, False, False)
+            else:
+                # Búsqueda sin filtro de proveedor - buscar en todos
+                resultados = buscar_en_excel(codigo, None, None, False, False)
+            
+            if resultados:
+                todos_resultados.extend(resultados)
+                print(f"     ✅ Encontró {len(resultados)} resultado(s)")
+            else:
+                print(f"     ❌ Sin resultados")
+                
+        except Exception as e:
+            print(f"     ⚠️ Error buscando {codigo}: {e}")
+    
+    print(f"📋 RESUMEN: {len(todos_resultados)} productos encontrados de {len(lista_codigos)} códigos")
+    return todos_resultados
+
 def buscar_en_excel(termino_busqueda, proveedor_filtro=None, filtro_adicional=None, solo_ricky=False, solo_fg=False):
     """Buscar productos en archivos Excel de proveedores y productos manuales"""
     resultados = []
@@ -5275,8 +5462,10 @@ def agregar_producto_manual_excel():
             if solo_ricky and not solo_fg and dueno != 'ricky':
                 continue
             
-            resultados_archivo = procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, archivo, dueno)
-            resultados.extend(resultados_archivo)
+            # Solo procesar con procesar_archivo_excel si NO tiene método especial
+            if not config.get('metodo_especial', False):
+                resultados_archivo = procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, archivo, dueno)
+                resultados.extend(resultados_archivo)
     
     print(f"🔍 [BUSCAR_EXCEL] ✅ Búsqueda completada. Total resultados: {len(resultados)}")
     for i, resultado in enumerate(resultados):
@@ -5379,7 +5568,8 @@ def buscar_en_excel_manual_por_proveedor(termino_busqueda, proveedor_id, dueno_f
                 'proveedor': row.get('Proveedor', ''),
                 'observaciones': row.get('Observaciones', ''),
                 'dueno': row.get('Dueno', ''),
-                'es_manual': True
+                'es_manual': True,
+                'precio_formato_europeo': formatear_precio_europeo(precio_val)
             }
             resultados.append(resultado)
     
@@ -5430,7 +5620,8 @@ def buscar_en_excel_manual_por_nombre_proveedor(termino_busqueda, nombre_proveed
                 'proveedor': row.get('Proveedor', ''),
                 'observaciones': row.get('Observaciones', ''),
                 'dueno': row.get('Dueno', ''),
-                'es_manual': True
+                'es_manual': True,
+                'precio_formato_europeo': formatear_precio_europeo(precio_val)
             })
     except Exception as e:
         print(f"Error en buscar_en_excel_manual_por_nombre_proveedor: {e}")
@@ -5470,7 +5661,8 @@ def buscar_en_excel_manual(termino_busqueda, dueno_filtro=None):
                 'proveedor': row.get('Proveedor', ''),
                 'observaciones': row.get('Observaciones', ''),
                 'dueno': row.get('Dueno', ''),
-                'es_manual': True
+                'es_manual': True,
+                'precio_formato_europeo': formatear_precio_europeo(precio_val)
             })
     except Exception as e:
         print(f"Error en buscar_en_excel_manual: {e}")
@@ -5646,6 +5838,7 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                             
                             # Usar lógica específica del proveedor para extraer precio
                             precio = 0.0
+                            precio_procesado = False  # Flag para evitar procesamiento duplicado
                             
                             # Bremen tiene estructura especial
                             if config.get('metodo_especial', False) and proveedor == 'brementools':
@@ -5657,12 +5850,44 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                                         if cell_value is not None and isinstance(cell_value, (int, float)):
                                             precio = float(cell_value)
                                             print(f"[EXCEL DEBUG] Bremen - Precio de Venta encontrado: {precio}")
+                                            
+                                            # Crear resultado directamente para Bremen
+                                            def formatear_precio_europeo(precio_float):
+                                                if precio_float == 0.0:
+                                                    return ""
+                                                precio_str = f"{precio_float:.2f}"
+                                                entero, decimal = precio_str.split('.')
+                                                entero_formateado = ""
+                                                for i, digit in enumerate(entero[::-1]):
+                                                    if i > 0 and i % 3 == 0:
+                                                        entero_formateado = "." + entero_formateado
+                                                    entero_formateado = digit + entero_formateado
+                                                return f"{entero_formateado},{decimal}"
+                                            
+                                            print(f"[EXCEL DEBUG] Bremen - Creando resultado - Codigo: '{codigo}' | Nombre: '{nombre}' | Precio: {precio} | Proveedor: '{proveedor_real}'")
+                                            resultado = {
+                                                'codigo': codigo,
+                                                'nombre': nombre if nombre else f"Fila {row_idx}",
+                                                'precio': precio,
+                                                'precio_numerico': precio,
+                                                'proveedor': proveedor_real,
+                                                'archivo': nombre_archivo,
+                                                'hoja': ws_name,
+                                                'fila': row_idx,
+                                                'tipo': 'excel',
+                                                'dueno': dueno,
+                                                'row_text': row_text,
+                                                'precio_formato_europeo': formatear_precio_europeo(precio)
+                                            }
+                                            resultados.append(resultado)
+                                            print(f"[EXCEL DEBUG] Bremen - Resultado agregado exitosamente. Total resultados: {len(resultados)}")
                                         else:
                                             print(f"[EXCEL DEBUG] Bremen - Valor de celda J no numérico: {cell_value}")
                                             precio = 0.0
                                     except (ValueError, TypeError, IndexError) as e:
                                         print(f"[EXCEL DEBUG] Bremen - Error parseando precio: {e}")
                                         precio = 0.0
+                                precio_procesado = True  # Marcar como procesado para evitar lógica genérica
                             # Si el proveedor tiene configuración de colores (como NorteDist)
                             elif config.get('usar_colores', False):
                                 # Para NorteDist: usar función especial de colores (se maneja en otra función)
@@ -5674,7 +5899,8 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                                     except (ValueError, TypeError):
                                         precio = 0.0
                                 print(f"[EXCEL DEBUG] Proveedor con colores - Precio: {precio}")
-                            else:
+                                precio_procesado = True
+                            elif not precio_procesado:
                                 # Para otros proveedores: buscar la columna de precio según configuración
                                 precio_cols = config.get('precio', ['precio'])
                                 fila_encabezado = config.get('fila_encabezado', 0)
@@ -5747,23 +5973,27 @@ def buscar_en_excel_proveedor(termino_busqueda, proveedor, filtro_adicional=None
                             
                             precio_formateado = formatear_precio_europeo(precio)
                             
-                            # Crear resultado
-                            print(f"[EXCEL DEBUG] Creando resultado - Codigo: '{codigo}' | Nombre: '{nombre}' | Precio: {precio} | Proveedor: '{proveedor_real}'")
-                            resultado = {
-                                'codigo': codigo,
-                                'nombre': nombre if nombre else f"Fila {row_idx}",
-                                'precio': precio_formateado,
-                                'precio_numerico': precio,  # Guardar también el valor numérico
-                                'proveedor': proveedor_real,
-                                'archivo': nombre_archivo,
-                                'hoja': ws_name,
-                                'fila': row_idx,
-                                'tipo': 'excel',
-                                'dueno': dueno,
-                                'row_text': row_text
-                            }
-                            resultados.append(resultado)
-                            print(f"[EXCEL DEBUG] Resultado agregado exitosamente. Total resultados: {len(resultados)}")
+                            # Crear resultado solo si no fue procesado por método especial
+                            if not precio_procesado:
+                                print(f"[EXCEL DEBUG] Creando resultado - Codigo: '{codigo}' | Nombre: '{nombre}' | Precio: {precio} | Proveedor: '{proveedor_real}'")
+                                resultado = {
+                                    'codigo': codigo,
+                                    'nombre': nombre if nombre else f"Fila {row_idx}",
+                                    'precio': precio,  # Guardar valor numérico
+                                    'precio_numerico': precio,  # Guardar también el valor numérico para compatibilidad
+                                    'proveedor': proveedor_real,
+                                    'archivo': nombre_archivo,
+                                    'hoja': ws_name,
+                                    'fila': row_idx,
+                                    'tipo': 'excel',
+                                    'dueno': dueno,
+                                    'row_text': row_text,
+                                    'precio_formato_europeo': formatear_precio_europeo(precio)
+                                }
+                                resultados.append(resultado)
+                                print(f"[EXCEL DEBUG] Resultado agregado exitosamente. Total resultados: {len(resultados)}")
+                            else:
+                                print(f"[EXCEL DEBUG] Resultado omitido - ya procesado por método especial")
                 
             except Exception as e:
                 print(f"[EXCEL] Error al procesar archivo '{archivo}': {e}")
@@ -5944,7 +6174,8 @@ def procesar_archivo_excel(archivo, config, termino_busqueda, filtro_adicional, 
                     'proveedor': proveedor_key.title(),
                     'observaciones': '',
                     'dueno': dueno,
-                    'es_manual': False
+                    'es_manual': False,
+                    'precio_formato_europeo': formatear_precio_europeo(precio_val)
                 }
                 resultados.append(resultado)
                 print(f"📊 [PROCESAR_EXCEL] ✅ Producto agregado: {codigo} - {nombre} - Precio: {precio_val}")
@@ -6609,15 +6840,61 @@ def escanear():
     
     return render_template('escanear.html', historial=historial, resultado=session.pop('resultado_escaneo', None))
 
-def extraer_codigo_de_barras(codigo_barras):
+def formatear_precio_europeo(precio):
     """
-    Extrae el código del producto desde el código de barras usando múltiples patrones.
+    Formatea el precio usando el sistema de numeración europeo:
+    - Punto (.) para separar miles: 1.234
+    - Coma (,) para decimales: 1.234,56
     
-    Patrones soportados:
-    - 13 dígitos: últimos 6 dígitos, extraer posiciones 2-5 (ej: 7795163082347 -> 082347 -> 8234)
-    - 12 dígitos: últimos 6 dígitos, extraer posiciones 2-5 
-    - 10 dígitos: últimos 6 dígitos, extraer posiciones 1-4
-    - Códigos más cortos: intentar diferentes extracciones
+    Args:
+        precio: float, int, str - Precio a formatear
+    
+    Returns:
+        str: Precio formateado al estilo europeo
+    """
+    try:
+        # Convertir a float si es string
+        if isinstance(precio, str):
+            precio = float(precio.replace(',', '.'))
+        elif precio is None:
+            precio = 0.0
+        
+        precio_float = float(precio)
+        
+        # Formatear con 2 decimales usando formato americano primero
+        precio_americano = f"{precio_float:,.2f}"
+        
+        # Convertir al formato europeo: intercambiar puntos y comas
+        precio_europeo = ""
+        for char in precio_americano:
+            if char == ",":
+                precio_europeo += "."
+            elif char == ".":
+                precio_europeo += ","
+            else:
+                precio_europeo += char
+        
+        return precio_europeo
+        
+    except (ValueError, TypeError):
+        return "0,00"
+
+# Expose formatear_precio_europeo function to templates
+app.jinja_env.globals['formatear_precio_europeo'] = formatear_precio_europeo
+
+def extraer_codigo_de_barras(codigo_barras, proveedor_filtro=None):
+    """
+    Extrae el código del producto desde el código de barras usando múltiples patrones inteligentes.
+    
+    Funcionalidades:
+    - Patrones específicos por proveedor (ej: Crossmaster usa prefijos 992-998)
+    - Extracción estándar EAN-13/UPC-A 
+    - Búsqueda predictiva para códigos parciales
+    - Filtrado inteligente por proveedor seleccionado
+    
+    Args:
+        codigo_barras (str): Código de barras escaneado
+        proveedor_filtro (str, optional): Proveedor específico para filtrar búsqueda
     
     Returns:
         list: Lista de códigos extraídos posibles, ordenados por probabilidad
@@ -6628,7 +6905,7 @@ def extraer_codigo_de_barras(codigo_barras):
     if not codigo_limpio:
         return [codigo_barras]  # Retornar original si no tiene números
     
-    print(f"🔍 DEBUG BARCODE: Código original: '{codigo_barras}' -> Limpio: '{codigo_limpio}' (longitud: {len(codigo_limpio)})")
+    print(f"🔍 DEBUG BARCODE INTELIGENTE: Código original: '{codigo_barras}' -> Limpio: '{codigo_limpio}' (longitud: {len(codigo_limpio)}) | Proveedor: {proveedor_filtro}")
     
     # Agregar siempre el código original como opción
     codigos_posibles.append(codigo_barras)
@@ -6636,45 +6913,117 @@ def extraer_codigo_de_barras(codigo_barras):
     
     longitud = len(codigo_limpio)
     
-    # Patrón principal: Códigos de 13 dígitos (EAN-13)
-    if longitud == 13:
-        ultimos_6 = codigo_limpio[-6:]  # Últimos 6 dígitos
-        codigo_extraido = ultimos_6[1:5]  # Posiciones 2-5 (índices 1-4)
-        codigos_posibles.append(codigo_extraido)
-        print(f"🔍 DEBUG BARCODE: Patrón 13 dígitos - Últimos 6: '{ultimos_6}' -> Código: '{codigo_extraido}'")
+    # FASE 1: Aplicar patrón específico del proveedor si está seleccionado
+    if proveedor_filtro and proveedor_filtro in PATRONES_CODIGO_BARRAS:
+        patron = PATRONES_CODIGO_BARRAS[proveedor_filtro]
+        print(f"🎯 PATRÓN ESPECÍFICO: Aplicando patrón de '{proveedor_filtro}' -> {patron['descripcion']}")
+        
+        if patron['tipo'] == 'prefijos_predefinidos':
+            # Caso Crossmaster: UPC-A de 12 dígitos, extraer 4 dígitos del medio
+            if patron.get('patron_barras') == '12_digitos_upc_a' and longitud == 12:
+                # CROSSMASTER tiene DOS patrones diferentes:
+                # 1. Con ".1": posiciones 7-10 (índices 6-9) → 190349225018 → 2250 → 9972250.1
+                # 2. Sin ".1": posiciones 8-11 (índices 7-10) → 190349468460 → 6846 → 9966846
+                
+                variantes_generadas = []
+                
+                # PATRÓN 1: Posiciones 7-10 para códigos con ".1"
+                codigo_base_1 = codigo_limpio[6:10]  # Índices 6-9 = posiciones 7-10
+                for prefijo in patron['prefijos']:
+                    codigo_completo = prefijo + codigo_base_1 + '.1'
+                    codigos_posibles.append(codigo_completo)
+                    variantes_generadas.append(codigo_completo)
+                
+                # PATRÓN 2: Posiciones 8-11 para códigos sin ".1"
+                codigo_base_2 = codigo_limpio[7:11]  # Índices 7-10 = posiciones 8-11
+                for prefijo in patron['prefijos']:
+                    codigo_completo = prefijo + codigo_base_2
+                    codigos_posibles.append(codigo_completo)
+                    variantes_generadas.append(codigo_completo)
+                        
+                print(f"🔧 CROSSMASTER DUAL: '{codigo_limpio}' -> Patrón 1: '{codigo_base_1}' (pos 7-10) + '.1' | Patrón 2: '{codigo_base_2}' (pos 8-11) sin sufijo -> Total: {len(variantes_generadas)} códigos")
+            
+            elif longitud >= 4:
+                # Fallback para otros casos
+                codigo_base = codigo_limpio[-4:]  # Últimos 4 dígitos
+                for prefijo in patron['prefijos']:
+                    codigo_completo = prefijo + codigo_base
+                    codigos_posibles.append(codigo_completo)
+                print(f"🔧 CROSSMASTER FALLBACK: Base '{codigo_base}' -> Generadas: {[p + codigo_base for p in patron['prefijos']]}")
+        
+        elif patron['tipo'] == 'estandar_ean13':
+            # Aplicar método estándar EAN-13
+            if longitud >= 6:
+                ultimos_6 = codigo_limpio[-6:]
+                if len(ultimos_6) >= 5:
+                    codigo_extraido = ultimos_6[1:5]
+                    codigos_posibles.append(codigo_extraido)
+                    print(f"📦 EAN-13 ESPECÍFICO: '{ultimos_6}' -> '{codigo_extraido}'")
     
-    # Patrón secundario: Códigos de 12 dígitos (UPC-A)
-    elif longitud == 12:
-        ultimos_6 = codigo_limpio[-6:]
-        codigo_extraido = ultimos_6[1:5]
-        codigos_posibles.append(codigo_extraido)
-        print(f"🔍 DEBUG BARCODE: Patrón 12 dígitos - Últimos 6: '{ultimos_6}' -> Código: '{codigo_extraido}'")
-    
-    # Patrón para códigos de 10 dígitos
-    elif longitud == 10:
-        ultimos_6 = codigo_limpio[-6:] if longitud >= 6 else codigo_limpio
-        if len(ultimos_6) >= 5:
+    # FASE 2: Si NO hay proveedor, aplicar extracción estándar + búsqueda predictiva
+    else:
+        print("🔍 MODO AUTOMÁTICO: Sin proveedor específico, aplicando todos los patrones")
+        
+        # Patrón estándar EAN-13/UPC-A
+        if longitud == 13:
+            ultimos_6 = codigo_limpio[-6:]
+            codigo_extraido = ultimos_6[1:5]  # Posiciones 2-5 (índices 1-4)
+            codigos_posibles.append(codigo_extraido)
+            print(f"� EAN-13: '{ultimos_6}' -> '{codigo_extraido}'")
+            
+            # BÚSQUEDA PREDICTIVA CROSSMASTER: Solo para proveedor Crossmaster específico
+            # REMOVIDO de "Todos los proveedores" para evitar contaminación
+            if len(codigo_extraido) == 4 and codigo_extraido.isdigit() and proveedor_filtro == 'crossmaster':
+                print(f"🔮 PREDICTIVO EAN-13: Código 4 dígitos '{codigo_extraido}', generando variantes Crossmaster (solo Crossmaster específico)...")
+                for prefijo in PATRONES_CODIGO_BARRAS['crossmaster']['prefijos']:
+                    codigo_predictivo = prefijo + codigo_extraido
+                    codigos_posibles.append(codigo_predictivo)
+        
+        elif longitud == 12:
+            ultimos_6 = codigo_limpio[-6:]
             codigo_extraido = ultimos_6[1:5]
             codigos_posibles.append(codigo_extraido)
-        print(f"🔍 DEBUG BARCODE: Patrón 10 dígitos - Últimos 6: '{ultimos_6}' -> Código: '{codigo_extraido if len(ultimos_6) >= 5 else 'N/A'}'")
-    
-    # Patrón flexible: Para códigos más cortos, intentar diferentes extracciones
-    elif longitud >= 6:
-        ultimos_6 = codigo_limpio[-6:]
-        # Extraer del medio (posiciones 1-4 de los últimos 6)
-        if len(ultimos_6) >= 5:
-            codigo_extraido = ultimos_6[1:5]
-            codigos_posibles.append(codigo_extraido)
-        # También probar otras posiciones
-        if len(ultimos_6) >= 4:
-            codigo_extraido_alt = ultimos_6[0:4]  # Primeros 4 de los últimos 6
-            codigos_posibles.append(codigo_extraido_alt)
-        print(f"🔍 DEBUG BARCODE: Patrón flexible - Últimos 6: '{ultimos_6}' -> Códigos: '{codigo_extraido if len(ultimos_6) >= 5 else 'N/A'}', '{codigo_extraido_alt if len(ultimos_6) >= 4 else 'N/A'}'")
-    
-    # Para códigos muy cortos, usar directamente
-    elif longitud >= 4:
-        codigos_posibles.append(codigo_limpio)
-        print(f"🔍 DEBUG BARCODE: Código corto - Usando directo: '{codigo_limpio}'")
+            print(f"� UPC-A: '{ultimos_6}' -> '{codigo_extraido}'")
+        
+        elif longitud == 10:
+            ultimos_6 = codigo_limpio[-6:] if longitud >= 6 else codigo_limpio
+            if len(ultimos_6) >= 5:
+                codigo_extraido = ultimos_6[1:5]
+                codigos_posibles.append(codigo_extraido)
+                print(f"� 10-dígitos: '{ultimos_6}' -> '{codigo_extraido}'")
+        
+        elif longitud >= 6:
+            ultimos_6 = codigo_limpio[-6:]
+            if len(ultimos_6) >= 5:
+                codigo_extraido = ultimos_6[1:5]
+                codigos_posibles.append(codigo_extraido)
+            if len(ultimos_6) >= 4:
+                codigo_extraido_alt = ultimos_6[0:4]
+                codigos_posibles.append(codigo_extraido_alt)
+                print(f"� FLEXIBLE: '{ultimos_6}' -> '{codigo_extraido}', '{codigo_extraido_alt}'")
+        
+        elif longitud >= 4:
+            codigos_posibles.append(codigo_limpio)
+            print(f"➡️ DIRECTO: Usando '{codigo_limpio}'")
+        
+        # BÚSQUEDA PREDICTIVA CROSSMASTER: Solo para proveedor Crossmaster específico
+        # EXCLUIDO de "Todos los proveedores" para evitar contaminación
+        if longitud == 12 and proveedor_filtro == 'crossmaster':
+            codigo_crossmaster = codigo_limpio[6:10]  # Posiciones 7-10 (índices 6-9)
+            if len(codigo_crossmaster) == 4 and codigo_crossmaster.isdigit():
+                print(f"🔮 PREDICTIVO CROSSMASTER (solo para Crossmaster): UPC-A '{codigo_limpio}' -> Extrayendo '{codigo_crossmaster}' (pos 7-10)")
+                
+                # Generar variantes con prefijos y sufijos
+                sufijos_crossmaster = PATRONES_CODIGO_BARRAS['crossmaster'].get('sufijos', [''])
+                variantes_auto = []
+                
+                for prefijo in PATRONES_CODIGO_BARRAS['crossmaster']['prefijos']:
+                    for sufijo in sufijos_crossmaster:
+                        codigo_predictivo = prefijo + codigo_crossmaster + sufijo
+                        codigos_posibles.append(codigo_predictivo)
+                        variantes_auto.append(codigo_predictivo)
+                        
+                print(f"🎯 VARIANTES AUTO EXPANDIDAS (Crossmaster específico): {variantes_auto[:10]}{'...' if len(variantes_auto) > 10 else ''}")
     
     # Eliminar duplicados manteniendo el orden
     codigos_unicos = []
@@ -6682,7 +7031,19 @@ def extraer_codigo_de_barras(codigo_barras):
         if codigo and codigo not in codigos_unicos:
             codigos_unicos.append(codigo)
     
-    print(f"🔍 DEBUG BARCODE: Códigos finales a buscar: {codigos_unicos}")
+    # Limitar resultados para evitar sobrecarga, pero permitir más para Crossmaster
+    if proveedor_filtro == 'crossmaster':
+        max_codigos = 20  # Crossmaster necesita 14 variantes (7 prefijos × 2 sufijos)
+    elif proveedor_filtro:
+        max_codigos = 8   # Otros proveedores específicos
+    else:
+        max_codigos = 15  # Búsqueda general
+        
+    if len(codigos_unicos) > max_codigos:
+        codigos_unicos = codigos_unicos[:max_codigos]
+        print(f"⚠️ LIMITADO: Reducido a {max_codigos} códigos para optimizar búsqueda")
+    
+    print(f"✅ CÓDIGOS FINALES: {codigos_unicos}")
     return codigos_unicos
 
 @app.route('/procesar_escaneo', methods=['POST'])
@@ -6697,8 +7058,11 @@ def procesar_escaneo():
             'productos': []
         })
     
-    # Extraer códigos posibles del código de barras
-    codigos_posibles = extraer_codigo_de_barras(codigo_barras_original)
+    # Obtener proveedor filtro si se especificó
+    proveedor_filtro = request.form.get('proveedor_filtro')
+    
+    # Extraer códigos posibles del código de barras (ahora con filtro inteligente)
+    codigos_posibles = extraer_codigo_de_barras(codigo_barras_original, proveedor_filtro)
     
     # Buscar productos que coincidan con cualquiera de los códigos extraídos
     productos_encontrados = []
@@ -6712,43 +7076,93 @@ def procesar_escaneo():
                 if not any(p.get('id') == producto['id'] and p.get('source') == 'stock' for p in productos_encontrados):
                     producto['codigo_extraido'] = codigo
                     producto['codigo_barras_original'] = codigo_barras_original
-                    producto['source'] = 'stock'  # Marcar que viene del stock
+                    producto['source'] = 'stock'  # Marcar que viene del stockne del stock
                     producto['en_stock'] = True
+                    # Formatear precio al estilo europeo para mostrar
+                    producto['precio_formato_europeo'] = formatear_precio_europeo(producto.get('precio', 0))
                     productos_encontrados.append(producto)
     
-    # 2. Buscar en las listas de precios de Excel
-    for codigo in codigos_posibles:
-        try:
-            resultados_excel = buscar_en_excel(codigo)
-            if resultados_excel:
-                for item_excel in resultados_excel:
-                    # Crear producto compatible con el formato esperado
-                    producto_excel = {
-                        'id': f"excel_{item_excel.get('codigo', '')}_{item_excel.get('proveedor', '')}",
-                        'codigo': item_excel.get('codigo', ''),
-                        'nombre': item_excel.get('nombre', ''),
-                        'precio': item_excel.get('precio', 0),
-                        'cantidad': 0,  # No hay stock físico
-                        'proveedor': item_excel.get('proveedor', ''),
-                        'dueno': item_excel.get('dueno', ''),
-                        'codigo_extraido': codigo,
-                        'codigo_barras_original': codigo_barras_original,
-                        'source': 'excel',  # Marcar que viene de Excel
-                        'en_stock': False
-                    }
-                    
-                    # Evitar duplicados (mismo código y proveedor)
-                    es_duplicado = any(
-                        p.get('codigo') == producto_excel['codigo'] and 
-                        p.get('proveedor') == producto_excel['proveedor'] and
-                        p.get('source') == 'excel'
-                        for p in productos_encontrados
-                    )
-                    
-                    if not es_duplicado:
-                        productos_encontrados.append(producto_excel)
-        except Exception as e:
-            print(f"[WARN] Error buscando en Excel para código {codigo}: {e}")
+    # 2. Buscar en las listas de precios de Excel - OPTIMIZADO PARA MÚLTIPLES CÓDIGOS
+    try:
+        if proveedor_filtro:
+            print(f"🎯 BÚSQUEDA DIRIGIDA: {len(codigos_posibles)} códigos en '{proveedor_filtro}' -> {codigos_posibles}")
+            # Buscar usando la función optimizada con todos los códigos
+            todos_resultados_excel = buscar_multiples_codigos_excel(codigos_posibles, proveedor_filtro)
+        else:
+            print(f"🔍 BÚSQUEDA GENERAL: {len(codigos_posibles)} códigos en todos los proveedores -> {codigos_posibles}")
+            # Para búsqueda sin filtro, usar búsqueda normal pero agrupada
+            todos_resultados_excel = buscar_multiples_codigos_excel(codigos_posibles, None)
+        
+        # Procesar todos los resultados de Excel
+        for item_excel in todos_resultados_excel:
+            # Obtener precio numérico correcto (no el formateado)
+            precio_numerico = item_excel.get('precio_numerico', item_excel.get('precio', 0))
+            
+            # Si precio_numerico es string, intentar convertirlo a float
+            if isinstance(precio_numerico, str):
+                try:
+                    precio_numerico = float(precio_numerico)
+                except (ValueError, TypeError):
+                    precio_numerico = 0.0
+            
+            # Crear producto compatible con el formato esperado
+            producto_excel = {
+                'id': f"excel_{item_excel.get('codigo', '')}_{item_excel.get('proveedor', '')}",
+                'codigo': item_excel.get('codigo', ''),
+                'nombre': item_excel.get('nombre', ''),
+                'precio': precio_numerico,  # Usar valor numérico, no formateado
+                'cantidad': 0,  # No hay stock físico
+                'proveedor': item_excel.get('proveedor', ''),
+                'dueno': item_excel.get('dueno', ''),
+                'codigo_extraido': item_excel.get('codigo_extraido', ''),
+                'codigo_barras_original': codigo_barras_original,
+                'source': 'excel',  # Marcar que viene de Excel
+                'en_stock': False,
+                # Formatear precio al estilo europeo para mostrar
+                'precio_formato_europeo': formatear_precio_europeo(precio_numerico)
+            }
+            
+            # LÓGICA MEJORADA: Evitar duplicados pero priorizar productos con precio válido
+            indice_existente = -1
+            for i, p in enumerate(productos_encontrados):
+                if (p.get('codigo') == producto_excel['codigo'] and 
+                    p.get('proveedor') == producto_excel['proveedor'] and
+                    p.get('source') == 'excel'):
+                    indice_existente = i
+                    break
+            
+            if indice_existente >= 0:
+                # Ya existe el producto, decidir si reemplazar
+                existente = productos_encontrados[indice_existente]
+                precio_existente = float(existente.get('precio', 0))
+                precio_nuevo = float(precio_numerico or 0)
+                
+                print(f"🔄 DUPLICADO DETECTADO: {producto_excel['codigo']} | Existente: {precio_existente} | Nuevo: {precio_nuevo}")
+                
+                # Reemplazar si el nuevo tiene precio válido y el existente no
+                if precio_nuevo > 0 and precio_existente == 0:
+                    print(f"✅ REEMPLAZANDO: Precio nuevo válido ({precio_nuevo}) sobre precio 0")
+                    productos_encontrados[indice_existente] = producto_excel
+                elif precio_existente > 0 and precio_nuevo == 0:
+                    print(f"⚠️ MANTENIENDO: Precio existente válido ({precio_existente}) sobre precio 0")
+                    # No hacer nada, mantener el existente
+                elif precio_nuevo > precio_existente:
+                    print(f"💰 MEJOR PRECIO: Reemplazando {precio_existente} con {precio_nuevo}")
+                    productos_encontrados[indice_existente] = producto_excel
+                else:
+                    print(f"📋 MANTENIENDO: Precio existente es igual o mejor")
+            else:
+                # No existe, agregar si tiene precio válido o si no hay restricción
+                if precio_numerico and float(precio_numerico) > 0:
+                    print(f"➕ AGREGANDO: Nuevo producto con precio válido: {precio_numerico}")
+                    productos_encontrados.append(producto_excel)
+                elif not any(p.get('codigo') == producto_excel['codigo'] for p in productos_encontrados):
+                    print(f"➕ AGREGANDO: Nuevo producto sin precio pero único código: {producto_excel['codigo']}")
+                    productos_encontrados.append(producto_excel)
+                else:
+                    print(f"❌ DESCARTANDO: Producto con precio 0 y código ya existe")
+    except Exception as e:
+        print(f"[WARN] Error buscando en Excel: {e}")
     
     # Devolver respuesta JSON para manejo AJAX
     if not productos_encontrados:
@@ -7109,6 +7523,228 @@ def subir_backup_manual():
         print(f"Error al restaurar backup: {e}")
         flash(f'Error al restaurar backup: {str(e)}', 'danger')
         return redirect(url_for('eliminar_manual'))
+
+@app.route('/debug_buscar_no_auth', methods=['POST'])
+def debug_buscar_no_auth():
+    """Debug buscar sin autenticación"""
+    try:
+        codigo = request.form.get('codigo', '')
+        print(f"🔍 DEBUG_BUSCAR: Código recibido: {codigo}")
+        
+        # Buscar en stock primero
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE codigo_barras = ?", (codigo,))
+        producto = cursor.fetchone()
+        
+        if producto:
+            print(f"✅ Producto encontrado en stock: {producto}")
+            precio_formato = formatear_precio_europeo(producto[3]) if len(producto) > 3 else "0,00"
+            result = {
+                'found': True,
+                'source': 'stock',
+                'codigo': producto[1],
+                'nombre': producto[2],
+                'precio': producto[3],
+                'precio_formato_europeo': precio_formato,
+                'stock': producto[4] if len(producto) > 4 else 0
+            }
+        else:
+            print(f"❌ Producto NO encontrado en stock, buscando en Excel...")
+            # Buscar en Excel
+            resultado_excel = buscar_multiples_codigos_excel([codigo])
+            print(f"📊 Resultado Excel: {resultado_excel}")
+            
+            if resultado_excel and len(resultado_excel) > 0:
+                producto_excel = resultado_excel[0]
+                precio_formato = formatear_precio_europeo(producto_excel.get('precio'))
+                result = {
+                    'found': True,
+                    'source': 'excel',
+                    'codigo': producto_excel.get('codigo'),
+                    'nombre': producto_excel.get('nombre'),
+                    'precio': producto_excel.get('precio'),
+                    'precio_formato_europeo': precio_formato,
+                    'stock': 0,
+                    'archivo': producto_excel.get('archivo')
+                }
+            else:
+                result = {
+                    'found': False,
+                    'message': 'Producto no encontrado'
+                }
+        
+        conn.close()
+        print(f"🔄 DEBUG_BUSCAR: Resultado final: {result}")
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ ERROR en debug_buscar: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/debug_procesar_no_auth', methods=['POST'])
+def debug_procesar_no_auth():
+    """Debug procesar escaneo sin autenticación"""
+    try:
+        codigo = request.form.get('codigo', '')
+        cantidad = int(request.form.get('cantidad', 1))
+        mesa = request.form.get('mesa', '1')
+        
+        print(f"🔄 DEBUG_PROCESAR: Código: {codigo}, Cantidad: {cantidad}, Mesa: {mesa}")
+        
+        # Buscar producto
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE codigo_barras = ?", (codigo,))
+        producto = cursor.fetchone()
+        
+        if producto:
+            precio_formato = formatear_precio_europeo(producto[3])
+            result = {
+                'success': True,
+                'source': 'stock',
+                'producto': {
+                    'codigo': producto[1],
+                    'nombre': producto[2],
+                    'precio': producto[3],
+                    'precio_formato_europeo': precio_formato,
+                    'stock': producto[4]
+                }
+            }
+        else:
+            # Buscar en Excel con debug
+            print(f"🔍 Buscando en Excel: {codigo}")
+            resultado_excel = buscar_multiples_codigos_excel([codigo])
+            print(f"📊 Resultado Excel completo: {resultado_excel}")
+            
+            if resultado_excel and len(resultado_excel) > 0:
+                item = resultado_excel[0]
+                precio_raw = item.get('precio')
+                precio_formato = formatear_precio_europeo(precio_raw)
+                
+                print(f"💰 Precio raw: {precio_raw} -> Formato europeo: {precio_formato}")
+                
+                result = {
+                    'success': True,
+                    'source': 'excel',
+                    'producto': {
+                        'codigo': item.get('codigo'),
+                        'nombre': item.get('nombre'), 
+                        'precio': precio_raw,
+                        'precio_formato_europeo': precio_formato,
+                        'stock': 0,
+                        'archivo': item.get('archivo')
+                    }
+                }
+            else:
+                result = {
+                    'success': False,
+                    'message': 'Producto no encontrado'
+                }
+        
+        conn.close()
+        print(f"✅ DEBUG_PROCESAR: Resultado final: {result}")
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ ERROR en debug_procesar: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test_precios_debug')
+def test_precios_debug():
+    """Ruta temporal para debuggear precios europeos"""
+    return render_template_string('''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Precios Debug</title>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+            .result { margin: 10px 0; padding: 10px; background: #f9f9f9; }
+            .button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+            .error { color: red; }
+            .success { color: green; }
+        </style>
+    </head>
+    <body>
+        <h1>Debug Precios Europeos</h1>
+        
+        <div class="test-section">
+            <h3>Test 1: Buscar código que existe en stock</h3>
+            <button class="button" onclick="testBuscar('7790560046059')">Test código en stock</button>
+            <div id="result1" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 2: Buscar código que NO existe en stock (solo Excel)</h3>
+            <button class="button" onclick="testBuscar('123456789')">Test código solo Excel</button>
+            <div id="result2" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 3: Procesar escaneo con código inexistente</h3>
+            <button class="button" onclick="testProcesarEscaneo('999999999')">Test procesar escaneo</button>
+            <div id="result3" class="result"></div>
+        </div>
+        
+        <script>
+            function testBuscar(codigo) {
+                const resultDiv = document.getElementById('result' + (codigo === '7790560046059' ? '1' : '2'));
+                resultDiv.innerHTML = 'Buscando...';
+                
+                fetch('/debug_buscar_no_auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'codigo=' + encodeURIComponent(codigo)
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultDiv.innerHTML = '<span class="error">Error: ' + error + '</span>';
+                });
+            }
+            
+            function testProcesarEscaneo(codigo) {
+                const resultDiv = document.getElementById('result3');
+                resultDiv.innerHTML = 'Procesando escaneo...';
+                
+                fetch('/debug_procesar_no_auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'codigo=' + encodeURIComponent(codigo) + '&cantidad=1&mesa=1'
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultDiv.innerHTML = '<span class="error">Error: ' + error + '</span>';
+                });
+            }
+        </script>
+    </body>
+    </html>
+    ''')
 
 if __name__ == '__main__':
     print("🚀 Iniciando Gestor de Stock...")

@@ -16,6 +16,29 @@
                     <form id="escanerForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
+                        <!-- Selector de Proveedor para Filtro Inteligente -->
+                        <div class="mb-3">
+                            <label for="proveedor_escaner_main" class="form-label">Filtro de Proveedor (Opcional):</label>
+                            <select id="proveedor_escaner_main" name="proveedor_filtro" class="form-select">
+                                <option value="">🔍 Búsqueda Automática (Todos los proveedores)</option>
+                                <optgroup label="Ricky">
+                                    <option value="brementools">Bremen Tools</option>
+                                    <option value="crossmaster">🎯 Crossmaster (UPC-A: 7824→9977824, 9977824.1)</option>
+                                    <option value="berger">Berger</option>
+                                    <option value="chiesa">Chiesa</option>
+                                    <option value="cachan">Cachan</option>
+                                </optgroup>
+                                <optgroup label="Ferretería General">
+                                    <option value="nortedist">Norte Distribuidora</option>
+                                    <option value="bermon">Bermon</option>
+                                    <option value="dewalt">DeWalt</option>
+                                    <option value="sica">Sica</option>
+                                    <option value="sorbalok">Sorbalok</option>
+                                </optgroup>
+                            </select>
+                            <small class="text-muted">💡 Crossmaster: UPC-A 12 dígitos (190349378240 → extrae 7824 → busca 9927824, 9927824.1, 9937824, 9937824.1...)</small>
+                        </div>
+                        
                         <div class="mb-3">
                             <label for="codigo_barras" class="form-label">Código de Barras:</label>
                             <input type="text" class="form-control form-control-lg" id="codigo_barras" name="codigo_barras" autofocus 
@@ -127,6 +150,43 @@
 let mesaVentas = [];
 let contadorId = 0;
 
+// Función para formatear precios al estilo europeo
+function formatearPrecioEuropeo(precio) {
+    try {
+        // Convertir a número si es string
+        if (typeof precio === 'string') {
+            precio = parseFloat(precio.replace(',', '.'));
+        } else if (precio == null) {
+            precio = 0.0;
+        }
+        
+        const precioFloat = parseFloat(precio);
+        
+        // Formatear con 2 decimales usando formato americano primero
+        const precioAmericano = precioFloat.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        // Convertir al formato europeo: intercambiar puntos y comas
+        let precioEuropeo = '';
+        for (let char of precioAmericano) {
+            if (char === ',') {
+                precioEuropeo += '.';
+            } else if (char === '.') {
+                precioEuropeo += ',';
+            } else {
+                precioEuropeo += char;
+            }
+        }
+        
+        return precioEuropeo;
+        
+    } catch (error) {
+        return '0,00';
+    }
+}
+
 // Funciones de persistencia del carrito
 function guardarCarrito() {
     localStorage.setItem('mesaVentas', JSON.stringify(mesaVentas));
@@ -192,17 +252,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function procesarEscaneo() {
     const codigoBarras = document.getElementById('codigo_barras').value.trim();
+    const proveedorFiltro = document.getElementById('proveedor_escaner_main').value;
     
     if (!codigoBarras) {
         alert('Debe ingresar un código de barras');
         return;
     }
     
-    // Mostrar spinner
-    document.getElementById('btnTexto').textContent = 'Buscando...';
+    // Mostrar información del filtro en consola
+    if (proveedorFiltro) {
+        console.log(`🎯 ESCÁNER INTELIGENTE: Usando filtro específico para '${proveedorFiltro}'`);
+    } else {
+        console.log('🔍 ESCÁNER INTELIGENTE: Modo automático (todos los proveedores)');
+    }
+    
+    // Mostrar spinner con información del proveedor
+    const textoBoton = proveedorFiltro ? `Buscando en ${proveedorFiltro}...` : 'Buscando...';
+    document.getElementById('btnTexto').textContent = textoBoton;
     document.getElementById('btnSpinner').classList.remove('d-none');
     
-    // Enviar petición AJAX
+    // Enviar petición AJAX con filtro inteligente
     fetch('{{ url_for("procesar_escaneo") }}', {
         method: 'POST',
         headers: {
@@ -211,6 +280,7 @@ function procesarEscaneo() {
         },
         body: new URLSearchParams({
             'codigo_barras': codigoBarras,
+            'proveedor_filtro': proveedorFiltro,
             'csrf_token': '{{ csrf_token() }}'
         })
     })
@@ -286,17 +356,18 @@ function mostrarProductos(productos) {
         }
         
         html += `</td>
-            <td><strong>$${parseFloat(producto.precio).toFixed(2)}</strong></td>
+            <td><strong>${producto.precio_formato_europeo || formatearPrecioEuropeo(producto.precio)}</strong></td>
             <td><span class="badge ${producto.dueno === 'ricky' ? 'bg-info' : 'bg-warning'}">${producto.dueno || 'N/A'}</span></td>
             <td>`;
         
         if (producto.source === 'excel') {
-            // Producto solo en lista de precios
+            // Producto solo en lista de precios - ASEGURAR QUE EL PRECIO ES NUMÉRICO
+            const precioNumerico = parseFloat(producto.precio || 0);
             html += `<button type="button" class="btn btn-warning btn-sm" 
                 data-producto-id="${producto.id}" 
                 data-codigo="${producto.codigo}" 
                 data-nombre="${producto.nombre}" 
-                data-precio="${producto.precio}" 
+                data-precio="${precioNumerico}" 
                 data-proveedor="${producto.proveedor}" 
                 data-stock="0" 
                 data-sin-stock="true"
@@ -320,7 +391,7 @@ function mostrarProductos(productos) {
                     data-producto-id="${producto.id}" 
                     data-codigo="${producto.codigo}" 
                     data-nombre="${producto.nombre}" 
-                    data-precio="${producto.precio}" 
+                    data-precio="${parseFloat(producto.precio || 0)}" 
                     data-proveedor="${producto.proveedor}" 
                     data-stock="${producto.cantidad}" 
                     data-sin-stock="false"
@@ -370,6 +441,10 @@ function limpiarFormulario() {
 function agregarAMesa(productoId, codigo, nombre, precio, proveedor, stockDisponible, sinStock = false) {
     // Nota: Eliminada la advertencia de stock físico por solicitud del usuario
     
+    // CRUCIAL: Asegurar que el precio sea numérico
+    const precioNumerico = parseFloat(precio || 0);
+    console.log(`🔢 Agregando a mesa - Precio original: ${precio}, Precio numérico: ${precioNumerico}`);
+    
     // Verificar si el producto ya existe en la mesa
     const existeIndex = mesaVentas.findIndex(item => item.productoId === productoId);
     
@@ -387,19 +462,22 @@ function agregarAMesa(productoId, codigo, nombre, precio, proveedor, stockDispon
             return;
         }
     } else {
-        // Si no existe, agregar nuevo
-        mesaVentas.push({
+        // Si no existe, agregar nuevo - USAR PRECIO NUMÉRICO
+        const nuevoItem = {
             id: ++contadorId,
             productoId: productoId,
             codigo: codigo,
             nombre: nombre,
-            precio: precio,
+            precio: precioNumerico,  // ← PRECIO NUMÉRICO
             proveedor: proveedor,
             cantidad: 1,
-            subtotal: precio,
+            subtotal: precioNumerico,  // ← SUBTOTAL NUMÉRICO
             stockDisponible: stockDisponible,
-            sinStock: sinStock
-        });
+            sinStock: sinStock,
+            precio_formato_europeo: formatearPrecioEuropeo(precioNumerico)  // ← AGREGAR FORMATO EUROPEO
+        };
+        console.log(`➕ Nuevo item en mesa:`, nuevoItem);
+        mesaVentas.push(nuevoItem);
     }
     
     actualizarMesa();
@@ -449,7 +527,7 @@ function actualizarMesa() {
                 <small class="text-muted">Código: ${item.codigo}</small>
             </td>
             <td><span class="badge bg-secondary">${item.proveedor}</span></td>
-            <td>$${item.precio.toFixed(2)}</td>
+            <td><strong>${item.precio_formato_europeo || formatearPrecioEuropeo(item.precio)}</strong></td>
             <td>
                 <div class="input-group input-group-sm" style="width: 120px;">
                     <button class="btn btn-outline-secondary btn-sm" type="button" onclick="cambiarCantidad(${index}, -1)">-</button>
@@ -458,7 +536,9 @@ function actualizarMesa() {
                     <button class="btn btn-outline-secondary btn-sm" type="button" onclick="cambiarCantidad(${index}, 1)">+</button>
                 </div>
             </td>
-            <td><strong>$${item.subtotal.toFixed(2)}</strong></td>
+                        </div>
+            <td><strong>${formatearPrecioEuropeo(item.subtotal)}</strong></td>
+            <td>
             <td>
                 ${item.sinStock ? 
                     '<span class="badge bg-warning">⚠️ Sin Stock</span>' : 
@@ -475,7 +555,7 @@ function actualizarMesa() {
     
     // Actualizar contador y total
     contadorMesa.textContent = mesaVentas.length;
-    totalMesa.textContent = `$${total.toFixed(2)}`;
+    totalMesa.textContent = formatearPrecioEuropeo(total);
     btnVenderMesa.disabled = mesaVentas.length === 0;
 }
 

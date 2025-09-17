@@ -8,31 +8,7 @@
             <div class="card-body">
                 <!-- Sección de Escáner de Códigos de Barras -->
                 <div class="alert alert-info">
-                    <h6><i class="bi bi-upc-scan me-2"></i>Escáner de Códigos de Barras Inteligente</h6>
-                    
-                    <!-- Selector de Proveedor para Filtro Inteligente -->
-                    <div class="mb-2">
-                        <label for="proveedor_escaner" class="form-label small">Filtro de Proveedor (Opcional):</label>
-                        <select id="proveedor_escaner" class="form-select form-select-sm">
-                            <option value="">🔍 Búsqueda Automática (Todos los proveedores)</option>
-                            <optgroup label="Ricky">
-                                <option value="brementools">Bremen Tools</option>
-                                <option value="crossmaster">🎯 Crossmaster (UPC-A: 7824→9977824, 9977824.1)</option>
-                                <option value="berger">Berger</option>
-                                <option value="chiesa">Chiesa</option>
-                                <option value="cachan">Cachan</option>
-                            </optgroup>
-                            <optgroup label="Ferretería General">
-                                <option value="nortedist">Norte Distribuidora</option>
-                                <option value="bermon">Bermon</option>
-                                <option value="dewalt">DeWalt</option>
-                                <option value="sica">Sica</option>
-                                <option value="sorbalok">Sorbalok</option>
-                            </optgroup>
-                        </select>
-                        <small class="text-muted">💡 Selecciona un proveedor para búsqueda más precisa. Crossmaster: UPC-A 12 dígitos (190349378240 → extrae 7824 → busca 9927824, 9927824.1, 9937824, 9937824.1...)</small>
-                    </div>
-                    
+                    <h6><i class="bi bi-upc-scan me-2"></i>Escáner de Códigos de Barras</h6>
                     <div class="input-group">
                         <input type="text" id="codigo_barras_agregar" class="form-control" 
                                placeholder="Escanear código de barras aquí..." autocomplete="off">
@@ -41,7 +17,7 @@
                             <span id="btnEscanearSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
                         </button>
                     </div>
-                    <small class="text-muted">🚀 Escáner inteligente: detecta automáticamente patrones por proveedor y genera variantes de código</small>
+                    <small class="text-muted">Escanee o ingrese un código de barras para buscar automáticamente en stock y listas de precios</small>
                 </div>
                 
                 <!-- Resultados del escáner -->
@@ -105,7 +81,7 @@
                     {% if resultados_excel %}
                     <ul class="list-group">
                         {% for r in resultados_excel %}
-                            {% set precio_final = r.precio_formato_europeo if r.precio_formato_europeo else (r.precio_texto if r.precio_texto else r.precio) %}
+                            {% set precio_final = r.precio_texto if r.precio_texto else r.precio %}
                             <li class="list-group-item">
                                 <div><strong>Producto:</strong> {{ r.nombre }}</div>
                                 <div class="text-muted small">
@@ -785,26 +761,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para procesar el escáner
     function procesarEscaner() {
         const codigo = inputCodigo.value.trim();
-        const proveedorFiltro = document.getElementById('proveedor_escaner').value;
         
         if (!codigo) {
             showMessage('Por favor ingrese un código de barras', 'error');
             return;
         }
 
-        // Mostrar información del filtro
-        if (proveedorFiltro) {
-            console.log(`🎯 ESCÁNER INTELIGENTE: Usando filtro específico para '${proveedorFiltro}'`);
-        } else {
-            console.log('🔍 ESCÁNER INTELIGENTE: Modo automático (todos los proveedores)');
-        }
-
         // Mostrar spinner
-        btnTexto.textContent = proveedorFiltro ? `Buscando en ${proveedorFiltro}...` : 'Buscando...';
+        btnTexto.textContent = 'Buscando...';
         btnSpinner.classList.remove('d-none');
         btnEscanear.disabled = true;
 
-        // Realizar búsqueda AJAX con filtro inteligente
+        // Realizar búsqueda AJAX
         fetch('{{ url_for("procesar_escaneo_agregar") }}', {
             method: 'POST',
             headers: {
@@ -813,20 +781,16 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 codigo_barras: codigo,
-                proveedor_filtro: proveedorFiltro,
                 csrf_token: '{{ csrf_token() }}'
             })
         })
         .then(response => response.json())
         .then(data => {
-            console.log('📨 [Escáner] Respuesta del servidor:', data);
             if (data.success) {
-                console.log('✅ [Escáner] Resultados encontrados:', data.resultados);
                 mostrarResultadosEscaner(data.resultados);
                 showMessage('Búsqueda completada', 'success');
             } else {
-                console.error('❌ [Escáner] Error en búsqueda:', data);
-                showMessage(data.message || data.mensaje || data.error || 'Error en la búsqueda', 'error');
+                showMessage(data.error || 'Error en la búsqueda', 'error');
                 ocultarResultadosEscaner();
             }
         })
@@ -854,18 +818,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         let html = '';
-        resultados.forEach((item, index) => {
+        resultados.forEach(item => {
             const origen = item.origen === 'stock' ? 'Stock' : 'Lista de Precios';
             const iconoOrigen = item.origen === 'stock' ? 'bi-box-seam' : 'bi-file-earmark-excel';
-            
-            // Determinar el precio a mostrar
-            let precioMostrar = '';
-            if (item.precio_formato_europeo) {
-                precioMostrar = item.precio_formato_europeo;
-            } else if (item.precio && parseFloat(item.precio) > 0) {
-                // Fallback si no hay precio_formato_europeo
-                precioMostrar = parseFloat(item.precio).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
             
             html += `
                 <div class="list-group-item">
@@ -875,32 +830,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p class="mb-1 text-muted">
                                 <strong>Código:</strong> ${item.codigo || 'N/A'}
                                 ${item.proveedor ? ` | <strong>Proveedor:</strong> ${item.proveedor}` : ''}
-                                ${precioMostrar ? ` | <strong>Precio:</strong> ${precioMostrar}` : ''}
+                                ${item.precio ? ` | <strong>Precio:</strong> ${item.precio}` : ''}
                             </p>
                             ${item.observaciones ? `<small class="text-muted">Obs: ${item.observaciones}</small>` : ''}
                         </div>
                         <div class="ms-3">
-                            <span class="badge bg-${item.source === 'stock' ? 'success' : 'info'} mb-2">
+                            <span class="badge bg-${item.origen === 'stock' ? 'success' : 'info'} mb-2">
                                 <i class="${iconoOrigen}"></i> ${origen}
                             </span>
-                            <div class="d-flex flex-column gap-1">
+                            <div>
                                 <button type="button" class="btn btn-sm btn-primary" 
-                                        data-codigo="${item.codigo || ''}" 
-                                        data-nombre="${item.nombre || ''}" 
-                                        data-precio="${precioMostrar || item.precio || ''}" 
-                                        data-proveedor="${item.proveedor || ''}" 
-                                        data-observaciones="${item.observaciones || ''}"
-                                        onclick="cargarProductoEscaneadoFromButton(this)">
-                                    <i class="bi bi-pencil"></i> Usar en Formulario
-                                </button>
-                                <button type="button" class="btn btn-sm btn-success" 
-                                        data-codigo="${item.codigo || ''}" 
-                                        data-nombre="${item.nombre || ''}" 
-                                        data-precio="${precioMostrar || item.precio || ''}" 
-                                        data-proveedor="${item.proveedor || ''}" 
-                                        data-observaciones="${item.observaciones || ''}"
-                                        onclick="agregarAlCarritoDirectoFromButton(this)">
-                                    <i class="bi bi-cart-plus"></i> Al Carrito
+                                        onclick="cargarProductoEscaneado('${item.codigo}', '${item.nombre}', '${item.precio || ''}', '${item.proveedor || ''}', '${item.observaciones || ''}')">
+                                    Usar en Formulario
                                 </button>
                             </div>
                         </div>
@@ -911,7 +852,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         listaResultados.innerHTML = html;
         resultadosDiv.classList.remove('d-none');
-        console.log('✅ [Escáner] Resultados mostrados correctamente');
     }
 
     // Función para ocultar resultados
@@ -926,27 +866,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (inputCodigo) {
-        // Búsqueda automática al detectar entrada de escáner
-        let timeoutId = null;
-        inputCodigo.addEventListener('input', function(e) {
-            // Limpiar timeout anterior
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-            }
-            
-            const valor = e.target.value.trim();
-            
-            // Si tiene al menos 8 caracteres (típico de códigos de barras), iniciar búsqueda automática
-            if (valor.length >= 8) {
-                timeoutId = setTimeout(() => {
-                    procesarEscaner();
-                }, 500); // Esperar 500ms para asegurar que se completó la entrada
-            } else if (valor.length === 0) {
-                // Si se borra el campo, ocultar resultados
-                ocultarResultadosEscaner();
-            }
-        });
-        
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -974,50 +893,6 @@ function cargarProductoEscaneado(codigo, nombre, precio, proveedor, observacione
     cargarFormulario(codigo, nombre, precio, proveedor, observaciones);
     
     showMessage('Producto cargado en el formulario', 'success');
-}
-
-// Función para agregar producto directamente al carrito desde el escáner
-function agregarAlCarritoDirecto(codigo, nombre, precio, proveedor, observaciones) {
-    // Escapar comillas para evitar problemas en los strings
-    codigo = (codigo || '').replace(/'/g, "\\'");
-    nombre = (nombre || '').replace(/'/g, "\\'");
-    precio = (precio || '').replace(/'/g, "\\'");
-    proveedor = (proveedor || '').replace(/'/g, "\\'");
-    observaciones = (observaciones || '').replace(/'/g, "\\'");
-    
-    console.log('🛒 [Escáner] Agregando al carrito:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    // Usar la función existente agregarExcelAlCarrito con cantidad 1
-    agregarExcelAlCarrito(codigo, nombre, precio, proveedor, 1);
-    
-    showMessage('Producto agregado al carrito', 'success');
-}
-
-// Funciones wrapper para usar data-attributes (evitar problemas con comillas)
-function cargarProductoEscaneadoFromButton(button) {
-    const codigo = button.getAttribute('data-codigo') || '';
-    const nombre = button.getAttribute('data-nombre') || '';
-    const precio = button.getAttribute('data-precio') || '';
-    const proveedor = button.getAttribute('data-proveedor') || '';
-    const observaciones = button.getAttribute('data-observaciones') || '';
-    
-    console.log('📝 [Escáner] cargarProductoEscaneadoFromButton llamado con:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    cargarFormulario(codigo, nombre, precio, proveedor, observaciones);
-    showMessage('Producto cargado en el formulario', 'success');
-}
-
-function agregarAlCarritoDirectoFromButton(button) {
-    const codigo = button.getAttribute('data-codigo') || '';
-    const nombre = button.getAttribute('data-nombre') || '';
-    const precio = button.getAttribute('data-precio') || '';
-    const proveedor = button.getAttribute('data-proveedor') || '';
-    const observaciones = button.getAttribute('data-observaciones') || '';
-    
-    console.log('🛒 [Escáner] agregarAlCarritoDirectoFromButton llamado con:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    agregarExcelAlCarrito(codigo, nombre, precio, proveedor, 1);
-    showMessage('Producto agregado al carrito', 'success');
 }
 </script>
 {% endblock %}

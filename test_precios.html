@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Precios Europeos</title>
+    <script>
+        function formatearPrecioEuropeo(precio) {
+            try {
+                if (typeof precio === 'string') {
+                    precio = parseFloat(precio.replace(',', '.'));
+                } else if (precio == null) {
+                    precio = 0.0;
+                }
+                
+                const precioFloat = parseFloat(precio);
+                
+                const precioAmericano = precioFloat.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                
+                let precioEuropeo = '';
+                for (let char of precioAmericano) {
+                    if (char === ',') {
+                        precioEuropeo += '.';
+                    } else if (char === '.') {
+                        precioEuropeo += ',';
+                    } else {
+                        precioEuropeo += char;
+                    }
+                }
+                
+                return precioEuropeo;
+                
+            } catch (error) {
+                return '0,00';
+            }
+        }
+
+        function testEscaneo() {
+            fetch('http://localhost:5000/procesar_escaneo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'codigo_barras=8042'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Respuesta completa:', data);
+                
+                const resultadosDiv = document.getElementById('resultados');
+                
+                if (data.success && data.productos) {
+                    let html = '<h3>Productos encontrados:</h3>';
+                    
+                    data.productos.forEach((producto, index) => {
+                        const precioOriginal = producto.precio;
+                        const precioFormateado = producto.precio_formato_europeo || formatearPrecioEuropeo(producto.precio);
+                        
+                        html += `
+                            <div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+                                <h4>${producto.nombre}</h4>
+                                <p><strong>Código:</strong> ${producto.codigo}</p>
+                                <p><strong>Proveedor:</strong> ${producto.proveedor}</p>
+                                <p><strong>Source:</strong> ${producto.source}</p>
+                                <p><strong>Precio original:</strong> ${precioOriginal}</p>
+                                <p><strong>precio_formato_europeo (del backend):</strong> ${producto.precio_formato_europeo || 'NO DEFINIDO'}</p>
+                                <p><strong>Precio formateado (JavaScript):</strong> ${precioFormateado}</p>
+                                <p><strong>En stock:</strong> ${producto.en_stock ? 'Sí' : 'No'}</p>
+                            </div>
+                        `;
+                    });
+                    
+                    resultadosDiv.innerHTML = html;
+                } else {
+                    resultadosDiv.innerHTML = `<p>Error: ${data.message}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('resultados').innerHTML = `<p>Error de conexión: ${error}</p>`;
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Test de Formateo de Precios Europeos</h1>
+    <button onclick="testEscaneo()">Probar Escaneo del Código 8042</button>
+    <div id="resultados"></div>
+</body>
+</html>

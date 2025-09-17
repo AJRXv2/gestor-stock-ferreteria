@@ -67,7 +67,9 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <strong>${{ "%.2f"|format(producto.precio|float) }}</strong>
+                                                                    <td>
+                            <strong>{{ producto.precio_formato_europeo or ('{:,.2f}'.format(producto.precio|float).replace(',', 'X').replace('.', ',').replace('X', '.') if producto.precio else '0,00') }}</strong>
+                        </td>
                                         </td>
                                         <td>
                                             <span class="badge {% if producto.dueno == 'ricky' %}bg-info{% else %}bg-warning{% endif %}">
@@ -229,6 +231,43 @@
 let mesaVentas = [];
 let contadorId = 0;
 
+// Función para formatear precios al estilo europeo
+function formatearPrecioEuropeo(precio) {
+    try {
+        // Convertir a número si es string
+        if (typeof precio === 'string') {
+            precio = parseFloat(precio.replace(',', '.'));
+        } else if (precio == null) {
+            precio = 0.0;
+        }
+        
+        const precioFloat = parseFloat(precio);
+        
+        // Formatear con 2 decimales usando formato americano primero
+        const precioAmericano = precioFloat.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        // Convertir al formato europeo: intercambiar puntos y comas
+        let precioEuropeo = '';
+        for (let char of precioAmericano) {
+            if (char === ',') {
+                precioEuropeo += '.';
+            } else if (char === '.') {
+                precioEuropeo += ',';
+            } else {
+                precioEuropeo += char;
+            }
+        }
+        
+        return precioEuropeo;
+        
+    } catch (error) {
+        return '0,00';
+    }
+}
+
 // Funciones de persistencia del carrito
 function guardarCarrito() {
     localStorage.setItem('mesaVentas', JSON.stringify(mesaVentas));
@@ -324,7 +363,7 @@ function actualizarMesa() {
                 <small class="text-muted">Código: ${item.codigo}</small>
             </td>
             <td><span class="badge bg-secondary">${item.proveedor}</span></td>
-            <td>$${item.precio.toFixed(2)}</td>
+            <td>${formatearPrecioEuropeo(item.precio)}</td>
             <td>
                 <div class="input-group input-group-sm" style="width: 120px;">
                     <button class="btn btn-outline-secondary btn-sm" type="button" onclick="cambiarCantidad(${index}, -1)">-</button>
@@ -333,7 +372,7 @@ function actualizarMesa() {
                     <button class="btn btn-outline-secondary btn-sm" type="button" onclick="cambiarCantidad(${index}, 1)">+</button>
                 </div>
             </td>
-            <td><strong>$${item.subtotal.toFixed(2)}</strong></td>
+            <td><strong>${formatearPrecioEuropeo(item.subtotal)}</strong></td>
             <td>
                 ${item.sinStock ? 
                     '<span class="badge bg-warning">⚠️ Sin Stock</span>' : 
@@ -350,7 +389,7 @@ function actualizarMesa() {
     
     // Actualizar contador y total
     contadorMesa.textContent = mesaVentas.length;
-    totalMesa.textContent = `$${total.toFixed(2)}`;
+    totalMesa.textContent = formatearPrecioEuropeo(total);
     btnVenderMesa.disabled = mesaVentas.length === 0;
 }
 

@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block content %}
+{                    <form method="get" action="{{ url_for('agregar_producto') }}".   <hr class="my-3">
+                
+                <form method="get" action="{{ url_for('agregar_producto') }}".tent %}
 <div class="row">
     <div class="col-md-6">
         <div class="card">
@@ -8,31 +10,7 @@
             <div class="card-body">
                 <!-- Sección de Escáner de Códigos de Barras -->
                 <div class="alert alert-info">
-                    <h6><i class="bi bi-upc-scan me-2"></i>Escáner de Códigos de Barras Inteligente</h6>
-                    
-                    <!-- Selector de Proveedor para Filtro Inteligente -->
-                    <div class="mb-2">
-                        <label for="proveedor_escaner" class="form-label small">Filtro de Proveedor (Opcional):</label>
-                        <select id="proveedor_escaner" class="form-select form-select-sm">
-                            <option value="">🔍 Búsqueda Automática (Todos los proveedores)</option>
-                            <optgroup label="Ricky">
-                                <option value="brementools">Bremen Tools</option>
-                                <option value="crossmaster">🎯 Crossmaster (UPC-A: 7824→9977824, 9977824.1)</option>
-                                <option value="berger">Berger</option>
-                                <option value="chiesa">Chiesa</option>
-                                <option value="cachan">Cachan</option>
-                            </optgroup>
-                            <optgroup label="Ferretería General">
-                                <option value="nortedist">Norte Distribuidora</option>
-                                <option value="bermon">Bermon</option>
-                                <option value="dewalt">DeWalt</option>
-                                <option value="sica">Sica</option>
-                                <option value="sorbalok">Sorbalok</option>
-                            </optgroup>
-                        </select>
-                        <small class="text-muted">💡 Selecciona un proveedor para búsqueda más precisa. Crossmaster: UPC-A 12 dígitos (190349378240 → extrae 7824 → busca 9927824, 9927824.1, 9937824, 9937824.1...)</small>
-                    </div>
-                    
+                    <h6><i class="bi bi-upc-scan me-2"></i>Escáner de Códigos de Barras</h6>
                     <div class="input-group">
                         <input type="text" id="codigo_barras_agregar" class="form-control" 
                                placeholder="Escanear código de barras aquí..." autocomplete="off">
@@ -41,7 +19,7 @@
                             <span id="btnEscanearSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
                         </button>
                     </div>
-                    <small class="text-muted">🚀 Escáner inteligente: detecta automáticamente patrones por proveedor y genera variantes de código</small>
+                    <small class="text-muted">Escanee o ingrese un código de barras para buscar automáticamente en stock y listas de precios</small>
                 </div>
                 
                 <!-- Resultados del escáner -->
@@ -54,7 +32,49 @@
                 
                 <hr class="my-3">
                 
-                <form method="get" action="{{ url_for('agregar_producto') }}">
+                <form method="get" action="{{ url_for('agregar_producto') }}".s 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h4>1. Buscar Producto en Listas de Precios (Excel)</h4></div>
+            <div class="card-body">
+                {% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>1. Buscar Producto en Listas de Precios (Excel)</h4>
+            </div>
+            <div class="card-body">
+                <!-- Sección de Escáner de Códigos de Barras -->
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-upc-scan me-2"></i>Escáner de Códigos de Barras</h6>
+                    <div class="input-group">
+                        <input type="text" id="codigo_barras_agregar" class="form-control" 
+                               placeholder="Escanear código de barras aquí..." autocomplete="off">
+                        <button type="button" class="btn btn-primary" id="btnEscanear">
+                            <span id="btnEscanearTexto">Buscar</span>
+                            <span id="btnEscanearSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        </button>
+                    </div>
+                    <small class="text-muted">Escanee o ingrese un código de barras para buscar automáticamente en stock y listas de precios</small>
+                </div>
+                
+                <!-- Resultados del escáner -->
+                <div id="resultadosEscaner" class="d-none">
+                    <h6>Productos encontrados:</h6>
+                    <div id="listaResultadosEscaner" class="list-group mb-3">
+                        <!-- Contenido dinámico -->
+                    </div>
+                </div>
+                
+                <hr class="my-3">
+                
+                <form method="get" action="{{ url_for('agregar_producto') }}".
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
                             <label class="form-label">Proveedores de Ricky</label>
@@ -105,7 +125,7 @@
                     {% if resultados_excel %}
                     <ul class="list-group">
                         {% for r in resultados_excel %}
-                            {% set precio_final = r.precio_formato_europeo if r.precio_formato_europeo else (r.precio_texto if r.precio_texto else r.precio) %}
+                            {% set precio_final = r.precio_texto if r.precio_texto else r.precio %}
                             <li class="list-group-item">
                                 <div><strong>Producto:</strong> {{ r.nombre }}</div>
                                 <div class="text-muted small">
@@ -316,6 +336,177 @@ function agregarExcelAlCarritoFromButton(button) {
     
     agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad);
 }
+
+// Funciones del Escáner de Códigos de Barras
+document.addEventListener('DOMContentLoaded', function() {
+    const inputCodigo = document.getElementById('codigo_barras_agregar');
+    const btnEscanear = document.getElementById('btnEscanear');
+    
+    // Procesar escáner con AJAX
+    function procesarEscaneoAgregar() {
+        const codigo = inputCodigo.value.trim();
+        
+        if (!codigo) {
+            alert('Por favor ingrese un código de barras');
+            return;
+        }
+        
+        // Mostrar spinner
+        document.getElementById('btnEscanearTexto').style.display = 'none';
+        document.getElementById('btnEscanearSpinner').classList.remove('d-none');
+        btnEscanear.disabled = true;
+        
+        // Enviar solicitud AJAX
+        fetch('{{ url_for("procesar_escaneo_agregar") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                codigo_barras: codigo,
+                csrf_token: '{{ csrf_token() }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarResultadosEscaner(data.productos, data.codigo_original);
+            } else {
+                alert('Error: ' + (data.mensaje || 'No se pudo procesar el escaneo'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión: ' + error.message);
+        })
+        .finally(() => {
+            // Ocultar spinner
+            document.getElementById('btnEscanearTexto').style.display = 'inline';
+            document.getElementById('btnEscanearSpinner').classList.add('d-none');
+            btnEscanear.disabled = false;
+        });
+    }
+    
+    // Mostrar resultados del escáner
+    function mostrarResultadosEscaner(productos, codigoOriginal) {
+        const resultadosDiv = document.getElementById('resultadosEscaner');
+        const listaDiv = document.getElementById('listaResultadosEscaner');
+        
+        if (productos.length === 0) {
+            alert('No se encontraron productos para el código: ' + codigoOriginal);
+            resultadosDiv.classList.add('d-none');
+            return;
+        }
+        
+        // Limpiar resultados previos
+        listaDiv.innerHTML = '';
+        
+        // Agregar cada producto encontrado
+        productos.forEach(producto => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item';
+            
+            const tipoLabel = producto.tipo === 'stock' ? 
+                '<span class="badge bg-success">En Stock</span>' : 
+                '<span class="badge bg-info">Lista Precios</span>';
+            
+            const stockInfo = producto.tipo === 'stock' ? 
+                `<strong>Stock:</strong> ${producto.cantidad} unidades` : 
+                '<strong>Archivo:</strong> ' + (producto.archivo || 'N/A');
+            
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">${producto.nombre}</h6>
+                        <p class="mb-1">
+                            <strong>Código:</strong> ${producto.codigo} | 
+                            <strong>Proveedor:</strong> ${producto.proveedor} | 
+                            <strong>Precio:</strong> $${producto.precio.toFixed(2)}
+                        </p>
+                        <small class="text-muted">${stockInfo}</small>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        ${tipoLabel}
+                        <button type="button" class="btn btn-sm btn-primary" 
+                                data-codigo="${producto.codigo}" 
+                                data-nombre="${producto.nombre}" 
+                                data-precio="${producto.precio}" 
+                                data-proveedor="${producto.proveedor}"
+                                onclick="cargarProductoEnFormularioFromButton(this)">
+                            <i class="bi bi-arrow-right"></i> Al Formulario
+                        </button>
+                        ${producto.tipo === 'excel' ? `
+                            <button type="button" class="btn btn-sm btn-success" 
+                                    data-codigo="${producto.codigo}" 
+                                    data-nombre="${producto.nombre}" 
+                                    data-precio="${producto.precio}" 
+                                    data-proveedor="${producto.proveedor}"
+                                    onclick="agregarExcelAlCarritoFromButtonEscaner(this)">
+                                <i class="bi bi-cart-plus"></i> Al Carrito
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            listaDiv.appendChild(item);
+        });
+        
+        // Mostrar sección de resultados
+        resultadosDiv.classList.remove('d-none');
+        resultadosDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Event listeners
+    btnEscanear.addEventListener('click', procesarEscaneoAgregar);
+    
+    // Detectar Enter en el input
+    inputCodigo.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            procesarEscaneoAgregar();
+        }
+    });
+    
+    // Auto-focus en el input del escáner
+    inputCodigo.focus();
+});
+
+// Funciones helper para cargar desde botones con data attributes
+function cargarProductoEnFormularioFromButton(button) {
+    const codigo = button.getAttribute('data-codigo') || '';
+    const nombre = button.getAttribute('data-nombre') || '';
+    const precio = button.getAttribute('data-precio') || '';
+    const proveedor = button.getAttribute('data-proveedor') || '';
+    
+    cargarFormulario(codigo, nombre, precio, proveedor, '');
+    
+    // Limpiar el escáner para el siguiente escaneo
+    document.getElementById('codigo_barras_agregar').value = '';
+    document.getElementById('resultadosEscaner').classList.add('d-none');
+    
+    // Enfocar en cantidad
+    document.getElementById('cantidad').focus();
+}
+
+function agregarExcelAlCarritoFromButtonEscaner(button) {
+    const codigo = button.getAttribute('data-codigo') || '';
+    const nombre = button.getAttribute('data-nombre') || '';
+    const precio = button.getAttribute('data-precio') || '';
+    const proveedor = button.getAttribute('data-proveedor') || '';
+    const cantidad = 1;
+    
+    agregarExcelAlCarrito(codigo, nombre, precio, proveedor, cantidad);
+    
+    // Limpiar el escáner para el siguiente escaneo
+    document.getElementById('codigo_barras_agregar').value = '';
+    document.getElementById('resultadosEscaner').classList.add('d-none');
+    
+    // Volver el foco al escáner
+    document.getElementById('codigo_barras_agregar').focus();
+}
+
 function toggleAvisoStock() {
     var cb = document.getElementById('avisar_bajo_stock');
     var minStock = document.getElementById('min_stock_aviso');
@@ -772,252 +963,5 @@ document.getElementById('btn-limpiar-lista')?.addEventListener('click', function
         showMessage('Lista limpiada', 'success');
     }
 });
-
-// --- Funcionalidad del Escáner de Códigos de Barras ---
-document.addEventListener('DOMContentLoaded', function() {
-    const inputCodigo = document.getElementById('codigo_barras_agregar');
-    const btnEscanear = document.getElementById('btnEscanear');
-    const btnTexto = document.getElementById('btnEscanearTexto');
-    const btnSpinner = document.getElementById('btnEscanearSpinner');
-    const resultadosDiv = document.getElementById('resultadosEscaner');
-    const listaResultados = document.getElementById('listaResultadosEscaner');
-
-    // Función para procesar el escáner
-    function procesarEscaner() {
-        const codigo = inputCodigo.value.trim();
-        const proveedorFiltro = document.getElementById('proveedor_escaner').value;
-        
-        if (!codigo) {
-            showMessage('Por favor ingrese un código de barras', 'error');
-            return;
-        }
-
-        // Mostrar información del filtro
-        if (proveedorFiltro) {
-            console.log(`🎯 ESCÁNER INTELIGENTE: Usando filtro específico para '${proveedorFiltro}'`);
-        } else {
-            console.log('🔍 ESCÁNER INTELIGENTE: Modo automático (todos los proveedores)');
-        }
-
-        // Mostrar spinner
-        btnTexto.textContent = proveedorFiltro ? `Buscando en ${proveedorFiltro}...` : 'Buscando...';
-        btnSpinner.classList.remove('d-none');
-        btnEscanear.disabled = true;
-
-        // Realizar búsqueda AJAX con filtro inteligente
-        fetch('{{ url_for("procesar_escaneo_agregar") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                codigo_barras: codigo,
-                proveedor_filtro: proveedorFiltro,
-                csrf_token: '{{ csrf_token() }}'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('📨 [Escáner] Respuesta del servidor:', data);
-            if (data.success) {
-                console.log('✅ [Escáner] Resultados encontrados:', data.resultados);
-                mostrarResultadosEscaner(data.resultados);
-                showMessage('Búsqueda completada', 'success');
-            } else {
-                console.error('❌ [Escáner] Error en búsqueda:', data);
-                showMessage(data.message || data.mensaje || data.error || 'Error en la búsqueda', 'error');
-                ocultarResultadosEscaner();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('Error de conexión', 'error');
-            ocultarResultadosEscaner();
-        })
-        .finally(() => {
-            // Ocultar spinner
-            btnTexto.textContent = 'Buscar';
-            btnSpinner.classList.add('d-none');
-            btnEscanear.disabled = false;
-            
-            // Mantener el foco en el campo de código
-            inputCodigo.focus();
-        });
-    }
-
-    // Función para mostrar resultados
-    function mostrarResultadosEscaner(resultados) {
-        if (!resultados || resultados.length === 0) {
-            ocultarResultadosEscaner();
-            return;
-        }
-
-        let html = '';
-        resultados.forEach((item, index) => {
-            const origen = item.origen === 'stock' ? 'Stock' : 'Lista de Precios';
-            const iconoOrigen = item.origen === 'stock' ? 'bi-box-seam' : 'bi-file-earmark-excel';
-            
-            // Determinar el precio a mostrar
-            let precioMostrar = '';
-            if (item.precio_formato_europeo) {
-                precioMostrar = item.precio_formato_europeo;
-            } else if (item.precio && parseFloat(item.precio) > 0) {
-                // Fallback si no hay precio_formato_europeo
-                precioMostrar = parseFloat(item.precio).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
-            
-            html += `
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${item.nombre}</h6>
-                            <p class="mb-1 text-muted">
-                                <strong>Código:</strong> ${item.codigo || 'N/A'}
-                                ${item.proveedor ? ` | <strong>Proveedor:</strong> ${item.proveedor}` : ''}
-                                ${precioMostrar ? ` | <strong>Precio:</strong> ${precioMostrar}` : ''}
-                            </p>
-                            ${item.observaciones ? `<small class="text-muted">Obs: ${item.observaciones}</small>` : ''}
-                        </div>
-                        <div class="ms-3">
-                            <span class="badge bg-${item.source === 'stock' ? 'success' : 'info'} mb-2">
-                                <i class="${iconoOrigen}"></i> ${origen}
-                            </span>
-                            <div class="d-flex flex-column gap-1">
-                                <button type="button" class="btn btn-sm btn-primary" 
-                                        data-codigo="${item.codigo || ''}" 
-                                        data-nombre="${item.nombre || ''}" 
-                                        data-precio="${precioMostrar || item.precio || ''}" 
-                                        data-proveedor="${item.proveedor || ''}" 
-                                        data-observaciones="${item.observaciones || ''}"
-                                        onclick="cargarProductoEscaneadoFromButton(this)">
-                                    <i class="bi bi-pencil"></i> Usar en Formulario
-                                </button>
-                                <button type="button" class="btn btn-sm btn-success" 
-                                        data-codigo="${item.codigo || ''}" 
-                                        data-nombre="${item.nombre || ''}" 
-                                        data-precio="${precioMostrar || item.precio || ''}" 
-                                        data-proveedor="${item.proveedor || ''}" 
-                                        data-observaciones="${item.observaciones || ''}"
-                                        onclick="agregarAlCarritoDirectoFromButton(this)">
-                                    <i class="bi bi-cart-plus"></i> Al Carrito
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        listaResultados.innerHTML = html;
-        resultadosDiv.classList.remove('d-none');
-        console.log('✅ [Escáner] Resultados mostrados correctamente');
-    }
-
-    // Función para ocultar resultados
-    function ocultarResultadosEscaner() {
-        resultadosDiv.classList.add('d-none');
-        listaResultados.innerHTML = '';
-    }
-
-    // Event listeners
-    if (btnEscanear) {
-        btnEscanear.addEventListener('click', procesarEscaner);
-    }
-
-    if (inputCodigo) {
-        // Búsqueda automática al detectar entrada de escáner
-        let timeoutId = null;
-        inputCodigo.addEventListener('input', function(e) {
-            // Limpiar timeout anterior
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-            }
-            
-            const valor = e.target.value.trim();
-            
-            // Si tiene al menos 8 caracteres (típico de códigos de barras), iniciar búsqueda automática
-            if (valor.length >= 8) {
-                timeoutId = setTimeout(() => {
-                    procesarEscaner();
-                }, 500); // Esperar 500ms para asegurar que se completó la entrada
-            } else if (valor.length === 0) {
-                // Si se borra el campo, ocultar resultados
-                ocultarResultadosEscaner();
-            }
-        });
-        
-        inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                procesarEscaner();
-            }
-        });
-
-        // Mantener el foco en el campo cuando se carga la página
-        inputCodigo.focus();
-    }
-});
-
-// Función para cargar producto escaneado en el formulario
-function cargarProductoEscaneado(codigo, nombre, precio, proveedor, observaciones) {
-    // Escapar comillas para evitar problemas en los strings
-    codigo = (codigo || '').replace(/'/g, "\\'");
-    nombre = (nombre || '').replace(/'/g, "\\'");
-    precio = (precio || '').replace(/'/g, "\\'");
-    proveedor = (proveedor || '').replace(/'/g, "\\'");
-    observaciones = (observaciones || '').replace(/'/g, "\\'");
-    
-    console.log('📝 [Escáner] Cargando producto:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    // Usar la función existente cargarFormulario
-    cargarFormulario(codigo, nombre, precio, proveedor, observaciones);
-    
-    showMessage('Producto cargado en el formulario', 'success');
-}
-
-// Función para agregar producto directamente al carrito desde el escáner
-function agregarAlCarritoDirecto(codigo, nombre, precio, proveedor, observaciones) {
-    // Escapar comillas para evitar problemas en los strings
-    codigo = (codigo || '').replace(/'/g, "\\'");
-    nombre = (nombre || '').replace(/'/g, "\\'");
-    precio = (precio || '').replace(/'/g, "\\'");
-    proveedor = (proveedor || '').replace(/'/g, "\\'");
-    observaciones = (observaciones || '').replace(/'/g, "\\'");
-    
-    console.log('🛒 [Escáner] Agregando al carrito:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    // Usar la función existente agregarExcelAlCarrito con cantidad 1
-    agregarExcelAlCarrito(codigo, nombre, precio, proveedor, 1);
-    
-    showMessage('Producto agregado al carrito', 'success');
-}
-
-// Funciones wrapper para usar data-attributes (evitar problemas con comillas)
-function cargarProductoEscaneadoFromButton(button) {
-    const codigo = button.getAttribute('data-codigo') || '';
-    const nombre = button.getAttribute('data-nombre') || '';
-    const precio = button.getAttribute('data-precio') || '';
-    const proveedor = button.getAttribute('data-proveedor') || '';
-    const observaciones = button.getAttribute('data-observaciones') || '';
-    
-    console.log('📝 [Escáner] cargarProductoEscaneadoFromButton llamado con:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    cargarFormulario(codigo, nombre, precio, proveedor, observaciones);
-    showMessage('Producto cargado en el formulario', 'success');
-}
-
-function agregarAlCarritoDirectoFromButton(button) {
-    const codigo = button.getAttribute('data-codigo') || '';
-    const nombre = button.getAttribute('data-nombre') || '';
-    const precio = button.getAttribute('data-precio') || '';
-    const proveedor = button.getAttribute('data-proveedor') || '';
-    const observaciones = button.getAttribute('data-observaciones') || '';
-    
-    console.log('🛒 [Escáner] agregarAlCarritoDirectoFromButton llamado con:', {codigo, nombre, precio, proveedor, observaciones});
-    
-    agregarExcelAlCarrito(codigo, nombre, precio, proveedor, 1);
-    showMessage('Producto agregado al carrito', 'success');
-}
 </script>
 {% endblock %}
