@@ -6880,6 +6880,236 @@ def escanear_ampliado():
                          carrito_productos=carrito_productos,
                          total_carrito=total_carrito)
 
+# --- Funciones auxiliares para Multiproductos ---
+def obtener_duenos_disponibles():
+    """Obtiene la lista de dueños únicos disponibles en la base de datos usando la tabla de relaciones"""
+    try:
+        # Usar la tabla proveedores_duenos para consistencia con Gestionar Proveedores
+        duenos = db_query("SELECT DISTINCT dueno FROM proveedores_duenos WHERE dueno IS NOT NULL AND TRIM(dueno) != '' ORDER BY dueno", fetch=True)
+        resultado = [row['dueno'] for row in duenos if row['dueno']]
+        
+        # Si no hay datos en proveedores_duenos, usar fallback
+        if not resultado:
+            duenos_fallback = db_query("SELECT DISTINCT dueno FROM proveedores_manual WHERE dueno IS NOT NULL AND TRIM(dueno) != '' ORDER BY dueno", fetch=True)
+            resultado = [row['dueno'] for row in duenos_fallback if row['dueno']]
+        
+        return resultado
+    except Exception as e:
+        print(f"Error obteniendo dueños: {e}")
+        return []
+
+def obtener_proveedores_por_dueno_func(dueno):
+    """Obtiene los proveedores asociados a un dueño específico usando la tabla de relaciones"""
+    try:
+        # Usar la tabla proveedores_duenos para consistencia con Gestionar Proveedores
+        proveedores = db_query(
+            """SELECT DISTINCT pm.nombre 
+               FROM proveedores_manual pm 
+               JOIN proveedores_duenos pd ON pm.id = pd.proveedor_id 
+               WHERE LOWER(pd.dueno) = LOWER(?) 
+               ORDER BY pm.nombre""", 
+            (dueno,), fetch=True
+        )
+        return [row['nombre'] for row in proveedores if row['nombre']]
+    except Exception as e:
+        print(f"Error obteniendo proveedores para dueño {dueno}: {e}")
+        # Fallback: usar el campo dueno directo si hay problemas con proveedores_duenos
+        try:
+            proveedores_fallback = db_query("SELECT nombre FROM proveedores_manual WHERE LOWER(dueno) = LOWER(?) ORDER BY nombre", (dueno,), fetch=True)
+            return [row['nombre'] for row in proveedores_fallback if row['nombre']]
+        except Exception as e2:
+            print(f"Error en fallback para dueño {dueno}: {e2}")
+            return []
+
+def leer_productos_manual_excel():
+    """Lee los productos del archivo productos_manual.xlsx"""
+    try:
+        if os.path.exists(MANUAL_PRODUCTS_FILE):
+            df = pd.read_excel(MANUAL_PRODUCTS_FILE)
+            # Normalizar nombres de columnas
+            df.rename(columns={'Código': 'Codigo', 'Dueño': 'Dueno'}, inplace=True)
+            return df
+        else:
+            # Crear DataFrame vacío con las columnas esperadas
+            return pd.DataFrame(columns=['Codigo', 'Nombre', 'Precio', 'Proveedor', 'Dueno', 'Cantidad'])
+    except Exception as e:
+        print(f"Error leyendo Excel: {e}")
+        return pd.DataFrame(columns=['Codigo', 'Nombre', 'Precio', 'Proveedor', 'Dueno', 'Cantidad'])
+
+def guardar_productos_manual_excel(df):
+    """Guarda los productos al archivo productos_manual.xlsx"""
+    try:
+        # Asegurar que el directorio existe
+        os.makedirs(os.path.dirname(MANUAL_PRODUCTS_FILE), exist_ok=True)
+        
+        # Renombrar columnas para que coincidan con el formato esperado
+        df_save = df.copy()
+        df_save.rename(columns={'Codigo': 'Código', 'Dueno': 'Dueño'}, inplace=True)
+        
+        # Guardar al archivo Excel
+        df_save.to_excel(MANUAL_PRODUCTS_FILE, index=False)
+        return True
+    except Exception as e:
+        print(f"Error guardando Excel: {e}")
+        return False
+
+@app.route('/multiproductos', methods=['GET', 'POST'])
+@login_required
+def multiproductos():
+    """Gestión de productos múltiples - Añadir variantes y editar precios en lote"""
+    if request.method == 'POST':
+        try:
+            action = request.form.get('action')
+            
+            if action == 'guardar_productos':
+                # Procesar productos multiplicados y guardarlos
+                productos_data = request.form.get('productos_json')
+                if productos_data:
+                    import json
+                    productos = json.loads(productos_data)
+                    
+                    # Leer Excel actual
+                    df_actual = leer_productos_manual_excel()
+                    
+                    # Convertir productos a DataFrame
+                    nuevos_productos = []
+                    for producto in productos:
+                        # Formatear precio al estilo europeo
+                        precio_str = str(producto.get('precio', '0')).replace('.', ',')
+                        
+                        nuevos_productos.append({
+                            'Codigo': producto.get('codigo', ''),
+                            'Nombre': producto.get('nombre', ''),
+                            'Precio': precio_str,
+                            'Proveedor': producto.get('proveedor', ''),
+                            'Dueno': producto.get('dueno', ''),
+                            'Cantidad': producto.get('cantidad', 1)
+                        })
+                    
+                    # Crear DataFrame con nuevos productos
+                    df_nuevos = pd.DataFrame(nuevos_productos)
+                    
+                    # Combinar con productos existentes
+                    df_combinado = pd.concat([df_actual, df_nuevos], ignore_index=True)
+                    
+                    # Guardar al Excel
+                    if guardar_productos_manual_excel(df_combinado):
+                        flash('Productos guardados exitosamente', 'success')
+                    else:
+                        flash('Error al guardar productos', 'error')
+            
+            elif action == 'buscar_productos':
+                # Buscar productos para editar precios
+                termino = request.form.get('termino_busqueda', '').strip()
+                if termino:
+                    df = leer_productos_manual_excel()
+                    
+                    # Filtrar productos que contengan el término
+                    mask = (
+                        df['Nombre'].astype(str).str.contains(termino, case=False, na=False) |
+                        df['Codigo'].astype(str).str.contains(termino, case=False, na=False) |
+                        df['Proveedor'].astype(str).str.contains(termino, case=False, na=False)
+                    )
+                    
+                    productos_encontrados = df[mask].to_dict('records')
+                    session['productos_para_editar'] = productos_encontrados
+                    
+                    if productos_encontrados:
+                        flash(f'Se encontraron {len(productos_encontrados)} productos', 'info')
+                    else:
+                        flash('No se encontraron productos con ese criterio', 'warning')
+            
+            elif action == 'actualizar_precios':
+                # Actualizar precios de productos encontrados
+                nuevo_precio = request.form.get('nuevo_precio', '').strip()
+                productos_para_editar = session.get('productos_para_editar', [])
+                
+                if nuevo_precio and productos_para_editar:
+                    # Formatear precio al estilo europeo
+                    precio_europeo = nuevo_precio.replace('.', ',')
+                    
+                    df = leer_productos_manual_excel()
+                    
+                    # Actualizar precios
+                    for producto in productos_para_editar:
+                        mask = (
+                            (df['Codigo'] == producto['Codigo']) & 
+                            (df['Nombre'] == producto['Nombre']) & 
+                            (df['Proveedor'] == producto['Proveedor'])
+                        )
+                        df.loc[mask, 'Precio'] = precio_europeo
+                    
+                    # Guardar cambios
+                    if guardar_productos_manual_excel(df):
+                        flash(f'Precios actualizados para {len(productos_para_editar)} productos', 'success')
+                        session.pop('productos_para_editar', None)
+                    else:
+                        flash('Error al actualizar precios', 'error')
+            
+            elif action == 'eliminar_productos':
+                # Eliminar productos seleccionados
+                indices_eliminar = request.form.getlist('productos_eliminar')
+                productos_para_editar = session.get('productos_para_editar', [])
+                
+                if indices_eliminar and productos_para_editar:
+                    df = leer_productos_manual_excel()
+                    
+                    # Crear máscaras para eliminar productos seleccionados
+                    for idx_str in indices_eliminar:
+                        try:
+                            idx = int(idx_str)
+                            if 0 <= idx < len(productos_para_editar):
+                                producto = productos_para_editar[idx]
+                                mask = (
+                                    (df['Codigo'] == producto['Codigo']) & 
+                                    (df['Nombre'] == producto['Nombre']) & 
+                                    (df['Proveedor'] == producto['Proveedor'])
+                                )
+                                df = df[~mask]  # Eliminar filas que coinciden
+                        except (ValueError, IndexError):
+                            continue
+                    
+                    # Guardar cambios
+                    if guardar_productos_manual_excel(df):
+                        flash(f'Productos eliminados exitosamente', 'success')
+                        session.pop('productos_para_editar', None)
+                    else:
+                        flash('Error al eliminar productos', 'error')
+                        
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'error')
+        
+        return redirect(url_for('multiproductos'))
+    
+    # GET request - mostrar formulario
+    duenos = obtener_duenos_disponibles()
+    productos_para_editar = session.get('productos_para_editar', [])
+    
+    return render_template('multiproductos.html', 
+                         duenos=duenos,
+                         productos_para_editar=productos_para_editar)
+
+# --- AJAX endpoints para Multiproductos ---
+@app.route('/multiproductos_obtener_proveedores', methods=['POST'])
+@login_required
+def multiproductos_obtener_proveedores():
+    """Obtiene los proveedores para un dueño específico (AJAX)"""
+    try:
+        data = request.get_json()
+        dueno = data.get('dueno', '').strip()
+        
+        if not dueno:
+            return jsonify({'success': False, 'message': 'Dueño no especificado'})
+        
+        proveedores = obtener_proveedores_por_dueno_func(dueno)
+        
+        return jsonify({
+            'success': True,
+            'proveedores': proveedores
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
 def formatear_precio_europeo(precio):
     """
     Formatea el precio usando el sistema de numeración europeo:
@@ -7107,22 +7337,8 @@ def procesar_escaneo():
     # Buscar productos que coincidan con cualquiera de los códigos extraídos
     productos_encontrados = []
     
-    # 1. Buscar en la base de datos de stock
-    for codigo in codigos_posibles:
-        productos = db_query("SELECT * FROM stock WHERE codigo = ?", (codigo,), fetch=True)
-        if productos:
-            for producto in productos:
-                # Evitar duplicados
-                if not any(p.get('id') == producto['id'] and p.get('source') == 'stock' for p in productos_encontrados):
-                    producto['codigo_extraido'] = codigo
-                    producto['codigo_barras_original'] = codigo_barras_original
-                    producto['source'] = 'stock'  # Marcar que viene del stockne del stock
-                    producto['en_stock'] = True
-                    # Formatear precio al estilo europeo para mostrar
-                    producto['precio_formato_europeo'] = formatear_precio_europeo(producto.get('precio', 0))
-                    productos_encontrados.append(producto)
-    
-    # 2. Buscar en las listas de precios de Excel - OPTIMIZADO PARA MÚLTIPLES CÓDIGOS
+    # SOLO BUSCAR EN LISTAS DE PRECIOS DE EXCEL - NO EN STOCK
+    # Buscar en las listas de precios de Excel - OPTIMIZADO PARA MÚLTIPLES CÓDIGOS
     try:
         if proveedor_filtro:
             print(f"🎯 BÚSQUEDA DIRIGIDA: {len(codigos_posibles)} códigos en '{proveedor_filtro}' -> {codigos_posibles}")
@@ -7145,21 +7361,38 @@ def procesar_escaneo():
                 except (ValueError, TypeError):
                     precio_numerico = 0.0
             
+            # VERIFICAR SI HAY STOCK FÍSICO DE ESTE PRODUCTO
+            cantidad_stock = 0
+            en_stock = False
+            stock_info = None
+            
+            codigo_producto = item_excel.get('codigo', '')
+            if codigo_producto:
+                stock_productos = db_query("SELECT * FROM stock WHERE codigo = ?", (codigo_producto,), fetch=True)
+                if stock_productos:
+                    # Tomar el primer producto del stock que coincida
+                    stock_info = stock_productos[0]
+                    cantidad_stock = stock_info.get('cantidad', 0)
+                    en_stock = cantidad_stock > 0
+                    print(f"📦 Stock encontrado para {codigo_producto}: {cantidad_stock} unidades")
+            
             # Crear producto compatible con el formato esperado
             producto_excel = {
                 'id': f"excel_{item_excel.get('codigo', '')}_{item_excel.get('proveedor', '')}",
                 'codigo': item_excel.get('codigo', ''),
                 'nombre': item_excel.get('nombre', ''),
                 'precio': precio_numerico,  # Usar valor numérico, no formateado
-                'cantidad': 0,  # No hay stock físico
+                'cantidad': cantidad_stock,  # Cantidad real del stock
                 'proveedor': item_excel.get('proveedor', ''),
                 'dueno': item_excel.get('dueno', ''),
                 'codigo_extraido': item_excel.get('codigo_extraido', ''),
                 'codigo_barras_original': codigo_barras_original,
                 'source': 'excel',  # Marcar que viene de Excel
-                'en_stock': False,
+                'en_stock': en_stock,  # True si hay stock físico
                 # Formatear precio al estilo europeo para mostrar
-                'precio_formato_europeo': formatear_precio_europeo(precio_numerico)
+                'precio_formato_europeo': formatear_precio_europeo(precio_numerico),
+                # Información adicional del stock si está disponible
+                'stock_id': stock_info.get('id') if stock_info else None
             }
             
             # LÓGICA MEJORADA: Evitar duplicados pero priorizar productos con precio válido

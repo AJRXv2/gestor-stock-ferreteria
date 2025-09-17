@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+
+{% block title %}Multiproductos - Gestor de Stock{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-layers-fill me-2"></i>Multiproductos</h1>
+                <small class="text-muted">Gestión de productos con variantes y edición masiva de precios</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección: Agregar Multiproductos -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>Agregar Multiproductos
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="formMultiproductos" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="guardar_productos">
+                        <input type="hidden" name="productos_json" id="productos_json">
+                        
+                        <!-- Formulario principal -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <label for="dueno" class="form-label">
+                                    <i class="bi bi-person-fill me-1"></i>Dueño
+                                </label>
+                                <select class="form-select" id="dueno" required>
+                                    <option value="">Seleccionar dueño...</option>
+                                    {% for dueno in duenos %}
+                                    <option value="{{ dueno }}">{{ dueno }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="proveedor" class="form-label">
+                                    <i class="bi bi-building me-1"></i>Proveedor
+                                </label>
+                                <select class="form-select" id="proveedor" required disabled>
+                                    <option value="">Primero seleccione un dueño</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="codigo" class="form-label">
+                                    <i class="bi bi-upc me-1"></i>Código
+                                </label>
+                                <input type="text" class="form-control" id="codigo" placeholder="Código del producto" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="nombre" class="form-label">
+                                    <i class="bi bi-tag me-1"></i>Nombre del producto
+                                </label>
+                                <input type="text" class="form-control" id="nombre" placeholder="Nombre base del producto" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <label for="precio" class="form-label">
+                                    <i class="bi bi-currency-dollar me-1"></i>Precio (formato: 1.234,56)
+                                </label>
+                                <input type="text" class="form-control" id="precio" placeholder="0,00" required>
+                                <small class="text-muted">Formato europeo: 1.234,56</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="cantidad" class="form-label">
+                                    <i class="bi bi-123 me-1"></i>Cantidad
+                                </label>
+                                <input type="number" class="form-control" id="cantidad" value="1" min="1" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="multiplicador" class="form-label">
+                                    <i class="bi bi-x-lg me-1"></i>Multiplicar por
+                                </label>
+                                <input type="number" class="form-control" id="multiplicador" value="1" min="1" max="100">
+                            </div>
+                            <div class="col-md-5 d-flex align-items-end">
+                                <button type="button" class="btn btn-success me-2" onclick="multiplicarProducto()">
+                                    <i class="bi bi-plus-square me-1"></i>Multiplicar Producto
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFormulario()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Tabla de productos multiplicados -->
+                    <div id="tablaProductos" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="bi bi-table me-2"></i>Productos a guardar</h5>
+                            <div>
+                                <button type="button" class="btn btn-primary" onclick="guardarProductos()">
+                                    <i class="bi bi-save me-1"></i>Guardar en Excel
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="cancelarProductos()">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="tablaProductosMultiplicados">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Dueño</th>
+                                        <th>Proveedor</th>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Precio</th>
+                                        <th>Cantidad</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuerpoTablaProductos">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección: Editar Multiproductos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>Editar Multiproductos
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Formulario de búsqueda -->
+                    <form method="POST" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="buscar_productos">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <label for="termino_busqueda" class="form-label">
+                                    <i class="bi bi-search me-1"></i>Buscar productos para editar
+                                </label>
+                                <input type="text" class="form-control" name="termino_busqueda" id="termino_busqueda" 
+                                       placeholder="Buscar por nombre, código o proveedor..." required>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-info text-white">
+                                    <i class="bi bi-search me-1"></i>Buscar Productos
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Resultados de búsqueda y edición -->
+                    {% if productos_para_editar %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Se encontraron {{ productos_para_editar|length }} productos. 
+                        Puede cambiar el precio para todos o seleccionar cuáles eliminar.
+                    </div>
+                    
+                    <!-- Formulario para cambiar precio -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <form method="POST" class="d-flex align-items-end">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="actualizar_precios">
+                                <div class="me-3">
+                                    <label for="nuevo_precio" class="form-label">
+                                        <i class="bi bi-currency-dollar me-1"></i>Nuevo precio (formato: 1.234,56)
+                                    </label>
+                                    <input type="text" class="form-control" name="nuevo_precio" id="nuevo_precio" 
+                                           placeholder="0,00" required>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle me-1"></i>Aplicar a Todos
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de productos encontrados -->
+                    <form method="POST" id="formEliminar">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="eliminar_productos">
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="bi bi-list-ul me-2"></i>Productos encontrados</h5>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="seleccionarTodos()">
+                                    <i class="bi bi-check-all me-1"></i>Seleccionar Todos
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deseleccionarTodos()">
+                                    <i class="bi bi-square me-1"></i>Deseleccionar Todos
+                                </button>
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de que desea eliminar los productos seleccionados?')">
+                                    <i class="bi bi-trash me-1"></i>Eliminar Seleccionados
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th width="50">
+                                            <input type="checkbox" class="form-check-input" id="checkTodos" onchange="toggleTodos()">
+                                        </th>
+                                        <th>Dueño</th>
+                                        <th>Proveedor</th>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Precio Actual</th>
+                                        <th>Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for producto in productos_para_editar %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input producto-check" 
+                                                   name="productos_eliminar" value="{{ loop.index0 }}">
+                                        </td>
+                                        <td>{{ producto.get('Dueno', '') }}</td>
+                                        <td>{{ producto.get('Proveedor', '') }}</td>
+                                        <td>{{ producto.get('Codigo', '') }}</td>
+                                        <td>{{ producto.get('Nombre', '') }}</td>
+                                        <td class="fw-bold">$ {{ producto.get('Precio', '0,00') }}</td>
+                                        <td>{{ producto.get('Cantidad', 1) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script>
+let productosMultiplicados = [];
+
+// Cargar proveedores cuando se selecciona un dueño
+document.getElementById('dueno').addEventListener('change', function() {
+    const dueno = this.value;
+    const proveedorSelect = document.getElementById('proveedor');
+    
+    if (!dueno) {
+        proveedorSelect.innerHTML = '<option value="">Primero seleccione un dueño</option>';
+        proveedorSelect.disabled = true;
+        return;
+    }
+    
+    proveedorSelect.disabled = true;
+    proveedorSelect.innerHTML = '<option value="">Cargando proveedores...</option>';
+    
+    fetch('/multiproductos_obtener_proveedores', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+        },
+        body: JSON.stringify({ dueno: dueno })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            proveedorSelect.innerHTML = '<option value="">Seleccionar proveedor...</option>';
+            data.proveedores.forEach(proveedor => {
+                const option = document.createElement('option');
+                option.value = proveedor;
+                option.textContent = proveedor;
+                proveedorSelect.appendChild(option);
+            });
+            proveedorSelect.disabled = false;
+        } else {
+            proveedorSelect.innerHTML = '<option value="">Error cargando proveedores</option>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        proveedorSelect.innerHTML = '<option value="">Error de conexión</option>';
+    });
+});
+
+// Formatear precio al estilo europeo - permitir entrada natural
+document.getElementById('precio').addEventListener('input', function() {
+    // Permitir dígitos, puntos y comas durante la escritura
+    let valor = this.value.replace(/[^\d.,]/g, '');
+    this.value = valor;
+});
+
+// También agregar validación al campo nuevo_precio
+document.getElementById('nuevo_precio').addEventListener('input', function() {
+    // Permitir dígitos, puntos y comas durante la escritura
+    let valor = this.value.replace(/[^\d.,]/g, '');
+    this.value = valor;
+});
+
+// Función auxiliar para validar precio europeo
+function validarPrecioEuropeo(precio) {
+    if (!precio || precio.trim() === '') return false;
+    
+    const precioLimpio = precio.replace(/\s/g, '');
+    
+    // Patrones válidos para precio europeo:
+    // - Solo números: 1234
+    // - Con coma decimal: 1234,56
+    // - Con puntos de miles: 1.234 o 1.234,56
+    const patronesValidos = [
+        /^\d+$/,                           // 1234
+        /^\d+,\d{1,2}$/,                  // 1234,56
+        /^\d{1,3}(\.\d{3})+$/,            // 1.234.567
+        /^\d{1,3}(\.\d{3})+,\d{1,2}$/     // 1.234.567,89
+    ];
+    
+    return patronesValidos.some(patron => patron.test(precioLimpio));
+}
+
+// Formatear precio cuando el usuario termina de escribir (blur)
+document.getElementById('precio').addEventListener('blur', function() {
+    let valor = this.value.trim();
+    if (valor && !validarPrecioEuropeo(valor)) {
+        // Mostrar mensaje de ayuda sin bloquear
+        const mensaje = document.createElement('div');
+        mensaje.className = 'alert alert-warning mt-2';
+        mensaje.innerHTML = '<small><i class="bi bi-info-circle me-1"></i>Formato sugerido: 1.234,56 (use punto para miles y coma para decimales)</small>';
+        
+        // Remover mensaje anterior si existe
+        const mensajeAnterior = this.parentNode.querySelector('.alert-warning');
+        if (mensajeAnterior) mensajeAnterior.remove();
+        
+        // Agregar mensaje
+        this.parentNode.appendChild(mensaje);
+        
+        // Remover mensaje después de 3 segundos
+        setTimeout(() => mensaje.remove(), 3000);
+    } else {
+        // Remover mensaje de ayuda si el formato es correcto
+        const mensajeAnterior = this.parentNode.querySelector('.alert-warning');
+        if (mensajeAnterior) mensajeAnterior.remove();
+    }
+});
+
+function multiplicarProducto() {
+    const dueno = document.getElementById('dueno').value;
+    const proveedor = document.getElementById('proveedor').value;
+    const codigo = document.getElementById('codigo').value;
+    const nombre = document.getElementById('nombre').value;
+    const precio = document.getElementById('precio').value;
+    const cantidad = parseInt(document.getElementById('cantidad').value);
+    const multiplicador = parseInt(document.getElementById('multiplicador').value);
+    
+    if (!dueno || !proveedor || !codigo || !nombre || !precio) {
+        alert('Por favor complete todos los campos obligatorios');
+        return;
+    }
+    
+    // Validar que el precio sea válido (más flexible)
+    if (!precio || precio.trim() === '') {
+        alert('Por favor ingrese un precio válido');
+        return;
+    }
+    
+    // Validar formato europeo básico pero más permisivo
+    const precioLimpio = precio.replace(/\s/g, ''); // quitar espacios
+    if (!/^[\d.,]+$/.test(precioLimpio)) {
+        alert('El precio solo puede contener números, puntos y comas');
+        return;
+    }
+    
+    // Crear productos multiplicados
+    for (let i = 1; i <= multiplicador; i++) {
+        const codigoFinal = multiplicador > 1 ? `${codigo}-${i.toString().padStart(2, '0')}` : codigo;
+        const nombreFinal = multiplicador > 1 ? `${nombre} - Variante ${i}` : nombre;
+        
+        const producto = {
+            dueno: dueno,
+            proveedor: proveedor,
+            codigo: codigoFinal,
+            nombre: nombreFinal,
+            precio: precio,
+            cantidad: cantidad
+        };
+        
+        productosMultiplicados.push(producto);
+    }
+    
+    actualizarTablaProductos();
+    document.getElementById('tablaProductos').style.display = 'block';
+    
+    // Scroll hacia la tabla
+    document.getElementById('tablaProductos').scrollIntoView({ behavior: 'smooth' });
+}
+
+function actualizarTablaProductos() {
+    const tbody = document.getElementById('cuerpoTablaProductos');
+    tbody.innerHTML = '';
+    
+    productosMultiplicados.forEach((producto, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td contenteditable="true" class="editable" data-field="dueno" data-index="${index}">${producto.dueno}</td>
+            <td contenteditable="true" class="editable" data-field="proveedor" data-index="${index}">${producto.proveedor}</td>
+            <td contenteditable="true" class="editable font-monospace" data-field="codigo" data-index="${index}">${producto.codigo}</td>
+            <td contenteditable="true" class="editable" data-field="nombre" data-index="${index}">${producto.nombre}</td>
+            <td contenteditable="true" class="editable" data-field="precio" data-index="${index}">$ ${producto.precio}</td>
+            <td contenteditable="true" class="editable" data-field="cantidad" data-index="${index}">${producto.cantidad}</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${index})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Agregar eventos de edición
+    document.querySelectorAll('.editable').forEach(cell => {
+        cell.addEventListener('blur', function() {
+            const index = parseInt(this.dataset.index);
+            const field = this.dataset.field;
+            let value = this.textContent;
+            
+            if (field === 'precio') {
+                // Quitar el símbolo $ para almacenar solo el valor
+                value = value.replace('$', '').trim();
+            }
+            
+            if (field === 'cantidad') {
+                value = parseInt(value) || 1;
+            }
+            
+            productosMultiplicados[index][field] = value;
+        });
+    });
+}
+
+function eliminarProducto(index) {
+    productosMultiplicados.splice(index, 1);
+    actualizarTablaProductos();
+    
+    if (productosMultiplicados.length === 0) {
+        document.getElementById('tablaProductos').style.display = 'none';
+    }
+}
+
+function limpiarFormulario() {
+    document.getElementById('dueno').value = '';
+    document.getElementById('proveedor').innerHTML = '<option value="">Primero seleccione un dueño</option>';
+    document.getElementById('proveedor').disabled = true;
+    document.getElementById('codigo').value = '';
+    document.getElementById('nombre').value = '';
+    document.getElementById('precio').value = '';
+    document.getElementById('cantidad').value = '1';
+    document.getElementById('multiplicador').value = '1';
+    
+    productosMultiplicados = [];
+    document.getElementById('tablaProductos').style.display = 'none';
+}
+
+function cancelarProductos() {
+    if (confirm('¿Está seguro de que desea cancelar? Se perderán todos los productos preparados.')) {
+        limpiarFormulario();
+    }
+}
+
+function guardarProductos() {
+    if (productosMultiplicados.length === 0) {
+        alert('No hay productos para guardar');
+        return;
+    }
+    
+    if (confirm(`¿Está seguro de que desea guardar ${productosMultiplicados.length} productos en el archivo Excel?`)) {
+        document.getElementById('productos_json').value = JSON.stringify(productosMultiplicados);
+        document.getElementById('formMultiproductos').submit();
+    }
+}
+
+// Funciones para manejar selección de productos a eliminar
+function seleccionarTodos() {
+    document.querySelectorAll('.producto-check').forEach(check => {
+        check.checked = true;
+    });
+    document.getElementById('checkTodos').checked = true;
+}
+
+function deseleccionarTodos() {
+    document.querySelectorAll('.producto-check').forEach(check => {
+        check.checked = false;
+    });
+    document.getElementById('checkTodos').checked = false;
+}
+
+function toggleTodos() {
+    const checkTodos = document.getElementById('checkTodos');
+    document.querySelectorAll('.producto-check').forEach(check => {
+        check.checked = checkTodos.checked;
+    });
+}
+
+// Estilo para celdas editables
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .editable {
+            background-color: #f8f9fa !important;
+            cursor: text;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .editable:hover {
+            background-color: #e9ecef !important;
+            border-color: #dee2e6;
+        }
+        .editable:focus {
+            background-color: white !important;
+            border-color: #86b7fe;
+            outline: none;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}
