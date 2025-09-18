@@ -114,9 +114,19 @@
             color: #000000;
         }
         
-        .historial-card {
-            max-height: 400px;
-            overflow-y: auto;
+        /* Estilos para el nuevo layout de dos columnas */
+        .card.h-100 {
+            height: 100% !important;
+        }
+        
+        @media (max-width: 768px) {
+            .col-md-6 {
+                margin-bottom: 1rem;
+            }
+            
+            #seccionResultados .card-body {
+                max-height: 300px !important;
+            }
         }
         
         .floating-header {
@@ -179,175 +189,146 @@
             <p class="text-muted mb-0">Sistema de numeración europea | Filtros Crossmaster | Mesa de ventas integrada</p>
         </div>
         
-        <div class="row">
-            <!-- Panel de Escáner Principal -->
-            <div class="col-lg-8">
-                <div class="card fade-in">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="mb-0">
-                            <i class="bi bi-barcode me-2"></i>
-                            Escáner Principal
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="escanerForm">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            
-                            <!-- Filtro de Proveedor Ampliado -->
-                            <div class="mb-4">
-                                <label for="proveedor_escaner_main" class="form-label fs-5">
-                                    <i class="bi bi-funnel me-2"></i>Filtro de Proveedor:
-                                </label>
-                                <select id="proveedor_escaner_main" name="proveedor_filtro" class="form-select">
-                                    <option value="">🔍 Búsqueda Automática (Todos los proveedores)</option>
-                                    <optgroup label="🔧 Ricky">
-                                        {% for proveedor in proveedores %}
-                                            {% if proveedor in ['brementools', 'crossmaster', 'berger', 'chiesa', 'cachan'] %}
-                                                <option value="{{ proveedor }}">
-                                                    {% if proveedor == 'crossmaster' %}
-                                                        🎯 Crossmaster (UPC-A: 7824→9977824, 9977824.1)
-                                                    {% else %}
-                                                        {{ proveedor.title() }}
-                                                    {% endif %}
-                                                </option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </optgroup>
-                                    <optgroup label="🏪 Ferretería General">
-                                        {% for proveedor in proveedores %}
-                                            {% if proveedor in ['nortedist', 'bermon', 'dewalt', 'sica', 'sorbalok'] %}
-                                                <option value="{{ proveedor }}">{{ proveedor.title() }}</option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </optgroup>
-                                </select>
-                                <div class="form-text">
-                                    💡 <strong>Crossmaster:</strong> UPC-A 12 dígitos (190349378240 → extrae 7824 → busca 9927824, 9927824.1, 9937824, 9937824.1...)
-                                </div>
-                            </div>
-                            
-                            <!-- Campo de Código Ampliado -->
-                            <div class="mb-4">
-                                <label for="codigo_barras" class="form-label fs-4">
-                                    <i class="bi bi-upc me-2"></i>Código de Barras:
-                                </label>
-                                <input type="text" 
-                                       class="form-control scanner-input" 
-                                       id="codigo_barras" 
-                                       name="codigo_barras" 
-                                       autofocus 
-                                       placeholder="🔍 Escanee aquí o ingrese manualmente..."
-                                       autocomplete="off">
-                            </div>
-                            
-                            <!-- Botones Ampliados -->
-                            <div class="d-grid gap-3 d-md-flex justify-content-md-center">
-                                <button type="submit" class="btn btn-primary btn-lg flex-fill">
-                                    <i class="bi bi-search me-2"></i>
-                                    <span id="btnTexto">Buscar Producto</span>
-                                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-lg" onclick="limpiarFormulario()">
-                                    <i class="bi bi-arrow-clockwise me-2"></i>Limpiar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                
+        <!-- Fila Superior: Resultados (Ocupan la mayor parte del espacio) -->
+        <div class="row mb-4" style="min-height: 60vh;">
+            <div class="col-12">
                 <!-- Resultados de Productos -->
-                <div id="seccionResultados" style="display:none;" class="mt-4 fade-in">
-                    <div class="card">
+                <div id="seccionResultados" style="display:none;" class="fade-in h-100">
+                    <div class="card h-100">
                         <div class="card-header bg-success text-white">
                             <h3 class="mb-0">
                                 <i class="bi bi-search me-2"></i>
                                 Productos Encontrados
                             </h3>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body" style="height: calc(60vh - 80px); overflow-y: auto;">
                             <div id="productosEncontrados">
                                 <!-- Contenido dinámico -->
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Mensaje cuando no hay resultados -->
+                <div id="mensajeInicial" class="text-center" style="height: 60vh; display: flex; align-items: center; justify-content: center;">
+                    <div>
+                        <i class="bi bi-search" style="font-size: 4rem; color: #6c757d;"></i>
+                        <h4 class="text-muted mt-3">Escaneé o ingrese un código para buscar productos</h4>
+                    </div>
+                </div>
             </div>
-            
-            <!-- Panel Lateral - Historial y Mesa -->
-            <div class="col-lg-4">
+        </div>
+        
+        <!-- Fila Inferior: Escáner (Compacto) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card fade-in">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-barcode me-2"></i>
+                            Escáner Principal
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="escanerForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            
+                            <div class="row">
+                                <!-- Filtro de Proveedor -->
+                                <div class="col-md-3">
+                                    <label for="proveedor_escaner_main" class="form-label">
+                                        <i class="bi bi-funnel me-2"></i>Filtro de Proveedor:
+                                    </label>
+                                    <select id="proveedor_escaner_main" name="proveedor_filtro" class="form-select">
+                                        <option value="">🔍 Búsqueda Automática (Todos los proveedores)</option>
+                                        <optgroup label="🔧 Ricky">
+                                            {% for proveedor in proveedores %}
+                                                {% if proveedor in ['brementools', 'crossmaster', 'berger', 'chiesa', 'cachan'] %}
+                                                    <option value="{{ proveedor }}">
+                                                        {% if proveedor == 'crossmaster' %}
+                                                            🎯 Crossmaster (UPC-A: 7824→9977824, 9977824.1)
+                                                        {% else %}
+                                                            {{ proveedor.title() }}
+                                                        {% endif %}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </optgroup>
+                                        <optgroup label="🏪 Ferretería General">
+                                            {% for proveedor in proveedores %}
+                                                {% if proveedor in ['nortedist', 'bermon', 'dewalt', 'sica', 'sorbalok'] %}
+                                                    <option value="{{ proveedor }}">{{ proveedor.title() }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                
+                                <!-- Campo de Código -->
+                                <div class="col-md-6">
+                                    <label for="codigo_barras" class="form-label">
+                                        <i class="bi bi-upc me-2"></i>Código de Barras:
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control scanner-input" 
+                                           id="codigo_barras" 
+                                           name="codigo_barras" 
+                                           autofocus 
+                                           placeholder="🔍 Escanee aquí o ingrese manualmente..."
+                                           autocomplete="off">
+                                </div>
+                                
+                                <!-- Botones -->
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <div class="d-grid gap-2 w-100">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-search me-2"></i>
+                                            <span id="btnTexto">Buscar</span>
+                                            <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="limpiarFormulario()">
+                                            <i class="bi bi-arrow-clockwise me-2"></i>Limpiar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Texto de ayuda -->
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <div class="form-text small">
+                                        💡 <strong>Crossmaster:</strong> UPC-A 12 dígitos (190349378240 → extrae 7824 → busca 9927824, 9927824.1, 9937824, 9937824.1...)
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Fila Inferior: Mesa de Ventas -->
+        <div class="row">
+            <div class="col-12">
                 <!-- Mesa de Ventas Compacta -->
                 <div class="card fade-in" id="mesaVentasCompacta" style="display:none;">
                     <div class="card-header bg-warning text-dark">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">
-                                <i class="bi bi-table me-2"></i>Mesa 
-                                <span class="badge bg-dark" id="contadorMesa">0</span>
-                            </h5>
-                            <button class="btn btn-sm btn-outline-dark" onclick="mostrarMesaCompleta()">
-                                <i class="bi bi-arrows-fullscreen"></i>
+                            <h4 class="mb-0">
+                                <i class="bi bi-table me-2"></i>Mesa de Ventas
+                                <span class="badge bg-dark ms-2" id="contadorMesa">0</span>
+                            </h4>
+                            <button class="btn btn-outline-dark" onclick="mostrarMesaCompleta()">
+                                <i class="bi bi-arrows-fullscreen me-2"></i>Ver Completa
                             </button>
                         </div>
                     </div>
                     <div class="card-body">
                         <div id="resumenMesa"></div>
                         <div class="d-grid gap-2 mt-3">
-                            <button class="btn btn-success" id="btnVenderMesa" onclick="procesarVentaMesa()" disabled>
-                                <i class="bi bi-cart-check"></i> Vender Todo
+                            <button class="btn btn-success btn-lg" id="btnVenderMesa" onclick="procesarVentaMesa()" disabled>
+                                <i class="bi bi-cart-check me-2"></i>Vender Todo
                             </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Historial Reciente -->
-                <div class="card fade-in mt-3">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">
-                            <i class="bi bi-clock-history me-2"></i>
-                            Historial Reciente
-                        </h5>
-                    </div>
-                    <div class="card-body historial-card">
-                        {% if historial %}
-                            {% for item in historial %}
-                                <div class="border-bottom pb-2 mb-2">
-                                    <div class="fw-bold">{{ item.nombre }}</div>
-                                    <small class="text-muted">
-                                        Código: {{ item.codigo }} | 
-                                        Cantidad: {{ item.cantidad }} | 
-                                        Stock: {{ item.stock_actual }}
-                                    </small>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-muted text-center">No hay historial reciente</p>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Instrucciones Ampliadas -->
-                <div class="card fade-in mt-3">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">
-                            <i class="bi bi-info-circle me-2"></i>
-                            Instrucciones
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="alert alert-primary border-0">
-                                    <i class="bi bi-1-circle-fill me-2"></i>
-                                    <strong>Escanee</strong> el código en el campo principal
-                                </div>
-                                <div class="alert alert-success border-0">
-                                    <i class="bi bi-2-circle-fill me-2"></i>
-                                    <strong>Seleccione</strong> productos para agregar a la mesa
-                                </div>
-                                <div class="alert alert-warning border-0">
-                                    <i class="bi bi-3-circle-fill me-2"></i>
-                                    <strong>Procese</strong> la venta completa cuando esté listo
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -418,7 +399,7 @@
         let mesaVentas = [];
         let contadorId = 0;
 
-        // Función para formatear precios al estilo europeo
+        // Función para formatear precios al estilo europeo (CORREGIDA con lógica de miles)
         function formatearPrecioEuropeo(precio) {
             try {
                 if (typeof precio === 'string') {
@@ -429,11 +410,23 @@
                 
                 const precioFloat = parseFloat(precio);
                 
-                // Formatear con 2 decimales usando formato americano primero
-                const precioAmericano = precioFloat.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
+                // LÓGICA CORREGIDA: Si el precio es menor a 1000, multiplicar por 1000
+                let precioAmericano;
+                if (precioFloat < 1000) {
+                    // Multiplicar por 1000 para que tenga separador de miles
+                    // Ejemplo: 5.50 -> 5500 -> formato "5,500.00"
+                    const precioAjustado = precioFloat * 1000;
+                    precioAmericano = precioAjustado.toLocaleString('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }) + '.00';
+                } else {
+                    // Para precios >= 1000, formatear normalmente con 2 decimales
+                    precioAmericano = precioFloat.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
                 
                 // Convertir al formato europeo: intercambiar puntos y comas
                 let precioEuropeo = '';
@@ -572,6 +565,7 @@
         function mostrarProductos(productos) {
             const container = document.getElementById('productosEncontrados');
             const seccionResultados = document.getElementById('seccionResultados');
+            const mensajeInicial = document.getElementById('mensajeInicial');
             
             if (!productos || productos.length === 0) {
                 container.innerHTML = `
@@ -580,8 +574,13 @@
                         No se encontraron productos con el código escaneado
                     </div>`;
                 seccionResultados.style.display = 'block';
+                mensajeInicial.style.display = 'none';
                 return;
             }
+            
+            // Ocultar mensaje inicial y mostrar resultados
+            mensajeInicial.style.display = 'none';
+            seccionResultados.style.display = 'block';
             
             // DEDUPLICACIÓN MEJORADA: Priorizar productos en stock sobre lista de precios
             const productosDeduplicados = {};
@@ -942,6 +941,7 @@
             document.getElementById('codigo_barras').value = '';
             document.getElementById('proveedor_escaner_main').value = '';
             document.getElementById('seccionResultados').style.display = 'none';
+            document.getElementById('mensajeInicial').style.display = 'flex';
             document.getElementById('codigo_barras').focus();
         }
 

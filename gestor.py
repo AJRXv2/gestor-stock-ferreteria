@@ -7085,6 +7085,20 @@ def multiproductos():
     duenos = obtener_duenos_disponibles()
     productos_para_editar = session.get('productos_para_editar', [])
     
+    # Aplicar formato europeo a los precios de los productos para editar
+    for producto in productos_para_editar:
+        precio_original = producto.get('Precio', '0')
+        # Convertir precio a float si es string, luego aplicar formato europeo
+        try:
+            if isinstance(precio_original, str):
+                # Si ya tiene formato europeo (comas), convertir a float primero
+                precio_float = float(str(precio_original).replace(',', '.'))
+            else:
+                precio_float = float(precio_original)
+            producto['Precio'] = formatear_precio_europeo(precio_float)
+        except (ValueError, TypeError):
+            producto['Precio'] = '0,00'
+    
     return render_template('multiproductos.html', 
                          duenos=duenos,
                          productos_para_editar=productos_para_editar)
@@ -7110,6 +7124,90 @@ def multiproductos_obtener_proveedores():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
+@app.route('/multiproductos_editar_producto', methods=['POST'])
+@login_required
+def multiproductos_editar_producto():
+    """Edita un producto individual en la lista de productos para editar"""
+    try:
+        data = request.get_json()
+        index = data.get('index')
+        datos_originales = data.get('datos_originales', {})
+        datos_nuevos = data.get('datos_nuevos', {})
+        
+        if index is None:
+            return jsonify({'success': False, 'message': 'Índice no proporcionado'})
+        
+        # Convertir index a entero para comparaciones
+        try:
+            index = int(index)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Índice inválido'})
+        
+        productos_para_editar = session.get('productos_para_editar', [])
+        
+        if not productos_para_editar or index >= len(productos_para_editar):
+            return jsonify({'success': False, 'message': 'Producto no encontrado'})
+        
+        # Leer Excel actual
+        df = leer_productos_manual_excel()
+        
+        # Buscar y actualizar el producto en el Excel usando los datos originales
+        producto_original = productos_para_editar[index]
+        mask = (
+            (df['Codigo'] == producto_original['Codigo']) & 
+            (df['Nombre'] == producto_original['Nombre']) & 
+            (df['Proveedor'] == producto_original['Proveedor'])
+        )
+        
+        if not mask.any():
+            return jsonify({'success': False, 'message': 'Producto no encontrado en el archivo Excel'})
+        
+        # Validar y formatear precio
+        precio_nuevo = datos_nuevos.get('precio', '0')
+        try:
+            # Convertir precio a float para validación
+            precio_float = float(precio_nuevo.replace(',', '.'))
+            # Formatear precio al estilo europeo para guardar en Excel
+            precio_europeo = formatear_precio_europeo(precio_float)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Precio inválido'})
+        
+        # Validar y convertir cantidad
+        try:
+            cantidad_nueva = int(datos_nuevos.get('cantidad', 1))
+            if cantidad_nueva < 1:
+                cantidad_nueva = 1
+        except (ValueError, TypeError):
+            cantidad_nueva = 1
+        
+        # Actualizar datos en el DataFrame
+        df.loc[mask, 'Codigo'] = datos_nuevos.get('codigo', producto_original['Codigo'])
+        df.loc[mask, 'Nombre'] = datos_nuevos.get('nombre', producto_original['Nombre'])
+        df.loc[mask, 'Precio'] = precio_europeo
+        df.loc[mask, 'Cantidad'] = cantidad_nueva
+        
+        # Guardar cambios en Excel
+        if not guardar_productos_manual_excel(df):
+            return jsonify({'success': False, 'message': 'Error al guardar en Excel'})
+        
+        # Actualizar producto en la sesión
+        productos_para_editar[index].update({
+            'Codigo': datos_nuevos.get('codigo', producto_original['Codigo']),
+            'Nombre': datos_nuevos.get('nombre', producto_original['Nombre']),
+            'Precio': precio_europeo,
+            'Cantidad': cantidad_nueva
+        })
+        session['productos_para_editar'] = productos_para_editar
+        
+        return jsonify({
+            'success': True,
+            'message': 'Producto actualizado correctamente',
+            'precio_formateado': precio_europeo
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
 def formatear_precio_europeo(precio):
     """
     Formatea el precio usando el sistema de numeración europeo:
@@ -7125,14 +7223,29 @@ def formatear_precio_europeo(precio):
     try:
         # Convertir a float si es string
         if isinstance(precio, str):
-            precio = float(precio.replace(',', '.'))
+            # Manejar strings en formato europeo (ej: "1.234,56")
+            if '.' in precio and ',' in precio:
+                # Formato europeo: 1.234,56 -> convertir a 1234.56
+                precio = precio.replace('.', '').replace(',', '.')
+            elif ',' in precio and '.' not in precio:
+                # Solo coma decimal: 123,45 -> 123.45
+                precio = precio.replace(',', '.')
+            # Si solo tiene punto, asumimos que es formato americano ya
+            precio = float(precio)
         elif precio is None:
             precio = 0.0
         
         precio_float = float(precio)
         
-        # Formatear con 2 decimales usando formato americano primero
-        precio_americano = f"{precio_float:,.2f}"
+        # LÓGICA CORREGIDA: Si el precio es menor a 1000, multiplicar por 1000
+        if precio_float < 1000:
+            # Multiplicar por 1000 para que tenga separador de miles
+            # Ejemplo: 5.50 -> 5500 -> formato "5,500.00"
+            precio_ajustado = precio_float * 1000
+            precio_americano = f"{precio_ajustado:,.0f}.00"
+        else:
+            # Para precios >= 1000, formatear normalmente con 2 decimales
+            precio_americano = f"{precio_float:,.2f}"
         
         # Convertir al formato europeo: intercambiar puntos y comas
         precio_europeo = ""

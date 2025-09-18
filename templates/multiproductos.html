@@ -2,6 +2,10 @@
 
 {% block title %}Multiproductos - Gestor de Stock{% endblock %}
 
+{% block head %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -222,21 +226,33 @@
                                         <th>Nombre</th>
                                         <th>Precio Actual</th>
                                         <th>Cantidad</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for producto in productos_para_editar %}
-                                    <tr>
+                                    <tr id="fila-{{ loop.index0 }}" data-index="{{ loop.index0 }}">
                                         <td>
                                             <input type="checkbox" class="form-check-input producto-check" 
                                                    name="productos_eliminar" value="{{ loop.index0 }}">
                                         </td>
                                         <td>{{ producto.get('Dueno', '') }}</td>
                                         <td>{{ producto.get('Proveedor', '') }}</td>
-                                        <td>{{ producto.get('Codigo', '') }}</td>
-                                        <td>{{ producto.get('Nombre', '') }}</td>
-                                        <td class="fw-bold">$ {{ producto.get('Precio', '0,00') }}</td>
-                                        <td>{{ producto.get('Cantidad', 1) }}</td>
+                                        <td class="editable" data-campo="codigo">{{ producto.get('Codigo', '') }}</td>
+                                        <td class="editable" data-campo="nombre">{{ producto.get('Nombre', '') }}</td>
+                                        <td class="editable fw-bold" data-campo="precio">$ {{ producto.get('Precio', '0,00') }}</td>
+                                        <td class="editable" data-campo="cantidad">{{ producto.get('Cantidad', 1) }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-primary me-1 btn-editar" data-index="{{ loop.index0 }}">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-success me-1 btn-guardar d-none" data-index="{{ loop.index0 }}">
+                                                <i class="bi bi-check"></i> Guardar
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary btn-cancelar d-none" data-index="{{ loop.index0 }}">
+                                                <i class="bi bi-x"></i> Cancelar
+                                            </button>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -513,13 +529,221 @@ function toggleTodos() {
     });
 }
 
+// Funcionalidad de edición en línea
+let datosOriginales = {}; // Para restaurar en caso de cancelar
+
+function iniciarEdicion(index) {
+    const fila = document.getElementById(`fila-${index}`);
+    const celdas = fila.querySelectorAll('.editable');
+    
+    // Guardar datos originales
+    datosOriginales[index] = {};
+    celdas.forEach(celda => {
+        const campo = celda.dataset.campo;
+        datosOriginales[index][campo] = celda.textContent.trim();
+        
+        // Convertir celda a input editable
+        let valor = celda.textContent.trim();
+        
+        if (campo === 'precio') {
+            // Para precios, quitar el símbolo $ y mantener formato europeo
+            valor = valor.replace('$ ', '');
+            celda.innerHTML = `<input type="text" class="form-control form-control-sm precio-europeo" value="${valor}" placeholder="1.234,56">`;
+        } else if (campo === 'cantidad') {
+            celda.innerHTML = `<input type="number" class="form-control form-control-sm" value="${valor}" min="1">`;
+        } else {
+            celda.innerHTML = `<input type="text" class="form-control form-control-sm" value="${valor}">`;
+        }
+    });
+    
+    // Cambiar botones
+    fila.querySelector('.btn-editar').classList.add('d-none');
+    fila.querySelector('.btn-guardar').classList.remove('d-none');
+    fila.querySelector('.btn-cancelar').classList.remove('d-none');
+    
+    // Focus en el primer campo editable
+    const primerInput = fila.querySelector('.editable input');
+    if (primerInput) primerInput.focus();
+}
+
+function guardarEdicion(index) {
+    const fila = document.getElementById(`fila-${index}`);
+    const celdas = fila.querySelectorAll('.editable');
+    
+    // Recopilar datos editados
+    const datosEditados = {};
+    celdas.forEach(celda => {
+        const campo = celda.dataset.campo;
+        const input = celda.querySelector('input');
+        if (input) {
+            datosEditados[campo] = input.value.trim();
+        }
+    });
+    
+    // Validar datos antes de enviar
+    if (!datosEditados.codigo || !datosEditados.nombre || !datosEditados.precio) {
+        alert('Por favor complete todos los campos obligatorios (código, nombre y precio)');
+        return;
+    }
+    
+    // Validar precio en formato europeo
+    const precio = datosEditados.precio;
+    if (!/^[\d.,]+$/.test(precio)) {
+        alert('El precio debe tener formato numérico europeo (ej: 1.234,56)');
+        return;
+    }
+    
+    // Verificar que tiene formato europeo correcto (comas para decimales)
+    if (precio.includes(',')) {
+        const partes = precio.split(',');
+        if (partes.length > 2) {
+            alert('El precio no puede tener más de una coma decimal (formato europeo: 1.234,56)');
+            return;
+        }
+        if (partes[1] && partes[1].length > 2) {
+            alert('Los decimales no pueden tener más de 2 dígitos (formato europeo: 1.234,56)');
+            return;
+        }
+    }
+    
+    // Enviar actualización al servidor
+    fetch('/multiproductos_editar_producto', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            index: index,
+            datos_originales: datosOriginales[index],
+            datos_nuevos: datosEditados
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualizar vista con datos formateados
+            celdas.forEach(celda => {
+                const campo = celda.dataset.campo;
+                let valor = datosEditados[campo];
+                
+                if (campo === 'precio') {
+                    valor = `$ ${data.precio_formateado}`;
+                }
+                
+                celda.innerHTML = valor;
+            });
+            
+            // Restaurar botones
+            fila.querySelector('.btn-editar').classList.remove('d-none');
+            fila.querySelector('.btn-guardar').classList.add('d-none');
+            fila.querySelector('.btn-cancelar').classList.add('d-none');
+            
+            // Mostrar mensaje de éxito
+            mostrarMensaje('Producto actualizado correctamente', 'success');
+        } else {
+            alert('Error al actualizar producto: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión al actualizar producto');
+    });
+}
+
+function cancelarEdicion(index) {
+    const fila = document.getElementById(`fila-${index}`);
+    const celdas = fila.querySelectorAll('.editable');
+    
+    // Restaurar valores originales
+    celdas.forEach(celda => {
+        const campo = celda.dataset.campo;
+        let valor = datosOriginales[index][campo];
+        
+        if (campo === 'precio' && !valor.startsWith('$ ')) {
+            valor = `$ ${valor}`;
+        }
+        
+        celda.innerHTML = valor;
+    });
+    
+    // Restaurar botones
+    fila.querySelector('.btn-editar').classList.remove('d-none');
+    fila.querySelector('.btn-guardar').classList.add('d-none');
+    fila.querySelector('.btn-cancelar').classList.add('d-none');
+}
+
+function mostrarMensaje(texto, tipo) {
+    const alertContainer = document.querySelector('.container-fluid');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${texto}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.insertBefore(alert, alertContainer.firstChild);
+    
+    // Auto-remover después de 3 segundos
+    setTimeout(() => {
+        if (alert.parentNode) alert.remove();
+    }, 3000);
+}
+
+// Event listeners para los botones de edición
+document.addEventListener('DOMContentLoaded', function() {
+    // Botones editar
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = this.dataset.index;
+            iniciarEdicion(index);
+        });
+    });
+    
+    // Delegación de eventos para campos de precio que se crean dinámicamente
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('precio-europeo')) {
+            const valor = e.target.value;
+            
+            // Permitir solo números, puntos y comas
+            if (!/^[\d.,]*$/.test(valor)) {
+                e.target.value = valor.replace(/[^\d.,]/g, '');
+            }
+            
+            // Mostrar ayuda visual para formato europeo
+            let mensaje = e.target.parentNode.querySelector('.precio-ayuda');
+            if (!mensaje) {
+                mensaje = document.createElement('small');
+                mensaje.className = 'precio-ayuda text-muted d-block';
+                mensaje.innerHTML = '<i class="bi bi-info-circle me-1"></i>Formato europeo: 1.234,56 (punto para miles, coma para decimales)';
+                e.target.parentNode.appendChild(mensaje);
+            }
+        }
+    });
+    
+    // Botones guardar
+    document.querySelectorAll('.btn-guardar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = this.dataset.index;
+            guardarEdicion(index);
+        });
+    });
+    
+    // Botones cancelar
+    document.querySelectorAll('.btn-cancelar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = this.dataset.index;
+            cancelarEdicion(index);
+        });
+    });
+});
+
 // Estilo para celdas editables
 document.addEventListener('DOMContentLoaded', function() {
     const style = document.createElement('style');
     style.textContent = `
         .editable {
             background-color: #f8f9fa !important;
-            cursor: text;
+            cursor: pointer;
             border: 1px solid transparent;
             transition: all 0.2s;
         }
@@ -527,9 +751,14 @@ document.addEventListener('DOMContentLoaded', function() {
             background-color: #e9ecef !important;
             border-color: #dee2e6;
         }
-        .editable:focus {
-            background-color: white !important;
-            border-color: #86b7fe;
+        .editable input {
+            border: none;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .editable input:focus {
             outline: none;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }

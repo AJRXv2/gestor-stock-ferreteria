@@ -162,11 +162,23 @@ function formatearPrecioEuropeo(precio) {
         
         const precioFloat = parseFloat(precio);
         
-        // Formatear con 2 decimales usando formato americano primero
-        const precioAmericano = precioFloat.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+        // LÓGICA CORREGIDA: Si el precio es menor a 1000, multiplicar por 1000
+        let precioAmericano;
+        if (precioFloat < 1000) {
+            // Multiplicar por 1000 para que tenga separador de miles
+            // Ejemplo: 5.50 -> 5500 -> formato "5,500.00"
+            const precioAjustado = precioFloat * 1000;
+            precioAmericano = precioAjustado.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }) + '.00';
+        } else {
+            // Para precios >= 1000, formatear normalmente con 2 decimales
+            precioAmericano = precioFloat.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
         
         // Convertir al formato europeo: intercambiar puntos y comas
         let precioEuropeo = '';
