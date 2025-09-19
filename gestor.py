@@ -809,6 +809,94 @@ def canonicalize_proveedor_name(nombre: str) -> str:
     n = re.sub(r'\s+', ' ', n)
     return n
 
+def agregar_o_sumar_stock(codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, avisar_bajo_stock=0, min_stock_aviso=None, dueno='ferreteria_general'):
+    """
+    Agrega un producto al stock o suma la cantidad si ya existe.
+    Criterio de identificación única: código + nombre + proveedor + dueño
+    """
+    try:
+        # Buscar producto existente con mismo código, nombre, proveedor y dueño
+        producto_existente = db_query(
+            """
+            SELECT id, cantidad FROM stock 
+            WHERE codigo = ? AND LOWER(TRIM(nombre)) = LOWER(TRIM(?)) 
+            AND LOWER(TRIM(proveedor)) = LOWER(TRIM(?)) AND dueno = ?
+            """,
+            (codigo, nombre, proveedor, dueno),
+            fetch=True
+        )
+        
+        if producto_existente:
+            # Producto existe - sumar cantidad al existente
+            producto_id = producto_existente[0]['id']
+            cantidad_actual = producto_existente[0]['cantidad'] or 0
+            nueva_cantidad = cantidad_actual + cantidad
+            
+            # Actualizar cantidad existente
+            db_query(
+                "UPDATE stock SET cantidad = ?, fecha_compra = ? WHERE id = ?",
+                (nueva_cantidad, fecha_compra, producto_id)
+            )
+            
+            print(f"✅ STOCK SUMADO: '{nombre}' ({codigo}) - Anterior: {cantidad_actual} + Nueva: {cantidad} = Total: {nueva_cantidad}")
+            
+            # Registrar en historial de stock
+            try:
+                # Obtener los datos del producto actualizado para el historial
+                producto_actualizado = db_query("SELECT * FROM stock WHERE id = ?", (producto_id,), fetch=True)
+                if producto_actualizado:
+                    log_stock_history('quantity_update', fuente='agregar_o_sumar_stock_update', stock_row=producto_actualizado[0])
+            except Exception as e:
+                print(f"Error registrando historial: {e}")
+            
+            return {'accion': 'sumado', 'producto_id': producto_id, 'cantidad_total': nueva_cantidad}
+        
+        else:
+            # Producto no existe - crear nuevo
+            # Usar el enfoque más simple: insertar y obtener ID según el tipo de base de datos
+            try:
+                # Intentar PostgreSQL primero (si está disponible usará RETURNING)
+                result = db_query(
+                    """
+                    INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, 
+                                     proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+                    """,
+                    (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno),
+                    fetch=True
+                )
+                producto_id = result[0]['id'] if result else None
+            except Exception:
+                # Si falla (ej: SQLite no soporta RETURNING), usar método tradicional
+                db_query(
+                    """
+                    INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, 
+                                     proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno)
+                )
+                # Obtener el ID del producto recién insertado
+                producto_id = db_query("SELECT last_insert_rowid() as id", fetch=True)
+                if producto_id:
+                    producto_id = producto_id[0]['id']
+            
+            print(f"🆕 STOCK NUEVO: '{nombre}' ({codigo}) - Cantidad: {cantidad}")
+            
+            # Registrar en historial de stock
+            try:
+                producto_actualizado = db_query("SELECT * FROM stock WHERE id = ?", (producto_id,), fetch=True)
+                if producto_actualizado:
+                    log_stock_history('nuevo_producto', fuente='agregar_o_sumar_stock_nuevo', stock_row=producto_actualizado[0])
+            except Exception as e:
+                print(f"Error registrando historial: {e}")
+            
+            return {'accion': 'nuevo', 'producto_id': producto_id, 'cantidad_total': cantidad}
+            
+    except Exception as e:
+        print(f"Error en agregar_o_sumar_stock: {e}")
+        return {'accion': 'error', 'error': str(e)}
+
 def agregar_producto_excel_manual(codigo, proveedor, nombre, precio, observaciones, dueno):
     """Agregar producto al Excel de productos manuales"""
     try:
@@ -2543,27 +2631,21 @@ def agregar_producto():
                             min_stock_aviso_int = None
                         if avisar_bajo_stock and min_stock_aviso_int and min_stock_aviso_int > cantidad_int:
                             min_stock_aviso_int = cantidad_int
-                        db_query(
-                            """
-                            INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, 
-                                             proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                item.get('codigo', ''),
-                                item.get('nombre', ''),
-                                float(item.get('precio', 0)),
-                                cantidad_int,
-                                item.get('fecha_compra', datetime.now().strftime('%Y-%m-%d')),
-                                item.get('proveedor', ''),
-                                item.get('observaciones', ''),
-                                item.get('precio_texto', ''),
-                                avisar_bajo_stock,
-                                min_stock_aviso_int,
-                                dueno_dest,
-                            ),
+                        resultado = agregar_o_sumar_stock(
+                            codigo=item.get('codigo', ''),
+                            nombre=item.get('nombre', ''),
+                            precio=float(item.get('precio', 0)),
+                            cantidad=cantidad_int,
+                            fecha_compra=item.get('fecha_compra', datetime.now().strftime('%Y-%m-%d')),
+                            proveedor=item.get('proveedor', ''),
+                            observaciones=item.get('observaciones', ''),
+                            precio_texto=item.get('precio_texto', ''),
+                            avisar_bajo_stock=avisar_bajo_stock,
+                            min_stock_aviso=min_stock_aviso_int,
+                            dueno=dueno_dest
                         )
-                        productos_agregados += 1
+                        if resultado.get('accion') != 'error':
+                            productos_agregados += 1
                     except Exception as e:
                         print(f"Error al agregar producto al stock: {e}")
                 # Limpiar carrito y devolver fragmento vacío/actualizado
@@ -2591,27 +2673,21 @@ def agregar_producto():
                         min_stock_aviso_int = None
                     if avisar_bajo_stock and min_stock_aviso_int and min_stock_aviso_int > cantidad_int:
                         min_stock_aviso_int = cantidad_int
-                    db_query(
-                        """
-                        INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, 
-                                         proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            item.get('codigo', ''),
-                            item.get('nombre', ''),
-                            float(item.get('precio', 0)),
-                            cantidad_int,
-                            item.get('fecha_compra', datetime.now().strftime('%Y-%m-%d')),
-                            item.get('proveedor', ''),
-                            item.get('observaciones', ''),
-                            item.get('precio_texto', ''),
-                            avisar_bajo_stock,
-                            min_stock_aviso_int,
-                            dueno_dest,
-                        ),
+                    resultado = agregar_o_sumar_stock(
+                        codigo=item.get('codigo', ''),
+                        nombre=item.get('nombre', ''),
+                        precio=float(item.get('precio', 0)),
+                        cantidad=cantidad_int,
+                        fecha_compra=item.get('fecha_compra', datetime.now().strftime('%Y-%m-%d')),
+                        proveedor=item.get('proveedor', ''),
+                        observaciones=item.get('observaciones', ''),
+                        precio_texto=item.get('precio_texto', ''),
+                        avisar_bajo_stock=avisar_bajo_stock,
+                        min_stock_aviso=min_stock_aviso_int,
+                        dueno=dueno_dest
                     )
-                    productos_agregados += 1
+                    if resultado.get('accion') != 'error':
+                        productos_agregados += 1
                 except Exception as e:
                     print(f"Error al agregar producto al stock: {e}")
             session['carrito'] = []
@@ -2748,14 +2824,24 @@ def procesar_producto():
             flash(f'Error en el precio: {error_precio}', 'danger')
             return redirect(url_for('agregar_producto'))
         
-        # Insertar producto en stock
-        result = db_query(
-            "INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_str)
+        # Agregar o sumar producto al stock
+        resultado = agregar_o_sumar_stock(
+            codigo=codigo,
+            nombre=nombre,
+            precio=precio,
+            cantidad=cantidad,
+            fecha_compra=fecha_compra,
+            proveedor=proveedor,
+            observaciones=observaciones,
+            precio_texto=precio_str
         )
         
-        if result:
-            flash(f'Producto "{nombre}" agregado exitosamente.', 'success')
+        if resultado.get('accion') == 'error':
+            flash(f'Error al agregar el producto: {resultado.get("error", "Error desconocido")}', 'danger')
+        elif resultado.get('accion') == 'sumado':
+            flash(f'Cantidad agregada a producto existente "{nombre}". Total: {resultado.get("cantidad_total", 0)} unidades.', 'success')
+        elif resultado.get('accion') == 'nuevo':
+            flash(f'Producto nuevo "{nombre}" agregado exitosamente con {cantidad} unidades.', 'success')
         else:
             flash('Error al agregar el producto.', 'danger')
             
@@ -4041,27 +4127,22 @@ def carrito_cargar():
                     min_stock_aviso_int = None
                 if avisar_bajo_stock and min_stock_aviso_int and min_stock_aviso_int > cantidad_int:
                     min_stock_aviso_int = cantidad_int
-                db_query(
-                    """
-                    INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra,
-                                       proveedor, observaciones, precio_texto, avisar_bajo_stock, min_stock_aviso, dueno)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        item.get('codigo', ''),
-                        item.get('nombre', ''),
-                        float(item.get('precio', 0)),
-                        cantidad_int,
-                        item.get('fecha_compra', datetime.now().strftime('%Y-%m-%d')),
-                        item.get('proveedor', ''),
-                        item.get('observaciones', ''),
-                        item.get('precio_texto', ''),
-                        avisar_bajo_stock,
-                        min_stock_aviso_int,
-                        dueno_dest,
-                    ),
+                resultado = agregar_o_sumar_stock(
+                    codigo=item.get('codigo', ''),
+                    nombre=item.get('nombre', ''),
+                    precio=float(item.get('precio', 0)),
+                    cantidad=cantidad_int,
+                    fecha_compra=item.get('fecha_compra', datetime.now().strftime('%Y-%m-%d')),
+                    proveedor=item.get('proveedor', ''),
+                    observaciones=item.get('observaciones', ''),
+                    precio_texto=item.get('precio_texto', ''),
+                    avisar_bajo_stock=avisar_bajo_stock,
+                    min_stock_aviso=min_stock_aviso_int,
+                    dueno=dueno_dest
                 )
-                productos_agregados += 1
+                
+                if resultado.get('accion') != 'error':
+                    productos_agregados += 1
             except Exception as e:
                 print(f"Error al agregar producto al stock: {e}")
         # Limpiar carrito y devolver fragmento actualizado
@@ -5059,24 +5140,23 @@ def gestionar_manual_actualizar_ajax():
                     prov_ins = proveedor or ''
                     ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     try:
-                        if dueno_val:
-                            cur.execute("""
-                                INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno, created_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (codigo, nombre, precio, 0, ahora, prov_ins, 'Añadido por edición manual', str(precio), dueno_val, ahora))
+                        resultado = agregar_o_sumar_stock(
+                            codigo=codigo,
+                            nombre=nombre,
+                            precio=precio,
+                            cantidad=0,  # Inicializar con 0 como en el código original
+                            fecha_compra=ahora,
+                            proveedor=prov_ins,
+                            observaciones='Añadido por edición manual',
+                            precio_texto=str(precio),
+                            dueno=dueno_val or 'ferreteria_general'
+                        )
+                        
+                        if resultado.get('accion') == 'error':
+                            print(f"Error insertando fila stock tras edición manual: {resultado.get('error', 'Error desconocido')}")
                         else:
-                            cur.execute("""
-                                INSERT INTO stock (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, created_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (codigo, nombre, precio, 0, ahora, prov_ins, 'Añadido por edición manual', str(precio), ahora))
-                        conn.commit()
-                        afectados = 1
-                        try:
-                            row_new = db_query("SELECT * FROM stock WHERE id = (SELECT MAX(id) FROM stock)", fetch=True)
-                            if row_new:
-                                log_stock_history('insert', fuente='gestionar_manual_actualizar_ajax_insert', stock_row=row_new[0])
-                        except Exception as e_log_gest_ins:
-                            print(f"[WARN] log history insert gestionar_manual_actualizar_ajax: {e_log_gest_ins}")
+                            afectados = 1
+                            
                     except Exception as e_ins:
                         print(f"Error insertando fila stock tras edición manual: {e_ins}")
             except Exception as e_upd:
@@ -7480,18 +7560,86 @@ def procesar_escaneo():
             stock_info = None
             
             codigo_producto = item_excel.get('codigo', '')
+            nombre_producto = item_excel.get('nombre', '')
+            proveedor_producto = item_excel.get('proveedor', '')
+            
             if codigo_producto:
+                # Buscar productos en stock con el mismo código
                 stock_productos = db_query("SELECT * FROM stock WHERE codigo = ?", (codigo_producto,), fetch=True)
+                print(f"🔍 Buscando stock para: '{nombre_producto}' ({proveedor_producto}) con código {codigo_producto}")
                 if stock_productos:
-                    # Tomar el primer producto del stock que coincida
-                    stock_info = stock_productos[0]
-                    cantidad_stock = stock_info.get('cantidad', 0)
-                    en_stock = cantidad_stock > 0
-                    print(f"📦 Stock encontrado para {codigo_producto}: {cantidad_stock} unidades")
+                    print(f"📋 Encontrados {len(stock_productos)} productos en stock con código {codigo_producto}:")
+                    for i, sp in enumerate(stock_productos):
+                        print(f"   [{i+1}] {sp.get('nombre', '')} ({sp.get('proveedor', '')}) - Stock: {sp.get('cantidad', 0)}")
+                    # Intentar encontrar coincidencia exacta por nombre Y proveedor
+                    coincidencia_exacta = None
+                    coincidencia_nombre = None
+                    coincidencia_proveedor = None
+                    
+                    for stock_item in stock_productos:
+                        stock_nombre = (stock_item.get('nombre', '') or '').strip().lower()
+                        stock_proveedor = (stock_item.get('proveedor', '') or '').strip().lower()
+                        excel_nombre = nombre_producto.strip().lower()
+                        excel_proveedor = proveedor_producto.strip().lower()
+                        
+                        # Función auxiliar para verificar similitud de nombres
+                        def nombres_similares(n1, n2):
+                            # Remover caracteres especiales y espacios extra
+                            import re
+                            n1_limpio = re.sub(r'[^\w\s]', ' ', n1).strip()
+                            n2_limpio = re.sub(r'[^\w\s]', ' ', n2).strip()
+                            n1_palabras = set(n1_limpio.split())
+                            n2_palabras = set(n2_limpio.split())
+                            
+                            # Si tienen al menos 2 palabras en común y una longitud similar
+                            if len(n1_palabras & n2_palabras) >= 2 and abs(len(n1_limpio) - len(n2_limpio)) < 20:
+                                return True
+                            # O si uno contiene al otro (para nombres cortos)
+                            if n1_limpio in n2_limpio or n2_limpio in n1_limpio:
+                                return True
+                            return False
+                        
+                        # Coincidencia exacta (nombre Y proveedor)
+                        if stock_nombre == excel_nombre and stock_proveedor == excel_proveedor:
+                            coincidencia_exacta = stock_item
+                            break
+                        # Coincidencia por nombre exacto
+                        elif stock_nombre == excel_nombre:
+                            coincidencia_nombre = stock_item
+                        # Coincidencia por nombre similar
+                        elif nombres_similares(stock_nombre, excel_nombre):
+                            if not coincidencia_nombre:  # Solo si no hay coincidencia exacta
+                                coincidencia_nombre = stock_item
+                        # Coincidencia por proveedor solamente (solo si los nombres NO son similares)
+                        elif stock_proveedor == excel_proveedor and not nombres_similares(stock_nombre, excel_nombre):
+                            if not coincidencia_proveedor:  # Solo tomar la primera coincidencia por proveedor
+                                coincidencia_proveedor = stock_item
+                    
+                    # Priorizar coincidencias: Exacta > Nombre > Proveedor > NO ASIGNAR STOCK GENÉRICO
+                    if coincidencia_exacta:
+                        stock_info = coincidencia_exacta
+                        print(f"✅ Stock EXACTO: '{nombre_producto}' -> '{stock_info.get('nombre')}' ({stock_info.get('proveedor')}) - {stock_info.get('cantidad', 0)} unidades")
+                    elif coincidencia_nombre:
+                        stock_info = coincidencia_nombre
+                        print(f"� Stock por NOMBRE: '{nombre_producto}' -> '{stock_info.get('nombre')}' - {stock_info.get('cantidad', 0)} unidades")
+                    elif coincidencia_proveedor:
+                        stock_info = coincidencia_proveedor
+                        print(f"� Stock por PROVEEDOR: '{proveedor_producto}' -> '{stock_info.get('nombre')}' ({stock_info.get('proveedor')}) - {stock_info.get('cantidad', 0)} unidades")
+                    else:
+                        # NO asignar stock genérico - cada producto debe tener coincidencia específica
+                        print(f"❌ SIN STOCK: '{nombre_producto}' ({proveedor_producto}) con código {codigo_producto} - No hay coincidencias específicas")
+                        stock_info = None
+                    
+                    if stock_info:
+                        cantidad_stock = stock_info.get('cantidad', 0)
+                        en_stock = cantidad_stock > 0
             
             # Crear producto compatible con el formato esperado
+            # ID único basado en código + hash del nombre para distinguir productos diferentes con mismo código
+            import hashlib
+            nombre_hash = hashlib.md5(item_excel.get('nombre', '').encode('utf-8')).hexdigest()[:8]
             producto_excel = {
-                'id': f"excel_{item_excel.get('codigo', '')}_{item_excel.get('proveedor', '')}",
+                'id': f"excel_{item_excel.get('codigo', '')}_{item_excel.get('proveedor', '')}_{nombre_hash}",
                 'codigo': item_excel.get('codigo', ''),
                 'nombre': item_excel.get('nombre', ''),
                 'precio': precio_numerico,  # Usar valor numérico, no formateado
@@ -7508,10 +7656,11 @@ def procesar_escaneo():
                 'stock_id': stock_info.get('id') if stock_info else None
             }
             
-            # LÓGICA MEJORADA: Evitar duplicados pero priorizar productos con precio válido
+            # LÓGICA MEJORADA: Evitar duplicados usando código + nombre + proveedor como clave única
             indice_existente = -1
             for i, p in enumerate(productos_encontrados):
                 if (p.get('codigo') == producto_excel['codigo'] and 
+                    p.get('nombre', '').strip().lower() == producto_excel['nombre'].strip().lower() and
                     p.get('proveedor') == producto_excel['proveedor'] and
                     p.get('source') == 'excel'):
                     indice_existente = i
@@ -7523,7 +7672,7 @@ def procesar_escaneo():
                 precio_existente = float(existente.get('precio', 0))
                 precio_nuevo = float(precio_numerico or 0)
                 
-                print(f"🔄 DUPLICADO DETECTADO: {producto_excel['codigo']} | Existente: {precio_existente} | Nuevo: {precio_nuevo}")
+                print(f"🔄 DUPLICADO DETECTADO: {producto_excel['codigo']} - {producto_excel['nombre']} ({producto_excel['proveedor']}) | Existente: {precio_existente} | Nuevo: {precio_nuevo}")
                 
                 # Reemplazar si el nuevo tiene precio válido y el existente no
                 if precio_nuevo > 0 and precio_existente == 0:
@@ -7538,15 +7687,20 @@ def procesar_escaneo():
                 else:
                     print(f"📋 MANTENIENDO: Precio existente es igual o mejor")
             else:
-                # No existe, agregar si tiene precio válido o si no hay restricción
+                # No existe, agregar si tiene precio válido o si es único por código+nombre+proveedor
                 if precio_numerico and float(precio_numerico) > 0:
-                    print(f"➕ AGREGANDO: Nuevo producto con precio válido: {precio_numerico}")
+                    print(f"➕ AGREGANDO: Nuevo producto con precio válido: {producto_excel['nombre']} - ${precio_numerico}")
                     productos_encontrados.append(producto_excel)
-                elif not any(p.get('codigo') == producto_excel['codigo'] for p in productos_encontrados):
-                    print(f"➕ AGREGANDO: Nuevo producto sin precio pero único código: {producto_excel['codigo']}")
+                elif not any(
+                    p.get('codigo') == producto_excel['codigo'] and 
+                    p.get('nombre', '').strip().lower() == producto_excel['nombre'].strip().lower() and
+                    p.get('proveedor') == producto_excel['proveedor'] 
+                    for p in productos_encontrados
+                ):
+                    print(f"➕ AGREGANDO: Nuevo producto único sin precio: {producto_excel['nombre']} ({producto_excel['codigo']})")
                     productos_encontrados.append(producto_excel)
                 else:
-                    print(f"❌ DESCARTANDO: Producto con precio 0 y código ya existe")
+                    print(f"❌ DESCARTANDO: Producto duplicado con precio 0: {producto_excel['nombre']} ({producto_excel['codigo']})")
     except Exception as e:
         print(f"[WARN] Error buscando en Excel: {e}")
     
@@ -7688,9 +7842,84 @@ def procesar_venta_mesa():
             producto_id = item.get('id')
             cantidad = int(item.get('cantidad', 1))
             sin_stock = item.get('sinStock', False)
+            en_stock = item.get('en_stock', False)
+            stock_id = item.get('stock_id')  # ID del producto en la tabla stock
             
-            # Verificar si el producto viene de Excel (ID empieza con "excel_")
-            if str(producto_id).startswith('excel_'):
+            # Verificar si el producto viene de Excel pero tiene stock físico
+            if str(producto_id).startswith('excel_') and en_stock and stock_id:
+                # Producto de Excel con stock físico - actualizar stock usando stock_id
+                producto = db_query("SELECT * FROM stock WHERE id = ?", (stock_id,), fetch=True)
+                
+                if not producto:
+                    errores.append(f'Producto con stock ID {stock_id} no encontrado')
+                    continue
+                
+                producto = producto[0]
+                
+                # Verificar stock suficiente
+                if producto['cantidad'] < cantidad:
+                    errores.append(f'Stock insuficiente para "{producto["nombre"]}". Solo hay {producto["cantidad"]} unidades disponibles')
+                    continue
+                
+                # Actualizar el stock
+                nueva_cantidad = max(0, producto['cantidad'] - cantidad)
+                result = db_query("UPDATE stock SET cantidad = ? WHERE id = ?", (nueva_cantidad, producto['id']))
+                
+                if result:
+                    # Registrar en el historial
+                    db_query(
+                        "INSERT INTO historial (codigo, nombre, precio, cantidad, fecha_compra, proveedor, observaciones, precio_texto, dueno) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            item.get('codigo', ''),
+                            item.get('nombre', ''),
+                            item.get('precio', 0),
+                            cantidad,
+                            datetime.now().isoformat(timespec='seconds'),
+                            item.get('proveedor', ''),
+                            f'Venta por escáner - Mesa/Carrito (EXCEL CON STOCK)',
+                            str(item.get('precio', 0)),
+                            item.get('dueno', '')
+                        )
+                    )
+                    
+                    # Calcular subtotal
+                    precio_unitario = float(item.get('precio', 0))
+                    subtotal = precio_unitario * cantidad
+                    total_venta += subtotal
+                    
+                    productos_procesados.append({
+                        'nombre': item.get('nombre', ''),
+                        'cantidad': cantidad,
+                        'precio_unitario': precio_unitario,
+                        'subtotal': subtotal,
+                        'stock_restante': nueva_cantidad
+                    })
+                    
+                    # Verificar si el stock está bajo el umbral
+                    if producto.get('avisar_bajo_stock') and producto.get('min_stock_aviso') is not None:
+                        umbral = int(producto.get('min_stock_aviso'))
+                        if nueva_cantidad <= umbral:
+                            mensaje = f'Producto "{producto.get("nombre", "")}" bajo en stock (quedan {nueva_cantidad}, umbral {umbral}).'
+                            try:
+                                user_id = session.get('user_id')
+                                db_query(
+                                    "INSERT INTO notificaciones (codigo,nombre,proveedor,mensaje,ts,leida,user_id) VALUES (?,?,?,?,?,?,?)",
+                                    (
+                                        producto.get('codigo',''),
+                                        producto.get('nombre',''),
+                                        producto.get('proveedor',''),
+                                        mensaje,
+                                        datetime.now().isoformat(timespec='seconds'),
+                                        0,
+                                        user_id
+                                    )
+                                )
+                            except Exception as _e:
+                                pass
+                else:
+                    errores.append(f'Error al actualizar stock para "{item.get("nombre", "")}"')
+                
+            elif str(producto_id).startswith('excel_'):
                 # Producto solo en lista de precios - usar datos del item directamente
                 producto_excel = {
                     'codigo': item.get('codigo', ''),

@@ -683,9 +683,12 @@
             
             const producto = window.productosActuales[index];
             
-            // Verificar si ya existe en la mesa
+            // Verificar si ya existe en la mesa (usar ID único para mayor precisión)
             const existeIndex = mesaVentas.findIndex(item => 
-                item.codigo === producto.codigo && item.proveedor === producto.proveedor
+                item.id === producto.id || 
+                (item.codigo === producto.codigo && 
+                 item.nombre.trim().toLowerCase() === producto.nombre.trim().toLowerCase() && 
+                 item.proveedor === producto.proveedor)
             );
             
             if (existeIndex >= 0) {
@@ -694,15 +697,17 @@
             } else {
                 // Si no existe, agregar nuevo
                 mesaVentas.push({
-                    id: ++contadorId,
+                    id: producto.id || `excel_${producto.codigo}_${producto.proveedor}`,  // Usar el ID original
                     codigo: producto.codigo,
                     nombre: producto.nombre,
                     precio: parseFloat(producto.precio) || 0,
                     cantidad: 1,
                     proveedor: producto.proveedor,
+                    dueno: producto.dueno,
                     en_stock: producto.en_stock || false,
                     stock_disponible: producto.cantidad || 0,
-                    source: producto.source || 'excel'
+                    source: producto.source || 'excel',
+                    stock_id: producto.stock_id || null  // ID del stock físico si existe
                 });
             }
             
@@ -922,15 +927,17 @@
             if (confirm(`¿Vender 1 unidad de "${producto.nombre}"?`)) {
                 // Agregar a mesa y procesar inmediatamente
                 mesaVentas = [{
-                    id: ++contadorId,
+                    id: producto.id || `excel_${producto.codigo}_${producto.proveedor}`,  // Usar el ID original
                     codigo: producto.codigo,
                     nombre: producto.nombre,
                     precio: parseFloat(producto.precio) || 0,
                     cantidad: 1,
                     proveedor: producto.proveedor,
-                    en_stock: true,
+                    dueno: producto.dueno,
+                    en_stock: producto.en_stock || false,
                     stock_disponible: producto.cantidad || 0,
-                    source: producto.source || 'stock'
+                    source: producto.source || 'excel',
+                    stock_id: producto.stock_id || null  // ID del stock físico si existe
                 }];
                 
                 procesarVentaMesa();
